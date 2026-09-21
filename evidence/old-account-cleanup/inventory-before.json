@@ -1,0 +1,1801 @@
+{
+  "ambiguous_dependencies": [
+    {
+      "id": "arn:aws:iam::421515025823:role/SOC-Middleware-Role",
+      "reason": "IAM resource has the expected SOC-Middleware-Role name but does not match the strict Project tag or soc-automation- Name-prefix cleanup rule.",
+      "resource_type": "iam-role",
+      "status": "BLOCKED pending user confirmation"
+    },
+    {
+      "id": "arn:aws:iam::421515025823:instance-profile/SOC-Middleware-Role",
+      "reason": "IAM resource has the expected SOC-Middleware-Role name but does not match the strict Project tag or soc-automation- Name-prefix cleanup rule.",
+      "resource_type": "iam-instance-profile",
+      "status": "BLOCKED pending user confirmation"
+    }
+  ],
+  "default_vpc_exclusions": [],
+  "generated_at_utc": "2026-09-08T14:46:07.599334+00:00",
+  "identity": {
+    "account_id": "421515025823",
+    "active_profile": "default credential chain; AWS_PROFILE not set",
+    "caller_arn": "arn:aws:iam::421515025823:user/cyber-user",
+    "configured_region": "ap-southeast-1",
+    "credential_source_summary": [
+      {
+        "name": "access_key",
+        "source": "shared-credentials-file",
+        "value": "<redacted>"
+      },
+      {
+        "name": "secret_key",
+        "source": "shared-credentials-file",
+        "value": "<redacted>"
+      },
+      {
+        "name": "region",
+        "source": "config-file",
+        "value": "ap-southeast-1"
+      }
+    ]
+  },
+  "inventory_errors": [],
+  "resource_group_tagging_project_resources": [
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-04b84a9083b538649",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-mgmt-public-1a"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:route-table/rtb-00f1d65a0d9a4cf2c",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-soc-private-rt"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-09232eb5d82ddab7a",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-soc-private-1a"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:vpc/vpc-0d53143e2f0a14450",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-mgmt-vpc"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:internet-gateway/igw-01b777b4c1c717e9f",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-mgmt-igw"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:internet-gateway/igw-07cd9187e7423d4d3",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-soc-igw"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:route-table/rtb-053921ab07c4d5e2e",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-mgmt-public-rt"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:security-group/sg-0dcbfd4796182c3b2",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-security-mgmt-sg"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:security-group/sg-0f0f82178384295fd",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-web-sg"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-0dd8f8677781c9f44",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-soc-public-1a"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:route-table/rtb-0011c474f65ad1e98",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-soc-public-rt"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:security-group/sg-039424d17ef6630ec",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-db-sg"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-0e6a021cf71f8a608",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-soc-private-1b"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:route-table/rtb-0dd1e11e886f4ad75",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-mgmt-private-rt"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-0a75f102db2028159",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-soc-public-1b"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:vpc/vpc-0fda586ca71a8e583",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-soc-vpc"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-07ce59ad6eb6d68aa",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-mgmt-private-1a"
+        }
+      ]
+    },
+    {
+      "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:vpc-peering-connection/pcx-0ec60bac4cf5228bc",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-soc-to-mgmt-peering"
+        }
+      ]
+    }
+  ],
+  "resources": {
+    "ec2_instances": [],
+    "elastic_ip_addresses": [],
+    "iam": {
+      "instance_profile": {
+        "ambiguous_dependency": true,
+        "arn": "arn:aws:iam::421515025823:instance-profile/SOC-Middleware-Role",
+        "cleanup_candidate": false,
+        "cleanup_match_reasons": [
+          "Explicit project IAM name requested for inspection, but no Project=soc-automation tag or soc-automation- Name prefix"
+        ],
+        "id": "SOC-Middleware-Role",
+        "roles": [
+          "SOC-Middleware-Role"
+        ],
+        "tags": {}
+      },
+      "policy": {
+        "ambiguous_dependency": false,
+        "arn": "arn:aws:iam::421515025823:policy/SOC-Middleware-WebSG-Policy",
+        "attachment_count": 1,
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Explicit project IAM policy name requested for inspection"
+        ],
+        "default_version_id": "v1",
+        "id": "SOC-Middleware-WebSG-Policy",
+        "tags": {
+          "Project": "soc-automation"
+        },
+        "versions": [
+          {
+            "is_default": null,
+            "version_id": "v1"
+          }
+        ]
+      },
+      "role": {
+        "ambiguous_dependency": true,
+        "arn": "arn:aws:iam::421515025823:role/SOC-Middleware-Role",
+        "cleanup_candidate": false,
+        "cleanup_match_reasons": [
+          "Explicit project IAM name requested for inspection, but no Project=soc-automation tag or soc-automation- Name prefix"
+        ],
+        "id": "SOC-Middleware-Role",
+        "path": "/",
+        "tags": {}
+      }
+    },
+    "internet_gateways": [
+      {
+        "Attachments": [
+          {
+            "State": "available",
+            "VpcId": "vpc-0d53143e2f0a14450"
+          }
+        ],
+        "InternetGatewayId": "igw-01b777b4c1c717e9f",
+        "OwnerId": "421515025823",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-mgmt-igw"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ],
+        "ambiguous_dependency": false,
+        "attached_vpcs": [
+          "vpc-0d53143e2f0a14450"
+        ],
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "igw-01b777b4c1c717e9f",
+        "tags_map": {
+          "Name": "soc-automation-mgmt-igw",
+          "Project": "soc-automation"
+        }
+      },
+      {
+        "Attachments": [
+          {
+            "State": "available",
+            "VpcId": "vpc-0fda586ca71a8e583"
+          }
+        ],
+        "InternetGatewayId": "igw-07cd9187e7423d4d3",
+        "OwnerId": "421515025823",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-soc-igw"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ],
+        "ambiguous_dependency": false,
+        "attached_vpcs": [
+          "vpc-0fda586ca71a8e583"
+        ],
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "igw-07cd9187e7423d4d3",
+        "tags_map": {
+          "Name": "soc-automation-soc-igw",
+          "Project": "soc-automation"
+        }
+      }
+    ],
+    "load_balancers_classic": [],
+    "load_balancers_elbv2": [],
+    "nat_gateways": [],
+    "network_acls": [
+      {
+        "Associations": [
+          {
+            "NetworkAclAssociationId": "aclassoc-098bc6e55becff011",
+            "NetworkAclId": "acl-0c0a6b5ad6def4a77",
+            "SubnetId": "subnet-07ce59ad6eb6d68aa"
+          },
+          {
+            "NetworkAclAssociationId": "aclassoc-03213e772e128a33d",
+            "NetworkAclId": "acl-0c0a6b5ad6def4a77",
+            "SubnetId": "subnet-04b84a9083b538649"
+          }
+        ],
+        "Entries": [
+          {
+            "CidrBlock": "0.0.0.0/0",
+            "Egress": true,
+            "Protocol": "-1",
+            "RuleAction": "allow",
+            "RuleNumber": 100
+          },
+          {
+            "CidrBlock": "0.0.0.0/0",
+            "Egress": true,
+            "Protocol": "-1",
+            "RuleAction": "deny",
+            "RuleNumber": 32767
+          },
+          {
+            "CidrBlock": "0.0.0.0/0",
+            "Egress": false,
+            "Protocol": "-1",
+            "RuleAction": "allow",
+            "RuleNumber": 100
+          },
+          {
+            "CidrBlock": "0.0.0.0/0",
+            "Egress": false,
+            "Protocol": "-1",
+            "RuleAction": "deny",
+            "RuleNumber": 32767
+          }
+        ],
+        "IsDefault": true,
+        "NetworkAclId": "acl-0c0a6b5ad6def4a77",
+        "OwnerId": "421515025823",
+        "Tags": [],
+        "VpcId": "vpc-0d53143e2f0a14450",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": false,
+        "cleanup_match_reasons": [
+          "AWS default network ACL inside project VPC; deleted with VPC, not a separate cleanup target"
+        ],
+        "id": "acl-0c0a6b5ad6def4a77",
+        "tags_map": {}
+      },
+      {
+        "Associations": [
+          {
+            "NetworkAclAssociationId": "aclassoc-08ceddef909b9fefb",
+            "NetworkAclId": "acl-016a50040ba7f5bef",
+            "SubnetId": "subnet-09232eb5d82ddab7a"
+          },
+          {
+            "NetworkAclAssociationId": "aclassoc-06d8e155683e03495",
+            "NetworkAclId": "acl-016a50040ba7f5bef",
+            "SubnetId": "subnet-0dd8f8677781c9f44"
+          },
+          {
+            "NetworkAclAssociationId": "aclassoc-0612906ba2cf5b8e5",
+            "NetworkAclId": "acl-016a50040ba7f5bef",
+            "SubnetId": "subnet-0e6a021cf71f8a608"
+          },
+          {
+            "NetworkAclAssociationId": "aclassoc-03bf90fe153f56f25",
+            "NetworkAclId": "acl-016a50040ba7f5bef",
+            "SubnetId": "subnet-0a75f102db2028159"
+          }
+        ],
+        "Entries": [
+          {
+            "CidrBlock": "0.0.0.0/0",
+            "Egress": true,
+            "Protocol": "-1",
+            "RuleAction": "allow",
+            "RuleNumber": 100
+          },
+          {
+            "CidrBlock": "0.0.0.0/0",
+            "Egress": true,
+            "Protocol": "-1",
+            "RuleAction": "deny",
+            "RuleNumber": 32767
+          },
+          {
+            "CidrBlock": "0.0.0.0/0",
+            "Egress": false,
+            "Protocol": "-1",
+            "RuleAction": "allow",
+            "RuleNumber": 100
+          },
+          {
+            "CidrBlock": "0.0.0.0/0",
+            "Egress": false,
+            "Protocol": "-1",
+            "RuleAction": "deny",
+            "RuleNumber": 32767
+          }
+        ],
+        "IsDefault": true,
+        "NetworkAclId": "acl-016a50040ba7f5bef",
+        "OwnerId": "421515025823",
+        "Tags": [],
+        "VpcId": "vpc-0fda586ca71a8e583",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": false,
+        "cleanup_match_reasons": [
+          "AWS default network ACL inside project VPC; deleted with VPC, not a separate cleanup target"
+        ],
+        "id": "acl-016a50040ba7f5bef",
+        "tags_map": {}
+      }
+    ],
+    "network_interfaces": [],
+    "rds_db_clusters": [],
+    "rds_db_instances": [],
+    "rds_db_subnet_groups": [],
+    "route_tables": [
+      {
+        "Associations": [
+          {
+            "AssociationState": {
+              "State": "associated"
+            },
+            "Main": false,
+            "RouteTableAssociationId": "rtbassoc-09d11a25e45cc140b",
+            "RouteTableId": "rtb-053921ab07c4d5e2e",
+            "SubnetId": "subnet-04b84a9083b538649"
+          }
+        ],
+        "OwnerId": "421515025823",
+        "PropagatingVgws": [],
+        "RouteTableId": "rtb-053921ab07c4d5e2e",
+        "Routes": [
+          {
+            "DestinationCidrBlock": "10.0.0.0/16",
+            "Origin": "CreateRoute",
+            "State": "active",
+            "VpcPeeringConnectionId": "pcx-0ec60bac4cf5228bc"
+          },
+          {
+            "DestinationCidrBlock": "10.1.0.0/16",
+            "GatewayId": "local",
+            "Origin": "CreateRouteTable",
+            "State": "active"
+          },
+          {
+            "DestinationCidrBlock": "0.0.0.0/0",
+            "GatewayId": "igw-01b777b4c1c717e9f",
+            "Origin": "CreateRoute",
+            "State": "active"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-mgmt-public-rt"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ],
+        "VpcId": "vpc-0d53143e2f0a14450",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "rtb-053921ab07c4d5e2e",
+        "tags_map": {
+          "Name": "soc-automation-mgmt-public-rt",
+          "Project": "soc-automation"
+        }
+      },
+      {
+        "Associations": [
+          {
+            "AssociationState": {
+              "State": "associated"
+            },
+            "Main": false,
+            "RouteTableAssociationId": "rtbassoc-03099931c766cfda1",
+            "RouteTableId": "rtb-00f1d65a0d9a4cf2c",
+            "SubnetId": "subnet-0e6a021cf71f8a608"
+          },
+          {
+            "AssociationState": {
+              "State": "associated"
+            },
+            "Main": false,
+            "RouteTableAssociationId": "rtbassoc-0d86ed55f08e094d5",
+            "RouteTableId": "rtb-00f1d65a0d9a4cf2c",
+            "SubnetId": "subnet-09232eb5d82ddab7a"
+          }
+        ],
+        "OwnerId": "421515025823",
+        "PropagatingVgws": [],
+        "RouteTableId": "rtb-00f1d65a0d9a4cf2c",
+        "Routes": [
+          {
+            "DestinationCidrBlock": "10.0.0.0/16",
+            "GatewayId": "local",
+            "Origin": "CreateRouteTable",
+            "State": "active"
+          },
+          {
+            "DestinationCidrBlock": "10.1.0.0/16",
+            "Origin": "CreateRoute",
+            "State": "active",
+            "VpcPeeringConnectionId": "pcx-0ec60bac4cf5228bc"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          },
+          {
+            "Key": "Name",
+            "Value": "soc-automation-soc-private-rt"
+          }
+        ],
+        "VpcId": "vpc-0fda586ca71a8e583",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "rtb-00f1d65a0d9a4cf2c",
+        "tags_map": {
+          "Name": "soc-automation-soc-private-rt",
+          "Project": "soc-automation"
+        }
+      },
+      {
+        "Associations": [
+          {
+            "AssociationState": {
+              "State": "associated"
+            },
+            "Main": false,
+            "RouteTableAssociationId": "rtbassoc-09a5cd67cb8dc4ae2",
+            "RouteTableId": "rtb-0011c474f65ad1e98",
+            "SubnetId": "subnet-0a75f102db2028159"
+          },
+          {
+            "AssociationState": {
+              "State": "associated"
+            },
+            "Main": false,
+            "RouteTableAssociationId": "rtbassoc-026877ecd0e080753",
+            "RouteTableId": "rtb-0011c474f65ad1e98",
+            "SubnetId": "subnet-0dd8f8677781c9f44"
+          }
+        ],
+        "OwnerId": "421515025823",
+        "PropagatingVgws": [],
+        "RouteTableId": "rtb-0011c474f65ad1e98",
+        "Routes": [
+          {
+            "DestinationCidrBlock": "10.0.0.0/16",
+            "GatewayId": "local",
+            "Origin": "CreateRouteTable",
+            "State": "active"
+          },
+          {
+            "DestinationCidrBlock": "10.1.0.0/16",
+            "Origin": "CreateRoute",
+            "State": "active",
+            "VpcPeeringConnectionId": "pcx-0ec60bac4cf5228bc"
+          },
+          {
+            "DestinationCidrBlock": "0.0.0.0/0",
+            "GatewayId": "igw-07cd9187e7423d4d3",
+            "Origin": "CreateRoute",
+            "State": "active"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          },
+          {
+            "Key": "Name",
+            "Value": "soc-automation-soc-public-rt"
+          }
+        ],
+        "VpcId": "vpc-0fda586ca71a8e583",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "rtb-0011c474f65ad1e98",
+        "tags_map": {
+          "Name": "soc-automation-soc-public-rt",
+          "Project": "soc-automation"
+        }
+      },
+      {
+        "Associations": [
+          {
+            "AssociationState": {
+              "State": "associated"
+            },
+            "Main": false,
+            "RouteTableAssociationId": "rtbassoc-0b756ad459dbccc97",
+            "RouteTableId": "rtb-0dd1e11e886f4ad75",
+            "SubnetId": "subnet-07ce59ad6eb6d68aa"
+          }
+        ],
+        "OwnerId": "421515025823",
+        "PropagatingVgws": [],
+        "RouteTableId": "rtb-0dd1e11e886f4ad75",
+        "Routes": [
+          {
+            "DestinationCidrBlock": "10.0.0.0/16",
+            "Origin": "CreateRoute",
+            "State": "active",
+            "VpcPeeringConnectionId": "pcx-0ec60bac4cf5228bc"
+          },
+          {
+            "DestinationCidrBlock": "10.1.0.0/16",
+            "GatewayId": "local",
+            "Origin": "CreateRouteTable",
+            "State": "active"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-mgmt-private-rt"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ],
+        "VpcId": "vpc-0d53143e2f0a14450",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "rtb-0dd1e11e886f4ad75",
+        "tags_map": {
+          "Name": "soc-automation-mgmt-private-rt",
+          "Project": "soc-automation"
+        }
+      },
+      {
+        "Associations": [
+          {
+            "AssociationState": {
+              "State": "associated"
+            },
+            "Main": true,
+            "RouteTableAssociationId": "rtbassoc-0302a0d4868a335f2",
+            "RouteTableId": "rtb-08a63f5113aa20dc0"
+          }
+        ],
+        "OwnerId": "421515025823",
+        "PropagatingVgws": [],
+        "RouteTableId": "rtb-08a63f5113aa20dc0",
+        "Routes": [
+          {
+            "DestinationCidrBlock": "10.1.0.0/16",
+            "GatewayId": "local",
+            "Origin": "CreateRouteTable",
+            "State": "active"
+          }
+        ],
+        "Tags": [],
+        "VpcId": "vpc-0d53143e2f0a14450",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": false,
+        "cleanup_match_reasons": [
+          "AWS main route table inside project VPC; deleted with VPC, not a separate cleanup target"
+        ],
+        "id": "rtb-08a63f5113aa20dc0",
+        "tags_map": {}
+      },
+      {
+        "Associations": [
+          {
+            "AssociationState": {
+              "State": "associated"
+            },
+            "Main": true,
+            "RouteTableAssociationId": "rtbassoc-07ddd86f0a1431d4e",
+            "RouteTableId": "rtb-05f373f548095b016"
+          }
+        ],
+        "OwnerId": "421515025823",
+        "PropagatingVgws": [],
+        "RouteTableId": "rtb-05f373f548095b016",
+        "Routes": [
+          {
+            "DestinationCidrBlock": "10.0.0.0/16",
+            "GatewayId": "local",
+            "Origin": "CreateRouteTable",
+            "State": "active"
+          }
+        ],
+        "Tags": [],
+        "VpcId": "vpc-0fda586ca71a8e583",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": false,
+        "cleanup_match_reasons": [
+          "AWS main route table inside project VPC; deleted with VPC, not a separate cleanup target"
+        ],
+        "id": "rtb-05f373f548095b016",
+        "tags_map": {}
+      }
+    ],
+    "security_groups": [
+      {
+        "Description": "SOC database: Elasticsearch, Wazuh indexer",
+        "GroupId": "sg-039424d17ef6630ec",
+        "GroupName": "soc-automation-db-sg",
+        "IpPermissions": [
+          {
+            "FromPort": 22,
+            "IpProtocol": "tcp",
+            "IpRanges": [
+              {
+                "CidrIp": "10.1.0.0/16"
+              }
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "ToPort": 22,
+            "UserIdGroupPairs": []
+          },
+          {
+            "FromPort": 9300,
+            "IpProtocol": "tcp",
+            "IpRanges": [
+              {
+                "CidrIp": "10.0.0.0/16"
+              }
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "ToPort": 9300,
+            "UserIdGroupPairs": []
+          },
+          {
+            "FromPort": 1516,
+            "IpProtocol": "tcp",
+            "IpRanges": [],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "ToPort": 1516,
+            "UserIdGroupPairs": [
+              {
+                "GroupId": "sg-0f0f82178384295fd",
+                "UserId": "421515025823"
+              }
+            ]
+          },
+          {
+            "FromPort": 9200,
+            "IpProtocol": "tcp",
+            "IpRanges": [],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "ToPort": 9200,
+            "UserIdGroupPairs": [
+              {
+                "GroupId": "sg-0f0f82178384295fd",
+                "UserId": "421515025823"
+              }
+            ]
+          }
+        ],
+        "IpPermissionsEgress": [
+          {
+            "IpProtocol": "-1",
+            "IpRanges": [
+              {
+                "CidrIp": "0.0.0.0/0"
+              }
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "UserIdGroupPairs": []
+          }
+        ],
+        "OwnerId": "421515025823",
+        "SecurityGroupArn": "arn:aws:ec2:ap-southeast-1:421515025823:security-group/sg-039424d17ef6630ec",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-db-sg"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ],
+        "VpcId": "vpc-0fda586ca71a8e583",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "sg-039424d17ef6630ec",
+        "tags_map": {
+          "Name": "soc-automation-db-sg",
+          "Project": "soc-automation"
+        }
+      },
+      {
+        "Description": "Management bastion: SSH, dashboard access",
+        "GroupId": "sg-0dcbfd4796182c3b2",
+        "GroupName": "soc-automation-security-mgmt-sg",
+        "IpPermissions": [
+          {
+            "FromPort": 22,
+            "IpProtocol": "tcp",
+            "IpRanges": [
+              {
+                "CidrIp": "0.0.0.0/0"
+              }
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "ToPort": 22,
+            "UserIdGroupPairs": []
+          },
+          {
+            "FromPort": 443,
+            "IpProtocol": "tcp",
+            "IpRanges": [
+              {
+                "CidrIp": "0.0.0.0/0"
+              }
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "ToPort": 443,
+            "UserIdGroupPairs": []
+          },
+          {
+            "FromPort": 55000,
+            "IpProtocol": "tcp",
+            "IpRanges": [
+              {
+                "CidrIp": "10.0.0.0/16"
+              }
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "ToPort": 55000,
+            "UserIdGroupPairs": []
+          }
+        ],
+        "IpPermissionsEgress": [
+          {
+            "IpProtocol": "-1",
+            "IpRanges": [
+              {
+                "CidrIp": "0.0.0.0/0"
+              }
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "UserIdGroupPairs": []
+          }
+        ],
+        "OwnerId": "421515025823",
+        "SecurityGroupArn": "arn:aws:ec2:ap-southeast-1:421515025823:security-group/sg-0dcbfd4796182c3b2",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-security-mgmt-sg"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ],
+        "VpcId": "vpc-0d53143e2f0a14450",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "sg-0dcbfd4796182c3b2",
+        "tags_map": {
+          "Name": "soc-automation-security-mgmt-sg",
+          "Project": "soc-automation"
+        }
+      },
+      {
+        "Description": "SOC web-facing: HTTPS, Wazuh agent ports, syslog",
+        "GroupId": "sg-0f0f82178384295fd",
+        "GroupName": "soc-automation-web-sg",
+        "IpPermissions": [
+          {
+            "FromPort": 1515,
+            "IpProtocol": "tcp",
+            "IpRanges": [
+              {
+                "CidrIp": "10.0.0.0/16"
+              }
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "ToPort": 1515,
+            "UserIdGroupPairs": []
+          },
+          {
+            "FromPort": 22,
+            "IpProtocol": "tcp",
+            "IpRanges": [
+              {
+                "CidrIp": "10.1.0.0/16"
+              }
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "ToPort": 22,
+            "UserIdGroupPairs": []
+          },
+          {
+            "FromPort": 1514,
+            "IpProtocol": "tcp",
+            "IpRanges": [
+              {
+                "CidrIp": "10.0.0.0/16"
+              }
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "ToPort": 1514,
+            "UserIdGroupPairs": []
+          },
+          {
+            "FromPort": 443,
+            "IpProtocol": "tcp",
+            "IpRanges": [
+              {
+                "CidrIp": "0.0.0.0/0"
+              }
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "ToPort": 443,
+            "UserIdGroupPairs": []
+          },
+          {
+            "FromPort": 514,
+            "IpProtocol": "udp",
+            "IpRanges": [
+              {
+                "CidrIp": "10.0.0.0/16"
+              }
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "ToPort": 514,
+            "UserIdGroupPairs": []
+          }
+        ],
+        "IpPermissionsEgress": [
+          {
+            "IpProtocol": "-1",
+            "IpRanges": [
+              {
+                "CidrIp": "0.0.0.0/0"
+              }
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "UserIdGroupPairs": []
+          }
+        ],
+        "OwnerId": "421515025823",
+        "SecurityGroupArn": "arn:aws:ec2:ap-southeast-1:421515025823:security-group/sg-0f0f82178384295fd",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-web-sg"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ],
+        "VpcId": "vpc-0fda586ca71a8e583",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "sg-0f0f82178384295fd",
+        "tags_map": {
+          "Name": "soc-automation-web-sg",
+          "Project": "soc-automation"
+        }
+      },
+      {
+        "Description": "default VPC security group",
+        "GroupId": "sg-008389d7095f9b53a",
+        "GroupName": "default",
+        "IpPermissions": [
+          {
+            "IpProtocol": "-1",
+            "IpRanges": [],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "UserIdGroupPairs": [
+              {
+                "GroupId": "sg-008389d7095f9b53a",
+                "UserId": "421515025823"
+              }
+            ]
+          }
+        ],
+        "IpPermissionsEgress": [
+          {
+            "IpProtocol": "-1",
+            "IpRanges": [
+              {
+                "CidrIp": "0.0.0.0/0"
+              }
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "UserIdGroupPairs": []
+          }
+        ],
+        "OwnerId": "421515025823",
+        "SecurityGroupArn": "arn:aws:ec2:ap-southeast-1:421515025823:security-group/sg-008389d7095f9b53a",
+        "VpcId": "vpc-0d53143e2f0a14450",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": false,
+        "cleanup_match_reasons": [
+          "AWS default security group inside project VPC; deleted with VPC, not a separate cleanup target"
+        ],
+        "id": "sg-008389d7095f9b53a",
+        "tags_map": {}
+      },
+      {
+        "Description": "default VPC security group",
+        "GroupId": "sg-0941206a64a86a3fa",
+        "GroupName": "default",
+        "IpPermissions": [
+          {
+            "IpProtocol": "-1",
+            "IpRanges": [],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "UserIdGroupPairs": [
+              {
+                "GroupId": "sg-0941206a64a86a3fa",
+                "UserId": "421515025823"
+              }
+            ]
+          }
+        ],
+        "IpPermissionsEgress": [
+          {
+            "IpProtocol": "-1",
+            "IpRanges": [
+              {
+                "CidrIp": "0.0.0.0/0"
+              }
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "UserIdGroupPairs": []
+          }
+        ],
+        "OwnerId": "421515025823",
+        "SecurityGroupArn": "arn:aws:ec2:ap-southeast-1:421515025823:security-group/sg-0941206a64a86a3fa",
+        "VpcId": "vpc-0fda586ca71a8e583",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": false,
+        "cleanup_match_reasons": [
+          "AWS default security group inside project VPC; deleted with VPC, not a separate cleanup target"
+        ],
+        "id": "sg-0941206a64a86a3fa",
+        "tags_map": {}
+      }
+    ],
+    "subnets": [
+      {
+        "AssignIpv6AddressOnCreation": false,
+        "AvailabilityZone": "ap-southeast-1a",
+        "AvailabilityZoneId": "apse1-az2",
+        "AvailableIpAddressCount": 251,
+        "BlockPublicAccessStates": {
+          "InternetGatewayBlockMode": "off"
+        },
+        "CidrBlock": "10.0.1.0/24",
+        "DefaultForAz": false,
+        "EnableDns64": false,
+        "Ipv6CidrBlockAssociationSet": [],
+        "Ipv6Native": false,
+        "MapCustomerOwnedIpOnLaunch": false,
+        "MapPublicIpOnLaunch": true,
+        "OwnerId": "421515025823",
+        "PrivateDnsNameOptionsOnLaunch": {
+          "EnableResourceNameDnsAAAARecord": false,
+          "EnableResourceNameDnsARecord": false,
+          "HostnameType": "ip-name"
+        },
+        "State": "available",
+        "SubnetArn": "arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-0dd8f8677781c9f44",
+        "SubnetId": "subnet-0dd8f8677781c9f44",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          },
+          {
+            "Key": "Name",
+            "Value": "soc-automation-soc-public-1a"
+          }
+        ],
+        "VpcId": "vpc-0fda586ca71a8e583",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "subnet-0dd8f8677781c9f44",
+        "tags_map": {
+          "Name": "soc-automation-soc-public-1a",
+          "Project": "soc-automation"
+        }
+      },
+      {
+        "AssignIpv6AddressOnCreation": false,
+        "AvailabilityZone": "ap-southeast-1b",
+        "AvailabilityZoneId": "apse1-az1",
+        "AvailableIpAddressCount": 251,
+        "BlockPublicAccessStates": {
+          "InternetGatewayBlockMode": "off"
+        },
+        "CidrBlock": "10.0.20.0/24",
+        "DefaultForAz": false,
+        "EnableDns64": false,
+        "Ipv6CidrBlockAssociationSet": [],
+        "Ipv6Native": false,
+        "MapCustomerOwnedIpOnLaunch": false,
+        "MapPublicIpOnLaunch": false,
+        "OwnerId": "421515025823",
+        "PrivateDnsNameOptionsOnLaunch": {
+          "EnableResourceNameDnsAAAARecord": false,
+          "EnableResourceNameDnsARecord": false,
+          "HostnameType": "ip-name"
+        },
+        "State": "available",
+        "SubnetArn": "arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-0e6a021cf71f8a608",
+        "SubnetId": "subnet-0e6a021cf71f8a608",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-soc-private-1b"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ],
+        "VpcId": "vpc-0fda586ca71a8e583",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "subnet-0e6a021cf71f8a608",
+        "tags_map": {
+          "Name": "soc-automation-soc-private-1b",
+          "Project": "soc-automation"
+        }
+      },
+      {
+        "AssignIpv6AddressOnCreation": false,
+        "AvailabilityZone": "ap-southeast-1a",
+        "AvailabilityZoneId": "apse1-az2",
+        "AvailableIpAddressCount": 251,
+        "BlockPublicAccessStates": {
+          "InternetGatewayBlockMode": "off"
+        },
+        "CidrBlock": "10.1.10.0/24",
+        "DefaultForAz": false,
+        "EnableDns64": false,
+        "Ipv6CidrBlockAssociationSet": [],
+        "Ipv6Native": false,
+        "MapCustomerOwnedIpOnLaunch": false,
+        "MapPublicIpOnLaunch": false,
+        "OwnerId": "421515025823",
+        "PrivateDnsNameOptionsOnLaunch": {
+          "EnableResourceNameDnsAAAARecord": false,
+          "EnableResourceNameDnsARecord": false,
+          "HostnameType": "ip-name"
+        },
+        "State": "available",
+        "SubnetArn": "arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-07ce59ad6eb6d68aa",
+        "SubnetId": "subnet-07ce59ad6eb6d68aa",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-mgmt-private-1a"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ],
+        "VpcId": "vpc-0d53143e2f0a14450",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "subnet-07ce59ad6eb6d68aa",
+        "tags_map": {
+          "Name": "soc-automation-mgmt-private-1a",
+          "Project": "soc-automation"
+        }
+      },
+      {
+        "AssignIpv6AddressOnCreation": false,
+        "AvailabilityZone": "ap-southeast-1b",
+        "AvailabilityZoneId": "apse1-az1",
+        "AvailableIpAddressCount": 251,
+        "BlockPublicAccessStates": {
+          "InternetGatewayBlockMode": "off"
+        },
+        "CidrBlock": "10.0.2.0/24",
+        "DefaultForAz": false,
+        "EnableDns64": false,
+        "Ipv6CidrBlockAssociationSet": [],
+        "Ipv6Native": false,
+        "MapCustomerOwnedIpOnLaunch": false,
+        "MapPublicIpOnLaunch": true,
+        "OwnerId": "421515025823",
+        "PrivateDnsNameOptionsOnLaunch": {
+          "EnableResourceNameDnsAAAARecord": false,
+          "EnableResourceNameDnsARecord": false,
+          "HostnameType": "ip-name"
+        },
+        "State": "available",
+        "SubnetArn": "arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-0a75f102db2028159",
+        "SubnetId": "subnet-0a75f102db2028159",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          },
+          {
+            "Key": "Name",
+            "Value": "soc-automation-soc-public-1b"
+          }
+        ],
+        "VpcId": "vpc-0fda586ca71a8e583",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "subnet-0a75f102db2028159",
+        "tags_map": {
+          "Name": "soc-automation-soc-public-1b",
+          "Project": "soc-automation"
+        }
+      },
+      {
+        "AssignIpv6AddressOnCreation": false,
+        "AvailabilityZone": "ap-southeast-1a",
+        "AvailabilityZoneId": "apse1-az2",
+        "AvailableIpAddressCount": 251,
+        "BlockPublicAccessStates": {
+          "InternetGatewayBlockMode": "off"
+        },
+        "CidrBlock": "10.0.10.0/24",
+        "DefaultForAz": false,
+        "EnableDns64": false,
+        "Ipv6CidrBlockAssociationSet": [],
+        "Ipv6Native": false,
+        "MapCustomerOwnedIpOnLaunch": false,
+        "MapPublicIpOnLaunch": false,
+        "OwnerId": "421515025823",
+        "PrivateDnsNameOptionsOnLaunch": {
+          "EnableResourceNameDnsAAAARecord": false,
+          "EnableResourceNameDnsARecord": false,
+          "HostnameType": "ip-name"
+        },
+        "State": "available",
+        "SubnetArn": "arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-09232eb5d82ddab7a",
+        "SubnetId": "subnet-09232eb5d82ddab7a",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          },
+          {
+            "Key": "Name",
+            "Value": "soc-automation-soc-private-1a"
+          }
+        ],
+        "VpcId": "vpc-0fda586ca71a8e583",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "subnet-09232eb5d82ddab7a",
+        "tags_map": {
+          "Name": "soc-automation-soc-private-1a",
+          "Project": "soc-automation"
+        }
+      },
+      {
+        "AssignIpv6AddressOnCreation": false,
+        "AvailabilityZone": "ap-southeast-1a",
+        "AvailabilityZoneId": "apse1-az2",
+        "AvailableIpAddressCount": 251,
+        "BlockPublicAccessStates": {
+          "InternetGatewayBlockMode": "off"
+        },
+        "CidrBlock": "10.1.1.0/24",
+        "DefaultForAz": false,
+        "EnableDns64": false,
+        "Ipv6CidrBlockAssociationSet": [],
+        "Ipv6Native": false,
+        "MapCustomerOwnedIpOnLaunch": false,
+        "MapPublicIpOnLaunch": true,
+        "OwnerId": "421515025823",
+        "PrivateDnsNameOptionsOnLaunch": {
+          "EnableResourceNameDnsAAAARecord": false,
+          "EnableResourceNameDnsARecord": false,
+          "HostnameType": "ip-name"
+        },
+        "State": "available",
+        "SubnetArn": "arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-04b84a9083b538649",
+        "SubnetId": "subnet-04b84a9083b538649",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-mgmt-public-1a"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ],
+        "VpcId": "vpc-0d53143e2f0a14450",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "subnet-04b84a9083b538649",
+        "tags_map": {
+          "Name": "soc-automation-mgmt-public-1a",
+          "Project": "soc-automation"
+        }
+      }
+    ],
+    "vpc_endpoints": [],
+    "vpc_peering_connections": [
+      {
+        "AccepterVpcInfo": {
+          "CidrBlock": "10.1.0.0/16",
+          "CidrBlockSet": [
+            {
+              "CidrBlock": "10.1.0.0/16"
+            }
+          ],
+          "OwnerId": "421515025823",
+          "PeeringOptions": {
+            "AllowDnsResolutionFromRemoteVpc": false,
+            "AllowEgressFromLocalClassicLinkToRemoteVpc": false,
+            "AllowEgressFromLocalVpcToRemoteClassicLink": false
+          },
+          "Region": "ap-southeast-1",
+          "VpcId": "vpc-0d53143e2f0a14450"
+        },
+        "RequesterVpcInfo": {
+          "CidrBlock": "10.0.0.0/16",
+          "CidrBlockSet": [
+            {
+              "CidrBlock": "10.0.0.0/16"
+            }
+          ],
+          "OwnerId": "421515025823",
+          "PeeringOptions": {
+            "AllowDnsResolutionFromRemoteVpc": false,
+            "AllowEgressFromLocalClassicLinkToRemoteVpc": false,
+            "AllowEgressFromLocalVpcToRemoteClassicLink": false
+          },
+          "Region": "ap-southeast-1",
+          "VpcId": "vpc-0fda586ca71a8e583"
+        },
+        "Status": {
+          "Code": "active",
+          "Message": "Active"
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          },
+          {
+            "Key": "Name",
+            "Value": "soc-automation-soc-to-mgmt-peering"
+          }
+        ],
+        "VpcPeeringConnectionId": "pcx-0ec60bac4cf5228bc",
+        "accepter_vpc_id": "vpc-0d53143e2f0a14450",
+        "ambiguous_dependency": false,
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "pcx-0ec60bac4cf5228bc",
+        "requester_vpc_id": "vpc-0fda586ca71a8e583",
+        "tags_map": {
+          "Name": "soc-automation-soc-to-mgmt-peering",
+          "Project": "soc-automation"
+        }
+      }
+    ],
+    "vpcs": [
+      {
+        "ambiguous_dependency": false,
+        "arn": "arn:aws:ec2:ap-southeast-1:421515025823:vpc/vpc-0d53143e2f0a14450",
+        "cidr_block": "10.1.0.0/16",
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "vpc-0d53143e2f0a14450",
+        "is_default_vpc": false,
+        "state": "available",
+        "tags": {
+          "Name": "soc-automation-mgmt-vpc",
+          "Project": "soc-automation"
+        }
+      },
+      {
+        "ambiguous_dependency": false,
+        "arn": "arn:aws:ec2:ap-southeast-1:421515025823:vpc/vpc-0fda586ca71a8e583",
+        "cidr_block": "10.0.0.0/16",
+        "cleanup_candidate": true,
+        "cleanup_match_reasons": [
+          "Project tag = soc-automation",
+          "Name tag/name begins with soc-automation-"
+        ],
+        "id": "vpc-0fda586ca71a8e583",
+        "is_default_vpc": false,
+        "state": "available",
+        "tags": {
+          "Name": "soc-automation-soc-vpc",
+          "Project": "soc-automation"
+        }
+      }
+    ]
+  },
+  "scope": {
+    "cleanup_selection_rule": "Only resources with Project=soc-automation or Name/name beginning soc-automation- are cleanup candidates. Untagged resources inside project VPCs are dependencies or ambiguous blockers, not approved cleanup targets.",
+    "name_prefix": "soc-automation-",
+    "project_tag": "Project=soc-automation",
+    "region": "ap-southeast-1"
+  },
+  "vpc_deletion_blockers": [
+    {
+      "ambiguous_dependency": false,
+      "cleanup_candidate": true,
+      "id": "igw-01b777b4c1c717e9f",
+      "reason": [
+        "Project tag = soc-automation",
+        "Name tag/name begins with soc-automation-"
+      ],
+      "resource_type": "internet_gateways"
+    },
+    {
+      "ambiguous_dependency": false,
+      "cleanup_candidate": true,
+      "id": "igw-07cd9187e7423d4d3",
+      "reason": [
+        "Project tag = soc-automation",
+        "Name tag/name begins with soc-automation-"
+      ],
+      "resource_type": "internet_gateways"
+    },
+    {
+      "ambiguous_dependency": false,
+      "cleanup_candidate": true,
+      "id": "pcx-0ec60bac4cf5228bc",
+      "reason": [
+        "Project tag = soc-automation",
+        "Name tag/name begins with soc-automation-"
+      ],
+      "resource_type": "vpc_peering_connections"
+    },
+    {
+      "ambiguous_dependency": false,
+      "cleanup_candidate": true,
+      "id": "sg-039424d17ef6630ec",
+      "reason": [
+        "Project tag = soc-automation",
+        "Name tag/name begins with soc-automation-"
+      ],
+      "resource_type": "security_groups"
+    },
+    {
+      "ambiguous_dependency": false,
+      "cleanup_candidate": true,
+      "id": "sg-0dcbfd4796182c3b2",
+      "reason": [
+        "Project tag = soc-automation",
+        "Name tag/name begins with soc-automation-"
+      ],
+      "resource_type": "security_groups"
+    },
+    {
+      "ambiguous_dependency": false,
+      "cleanup_candidate": true,
+      "id": "sg-0f0f82178384295fd",
+      "reason": [
+        "Project tag = soc-automation",
+        "Name tag/name begins with soc-automation-"
+      ],
+      "resource_type": "security_groups"
+    },
+    {
+      "ambiguous_dependency": false,
+      "cleanup_candidate": true,
+      "id": "rtb-053921ab07c4d5e2e",
+      "reason": [
+        "Project tag = soc-automation",
+        "Name tag/name begins with soc-automation-"
+      ],
+      "resource_type": "route_tables"
+    },
+    {
+      "ambiguous_dependency": false,
+      "cleanup_candidate": true,
+      "id": "rtb-00f1d65a0d9a4cf2c",
+      "reason": [
+        "Project tag = soc-automation",
+        "Name tag/name begins with soc-automation-"
+      ],
+      "resource_type": "route_tables"
+    },
+    {
+      "ambiguous_dependency": false,
+      "cleanup_candidate": true,
+      "id": "rtb-0011c474f65ad1e98",
+      "reason": [
+        "Project tag = soc-automation",
+        "Name tag/name begins with soc-automation-"
+      ],
+      "resource_type": "route_tables"
+    },
+    {
+      "ambiguous_dependency": false,
+      "cleanup_candidate": true,
+      "id": "rtb-0dd1e11e886f4ad75",
+      "reason": [
+        "Project tag = soc-automation",
+        "Name tag/name begins with soc-automation-"
+      ],
+      "resource_type": "route_tables"
+    },
+    {
+      "ambiguous_dependency": false,
+      "cleanup_candidate": true,
+      "id": "subnet-0dd8f8677781c9f44",
+      "reason": [
+        "Project tag = soc-automation",
+        "Name tag/name begins with soc-automation-"
+      ],
+      "resource_type": "subnets"
+    },
+    {
+      "ambiguous_dependency": false,
+      "cleanup_candidate": true,
+      "id": "subnet-0e6a021cf71f8a608",
+      "reason": [
+        "Project tag = soc-automation",
+        "Name tag/name begins with soc-automation-"
+      ],
+      "resource_type": "subnets"
+    },
+    {
+      "ambiguous_dependency": false,
+      "cleanup_candidate": true,
+      "id": "subnet-07ce59ad6eb6d68aa",
+      "reason": [
+        "Project tag = soc-automation",
+        "Name tag/name begins with soc-automation-"
+      ],
+      "resource_type": "subnets"
+    },
+    {
+      "ambiguous_dependency": false,
+      "cleanup_candidate": true,
+      "id": "subnet-0a75f102db2028159",
+      "reason": [
+        "Project tag = soc-automation",
+        "Name tag/name begins with soc-automation-"
+      ],
+      "resource_type": "subnets"
+    },
+    {
+      "ambiguous_dependency": false,
+      "cleanup_candidate": true,
+      "id": "subnet-09232eb5d82ddab7a",
+      "reason": [
+        "Project tag = soc-automation",
+        "Name tag/name begins with soc-automation-"
+      ],
+      "resource_type": "subnets"
+    },
+    {
+      "ambiguous_dependency": false,
+      "cleanup_candidate": true,
+      "id": "subnet-04b84a9083b538649",
+      "reason": [
+        "Project tag = soc-automation",
+        "Name tag/name begins with soc-automation-"
+      ],
+      "resource_type": "subnets"
+    }
+  ],
+  "vpc_owned_default_components": [
+    {
+      "id": "rtb-08a63f5113aa20dc0",
+      "reason": "AWS main route table for a discovered non-default project VPC; not separately deleted.",
+      "resource_type": "main-route-table",
+      "vpc_id": "vpc-0d53143e2f0a14450"
+    },
+    {
+      "id": "rtb-05f373f548095b016",
+      "reason": "AWS main route table for a discovered non-default project VPC; not separately deleted.",
+      "resource_type": "main-route-table",
+      "vpc_id": "vpc-0fda586ca71a8e583"
+    },
+    {
+      "id": "sg-008389d7095f9b53a",
+      "reason": "AWS default security group for a discovered non-default project VPC; not separately deleted.",
+      "resource_type": "default-security-group",
+      "vpc_id": "vpc-0d53143e2f0a14450"
+    },
+    {
+      "id": "sg-0941206a64a86a3fa",
+      "reason": "AWS default security group for a discovered non-default project VPC; not separately deleted.",
+      "resource_type": "default-security-group",
+      "vpc_id": "vpc-0fda586ca71a8e583"
+    },
+    {
+      "id": "acl-0c0a6b5ad6def4a77",
+      "reason": "AWS default network ACL for a discovered non-default project VPC; not separately deleted.",
+      "resource_type": "default-network-acl",
+      "vpc_id": "vpc-0d53143e2f0a14450"
+    },
+    {
+      "id": "acl-016a50040ba7f5bef",
+      "reason": "AWS default network ACL for a discovered non-default project VPC; not separately deleted.",
+      "resource_type": "default-network-acl",
+      "vpc_id": "vpc-0fda586ca71a8e583"
+    }
+  ]
+}

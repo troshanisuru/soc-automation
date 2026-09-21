@@ -1,0 +1,239 @@
+{
+    "SecurityGroups": [
+        {
+            "GroupId": "sg-0effe1d21b6836624",
+            "GroupName": "soc-automation-security-mgmt-sg",
+            "VpcId": "vpc-0fb2381154ad1b418",
+            "Description": "Wazuh Manager and Python AI middleware",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "soc-automation-security-mgmt-sg"
+                },
+                {
+                    "Key": "Project",
+                    "Value": "soc-automation"
+                }
+            ],
+            "IpPermissions": [
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 1515,
+                    "ToPort": 1515,
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "CidrIp": "10.0.0.0/16"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "CidrIp": "112.134.152.91/32"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 1514,
+                    "ToPort": 1514,
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "CidrIp": "10.0.0.0/16"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 443,
+                    "ToPort": 443,
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "CidrIp": "112.134.152.91/32"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 55000,
+                    "ToPort": 55000,
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "CidrIp": "112.134.152.91/32"
+                        },
+                        {
+                            "CidrIp": "172.16.1.0/24"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                }
+            ],
+            "IpPermissionsEgress": [
+                {
+                    "IpProtocol": "-1",
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "CidrIp": "0.0.0.0/0"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                }
+            ]
+        },
+        {
+            "GroupId": "sg-03e665ea5e9403e11",
+            "GroupName": "soc-automation-prod-db-sg",
+            "VpcId": "vpc-01d5230934a140846",
+            "Description": "Production private database server",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "soc-automation-prod-db-sg"
+                },
+                {
+                    "Key": "Project",
+                    "Value": "soc-automation"
+                }
+            ],
+            "IpPermissions": [
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 5432,
+                    "ToPort": 5432,
+                    "UserIdGroupPairs": [
+                        {
+                            "UserId": "908157891283",
+                            "GroupId": "sg-01dc0bd14c2808f21"
+                        }
+                    ],
+                    "IpRanges": [],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "UserIdGroupPairs": [
+                        {
+                            "UserId": "908157891283",
+                            "GroupId": "sg-0effe1d21b6836624",
+                            "VpcId": "vpc-0fb2381154ad1b418",
+                            "VpcPeeringConnectionId": "pcx-0d0b43fb860ec81c6",
+                            "PeeringStatus": "active"
+                        }
+                    ],
+                    "IpRanges": [
+                        {
+                            "CidrIp": "112.134.152.91/32"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                }
+            ],
+            "IpPermissionsEgress": [
+                {
+                    "IpProtocol": "-1",
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "CidrIp": "0.0.0.0/0"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                }
+            ]
+        },
+        {
+            "GroupId": "sg-01dc0bd14c2808f21",
+            "GroupName": "soc-automation-prod-web-sg",
+            "VpcId": "vpc-01d5230934a140846",
+            "Description": "Production web server and SSH brute-force target",
+            "Tags": [
+                {
+                    "Key": "Project",
+                    "Value": "soc-automation"
+                },
+                {
+                    "Key": "Name",
+                    "Value": "soc-automation-prod-web-sg"
+                }
+            ],
+            "IpPermissions": [
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 80,
+                    "ToPort": 80,
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "CidrIp": "0.0.0.0/0"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "CidrIp": "112.134.152.91/32"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 443,
+                    "ToPort": 443,
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "CidrIp": "0.0.0.0/0"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                }
+            ],
+            "IpPermissionsEgress": [
+                {
+                    "IpProtocol": "-1",
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "CidrIp": "0.0.0.0/0"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                }
+            ]
+        }
+    ]
+}

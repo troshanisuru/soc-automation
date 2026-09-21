@@ -1,0 +1,9 @@
+boto3
+botocore
+python-dotenv
+requests
+pandas
+numpy
+scikit-learn
+joblib
+pytest

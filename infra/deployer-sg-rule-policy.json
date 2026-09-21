@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowExactProjectSecurityGroupRuleRotation",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupIngress"
+      ],
+      "Resource": [
+        "arn:aws:ec2:ap-southeast-1:908157891283:security-group/sg-01dc0bd14c2808f21",
+        "arn:aws:ec2:ap-southeast-1:908157891283:security-group/sg-0effe1d21b6836624",
+        "arn:aws:ec2:ap-southeast-1:908157891283:security-group/sg-03e665ea5e9403e11"
+      ]
+    }
+  ]
+}

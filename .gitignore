@@ -1,0 +1,69 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# AWS credentials
+.aws/
+aws/credentials
+aws/config
+credentials
+
+# SSH private keys and EC2 key material
+*.pem
+*.ppk
+*.key
+id_rsa
+id_rsa.*
+id_ecdsa
+id_ecdsa.*
+id_ed25519
+id_ed25519.*
+soc-automation-ed25519
+soc-automation-ed25519.*
+!*.pub
+
+# Evidence files that may contain secrets if created manually
+evidence/**/secrets/
+evidence/**/*secret*
+evidence/**/*credential*
+evidence/**/*token*
+evidence/**/*password*
+evidence/**/*.pem
+evidence/**/*.ppk
+evidence/**/*.key
+evidence/**/*.env
+
+# Model binaries
+*.pkl
+*.joblib
+*.model
+*.onnx
+models/
+ml-model/
+
+# Logs
+*.log
+logs/
+
+# Test output
+coverage/
+.coverage
+htmlcov/
+test-output/
+results/
+
+# OS files
+.DS_Store
+Thumbs.db

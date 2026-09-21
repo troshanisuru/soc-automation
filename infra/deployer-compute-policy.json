@@ -1,0 +1,209 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeImages",
+        "ec2:DescribeInstances",
+        "ec2:DescribeInstanceStatus",
+        "ec2:DescribeKeyPairs"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-southeast-1"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": "ec2:ImportKeyPair",
+      "Resource": "arn:aws:ec2:ap-southeast-1:908157891283:key-pair/soc-automation-key",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-southeast-1",
+          "aws:RequestTag/Project": "soc-automation",
+          "aws:RequestTag/Name": "soc-automation-key",
+          "aws:RequestTag/Environment": "lab"
+        },
+        "ForAllValues:StringEquals": {
+          "aws:TagKeys": [
+            "Name",
+            "Project",
+            "Environment"
+          ]
+        },
+        "Null": {
+          "aws:RequestTag/Project": "false",
+          "aws:RequestTag/Name": "false",
+          "aws:RequestTag/Environment": "false"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": [
+        "arn:aws:ec2:ap-southeast-1::image/ami-*",
+        "arn:aws:ec2:ap-southeast-1:908157891283:key-pair/soc-automation-key",
+        "arn:aws:ec2:ap-southeast-1:908157891283:subnet/subnet-09438c38e60394950",
+        "arn:aws:ec2:ap-southeast-1:908157891283:subnet/subnet-045f32f0821d7cb3e",
+        "arn:aws:ec2:ap-southeast-1:908157891283:subnet/subnet-0192340171c348f23",
+        "arn:aws:ec2:ap-southeast-1:908157891283:security-group/sg-01dc0bd14c2808f21",
+        "arn:aws:ec2:ap-southeast-1:908157891283:security-group/sg-0effe1d21b6836624",
+        "arn:aws:ec2:ap-southeast-1:908157891283:security-group/sg-03e665ea5e9403e11",
+        "arn:aws:ec2:ap-southeast-1:908157891283:network-interface/*",
+        "arn:aws:ec2:ap-southeast-1:908157891283:instance/*",
+        "arn:aws:ec2:ap-southeast-1:908157891283:volume/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-southeast-1",
+          "aws:RequestTag/Project": "soc-automation",
+          "aws:RequestTag/Environment": "lab",
+          "ec2:MetadataHttpTokens": "required"
+        },
+        "ForAllValues:StringEquals": {
+          "aws:TagKeys": [
+            "Name",
+            "Project",
+            "Role",
+            "Environment"
+          ],
+          "aws:RequestTag/Role": [
+            "web",
+            "db",
+            "wazuh"
+          ]
+        },
+        "ForAllValues:StringLike": {
+          "aws:RequestTag/Name": [
+            "soc-automation-web",
+            "soc-automation-web-root",
+            "soc-automation-db",
+            "soc-automation-db-root",
+            "soc-automation-wazuh",
+            "soc-automation-wazuh-root"
+          ]
+        },
+        "Null": {
+          "aws:RequestTag/Project": "false",
+          "aws:RequestTag/Name": "false",
+          "aws:RequestTag/Role": "false",
+          "aws:RequestTag/Environment": "false"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": "ec2:CreateTags",
+      "Resource": "arn:aws:ec2:ap-southeast-1:908157891283:key-pair/soc-automation-key",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-southeast-1",
+          "ec2:CreateAction": "ImportKeyPair",
+          "aws:RequestTag/Project": "soc-automation",
+          "aws:RequestTag/Name": "soc-automation-key",
+          "aws:RequestTag/Environment": "lab"
+        },
+        "ForAllValues:StringEquals": {
+          "aws:TagKeys": [
+            "Name",
+            "Project",
+            "Environment"
+          ]
+        },
+        "Null": {
+          "aws:RequestTag/Project": "false",
+          "aws:RequestTag/Name": "false",
+          "aws:RequestTag/Environment": "false"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": "ec2:CreateTags",
+      "Resource": [
+        "arn:aws:ec2:ap-southeast-1:908157891283:instance/*",
+        "arn:aws:ec2:ap-southeast-1:908157891283:volume/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-southeast-1",
+          "ec2:CreateAction": "RunInstances",
+          "aws:RequestTag/Project": "soc-automation",
+          "aws:RequestTag/Environment": "lab"
+        },
+        "ForAllValues:StringEquals": {
+          "aws:TagKeys": [
+            "Name",
+            "Project",
+            "Role",
+            "Environment"
+          ],
+          "aws:RequestTag/Role": [
+            "web",
+            "db",
+            "wazuh"
+          ]
+        },
+        "ForAllValues:StringLike": {
+          "aws:RequestTag/Name": [
+            "soc-automation-web",
+            "soc-automation-web-root",
+            "soc-automation-db",
+            "soc-automation-db-root",
+            "soc-automation-wazuh",
+            "soc-automation-wazuh-root"
+          ]
+        },
+        "Null": {
+          "aws:RequestTag/Project": "false",
+          "aws:RequestTag/Name": "false",
+          "aws:RequestTag/Role": "false",
+          "aws:RequestTag/Environment": "false"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:StartInstances",
+        "ec2:StopInstances"
+      ],
+      "Resource": "arn:aws:ec2:ap-southeast-1:908157891283:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-southeast-1",
+          "ec2:ResourceTag/Project": "soc-automation",
+          "ec2:ResourceTag/Environment": "lab"
+        },
+        "ForAnyValue:StringEquals": {
+          "ec2:ResourceTag/Role": [
+            "web",
+            "db",
+            "wazuh"
+          ]
+        },
+        "ForAnyValue:StringLike": {
+          "ec2:ResourceTag/Name": [
+            "soc-automation-web",
+            "soc-automation-db",
+            "soc-automation-wazuh"
+          ]
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::908157891283:role/SOC-Middleware-Role",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "ec2.amazonaws.com"
+        }
+      }
+    }
+  ]
+}

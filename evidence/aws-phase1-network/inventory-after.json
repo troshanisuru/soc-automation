@@ -1,0 +1,145 @@
+{
+  "checks": {
+    "identity": {
+      "command": "aws sts get-caller-identity --profile soc-project --query {Account:Account,Arn:Arn} --output json",
+      "returncode": 0,
+      "stderr_summary": "",
+      "stdout": {
+        "Account": "908157891283",
+        "Arn": "arn:aws:iam::908157891283:user/soc-project-developer"
+      }
+    },
+    "instances_project_tagged": {
+      "command": "aws ec2 describe-instances --filters Name=tag:Project,Values=soc-automation --query Reservations[].Instances[].{InstanceId:InstanceId,State:State.Name,VpcId:VpcId,SubnetId:SubnetId,Tags:Tags} --profile soc-project --region ap-southeast-1 --output json",
+      "returncode": 0,
+      "stderr_summary": "",
+      "stdout": []
+    },
+    "internet_gateways_project_tagged": {
+      "command": "aws ec2 describe-internet-gateways --filters Name=tag:Project,Values=soc-automation --query InternetGateways[].{InternetGatewayId:InternetGatewayId,Attachments:Attachments,Tags:Tags} --profile soc-project --region ap-southeast-1 --output json",
+      "returncode": 0,
+      "stderr_summary": "",
+      "stdout": []
+    },
+    "nat_gateways_project_tagged": {
+      "command": "aws ec2 describe-nat-gateways --filter Name=tag:Project,Values=soc-automation --query NatGateways[].{NatGatewayId:NatGatewayId,State:State,VpcId:VpcId,SubnetId:SubnetId,Tags:Tags} --profile soc-project --region ap-southeast-1 --output json",
+      "returncode": 254,
+      "stderr_summary": "An error occurred (UnauthorizedOperation) when calling the DescribeNatGateways operation: You are not authorized to perform this operation. User: arn:aws:iam::908157891283:user/soc-project-developer is not authorized to perform: ec2:DescribeNatGateways because no identity-based policy allows the ec2:DescribeNatGateways action",
+      "stdout": null
+    },
+    "rds_db_instances": {
+      "command": "aws rds describe-db-instances --profile soc-project --region ap-southeast-1 --query DBInstances[].{DBInstanceIdentifier:DBInstanceIdentifier,DBInstanceArn:DBInstanceArn,DBInstanceStatus:DBInstanceStatus} --output json",
+      "returncode": 254,
+      "stderr_summary": "An error occurred (AccessDenied) when calling the DescribeDBInstances operation: User: arn:aws:iam::908157891283:user/soc-project-developer is not authorized to perform: rds:DescribeDBInstances on resource: arn:aws:rds:ap-southeast-1:908157891283:db:* because no identity-based policy allows the rds:DescribeDBInstances action",
+      "stdout": null
+    },
+    "route_tables_project_tagged": {
+      "command": "aws ec2 describe-route-tables --filters Name=tag:Project,Values=soc-automation --query RouteTables[].{RouteTableId:RouteTableId,VpcId:VpcId,Associations:Associations,Routes:Routes,Tags:Tags} --profile soc-project --region ap-southeast-1 --output json",
+      "returncode": 0,
+      "stderr_summary": "",
+      "stdout": []
+    },
+    "security_groups_project_tagged": {
+      "command": "aws ec2 describe-security-groups --filters Name=tag:Project,Values=soc-automation --query SecurityGroups[].{GroupId:GroupId,VpcId:VpcId,GroupName:GroupName,Tags:Tags} --profile soc-project --region ap-southeast-1 --output json",
+      "returncode": 0,
+      "stderr_summary": "",
+      "stdout": []
+    },
+    "subnets_project_tagged": {
+      "command": "aws ec2 describe-subnets --filters Name=tag:Project,Values=soc-automation --query Subnets[].{SubnetId:SubnetId,VpcId:VpcId,CidrBlock:CidrBlock,AvailabilityZone:AvailabilityZone,MapPublicIpOnLaunch:MapPublicIpOnLaunch,Tags:Tags} --profile soc-project --region ap-southeast-1 --output json",
+      "returncode": 0,
+      "stderr_summary": "",
+      "stdout": []
+    },
+    "vpc_peering_project_tagged": {
+      "command": "aws ec2 describe-vpc-peering-connections --filters Name=tag:Project,Values=soc-automation --query VpcPeeringConnections[].{VpcPeeringConnectionId:VpcPeeringConnectionId,Status:Status,RequesterVpcInfo:RequesterVpcInfo,AccepterVpcInfo:AccepterVpcInfo,Tags:Tags} --profile soc-project --region ap-southeast-1 --output json",
+      "returncode": 0,
+      "stderr_summary": "",
+      "stdout": []
+    },
+    "vpcs_project_tagged": {
+      "command": "aws ec2 describe-vpcs --filters Name=tag:Project,Values=soc-automation --query Vpcs[].{VpcId:VpcId,CidrBlock:CidrBlock,IsDefault:IsDefault,State:State,Tags:Tags} --profile soc-project --region ap-southeast-1 --output json",
+      "returncode": 0,
+      "stderr_summary": "",
+      "stdout": [
+        {
+          "CidrBlock": "172.16.0.0/16",
+          "IsDefault": false,
+          "State": "available",
+          "Tags": [
+            {
+              "Key": "Project",
+              "Value": "soc-automation"
+            },
+            {
+              "Key": "Name",
+              "Value": "soc-automation-security-vpc"
+            }
+          ],
+          "VpcId": "vpc-0fb2381154ad1b418"
+        },
+        {
+          "CidrBlock": "10.0.0.0/16",
+          "IsDefault": false,
+          "State": "available",
+          "Tags": [
+            {
+              "Key": "Name",
+              "Value": "soc-automation-prod-vpc"
+            },
+            {
+              "Key": "Project",
+              "Value": "soc-automation"
+            }
+          ],
+          "VpcId": "vpc-01d5230934a140846"
+        }
+      ]
+    }
+  },
+  "credential_note": "Sanitized inventory: no credentials, tokens, key material, passwords, or secrets included.",
+  "dns_checks": [
+    {
+      "enable_dns_hostnames": {
+        "command": "aws ec2 describe-vpc-attribute --vpc-id vpc-0fb2381154ad1b418 --attribute enableDnsHostnames --query EnableDnsHostnames.Value --profile soc-project --region ap-southeast-1 --output json",
+        "returncode": 0,
+        "stderr_summary": "",
+        "stdout": true
+      },
+      "enable_dns_support": {
+        "command": "aws ec2 describe-vpc-attribute --vpc-id vpc-0fb2381154ad1b418 --attribute enableDnsSupport --query EnableDnsSupport.Value --profile soc-project --region ap-southeast-1 --output json",
+        "returncode": 0,
+        "stderr_summary": "",
+        "stdout": true
+      },
+      "vpc_id": "vpc-0fb2381154ad1b418"
+    },
+    {
+      "enable_dns_hostnames": {
+        "command": "aws ec2 describe-vpc-attribute --vpc-id vpc-01d5230934a140846 --attribute enableDnsHostnames --query EnableDnsHostnames.Value --profile soc-project --region ap-southeast-1 --output json",
+        "returncode": 0,
+        "stderr_summary": "",
+        "stdout": true
+      },
+      "enable_dns_support": {
+        "command": "aws ec2 describe-vpc-attribute --vpc-id vpc-01d5230934a140846 --attribute enableDnsSupport --query EnableDnsSupport.Value --profile soc-project --region ap-southeast-1 --output json",
+        "returncode": 0,
+        "stderr_summary": "",
+        "stdout": true
+      },
+      "vpc_id": "vpc-01d5230934a140846"
+    }
+  ],
+  "expected_account_id": "908157891283",
+  "generated_at_utc": "2026-09-08T17:15:10.912225+00:00",
+  "profile": "soc-project",
+  "provisioning": {
+    "error_summary": "UnauthorizedOperation: ec2:CreateSubnet denied on project Production VPC resource.",
+    "exit_status": 254,
+    "failed_action": "ec2:CreateSubnet",
+    "log_path": "evidence/aws-phase1-network/provision.log",
+    "sanitized_log_excerpt": "=== Pre-flight: verifying AWS identity ===\nCaller ARN: arn:aws:iam::908157891283:user/soc-project-developer\nAccount ID: 908157891283\nProfile:    soc-project\nRegion:     ap-southeast-1\n\n=== Pre-flight: validating required AZ ===\nAZ available: ap-southeast-1a\n\n=== 1. Creating VPCs ===\nCREATED  soc-automation-prod-vpc: vpc-01d5230934a140846\nCREATED  soc-automation-security-vpc: vpc-0fb2381154ad1b418\n\n=== 2. Creating Subnets ===\n\nAn error occurred (UnauthorizedOperation) when calling the CreateSubnet operation: You are not authorized to perform this operation. User: arn:aws:iam::908157891283:user/soc-project-developer is not authorized to perform: ec2:CreateSubnet on resource: arn:aws:ec2:ap-southeast-1:908157891283:vpc/vpc-01d5230934a140846 because no identity-based policy allows the ec2:CreateSubnet action. Encoded authorization failure message: [redacted]\n",
+    "status": "failed"
+  },
+  "region": "ap-southeast-1"
+}

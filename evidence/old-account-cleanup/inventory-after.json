@@ -1,0 +1,183 @@
+{
+  "account_id": "421515025823",
+  "checks": {
+    "configured_region": "ap-southeast-1",
+    "exact_id_checks": {
+      "internet_gateways": {
+        "command": "aws ec2 describe-internet-gateways --region ap-southeast-1 --internet-gateway-ids igw-01b777b4c1c717e9f igw-07cd9187e7423d4d3 --output json",
+        "returncode": 254,
+        "stderr_summary": "An error occurred (InvalidInternetGatewayID.NotFound) when calling the DescribeInternetGateways operation: The internetGateway IDs 'igw-07cd9187e7423d4d3', 'igw-01b777b4c1c717e9f' do not exist",
+        "stdout": null
+      },
+      "route_tables": {
+        "command": "aws ec2 describe-route-tables --region ap-southeast-1 --route-table-ids rtb-053921ab07c4d5e2e rtb-00f1d65a0d9a4cf2c rtb-0011c474f65ad1e98 rtb-0dd1e11e886f4ad75 --output json",
+        "returncode": 254,
+        "stderr_summary": "An error occurred (InvalidRouteTableID.NotFound) when calling the DescribeRouteTables operation: The routeTable IDs 'rtb-053921ab07c4d5e2e', 'rtb-00f1d65a0d9a4cf2c', 'rtb-0011c474f65ad1e98', 'rtb-0dd1e11e886f4ad75' do not exist",
+        "stdout": null
+      },
+      "security_groups": {
+        "command": "aws ec2 describe-security-groups --region ap-southeast-1 --group-ids sg-039424d17ef6630ec sg-0dcbfd4796182c3b2 sg-0f0f82178384295fd --output json",
+        "returncode": 254,
+        "stderr_summary": "An error occurred (InvalidGroup.NotFound) when calling the DescribeSecurityGroups operation: The security group 'sg-0f0f82178384295fd' does not exist",
+        "stdout": null
+      },
+      "subnets": {
+        "command": "aws ec2 describe-subnets --region ap-southeast-1 --subnet-ids subnet-0dd8f8677781c9f44 subnet-0e6a021cf71f8a608 subnet-07ce59ad6eb6d68aa subnet-0a75f102db2028159 subnet-09232eb5d82ddab7a subnet-04b84a9083b538649 --output json",
+        "returncode": 254,
+        "stderr_summary": "An error occurred (InvalidSubnetID.NotFound) when calling the DescribeSubnets operation: The subnet ID 'subnet-0dd8f8677781c9f44' does not exist",
+        "stdout": null
+      },
+      "vpc_peering_connections": {
+        "command": "aws ec2 describe-vpc-peering-connections --region ap-southeast-1 --vpc-peering-connection-ids pcx-0ec60bac4cf5228bc --output json",
+        "returncode": 0,
+        "stderr_summary": "",
+        "stdout": {
+          "VpcPeeringConnections": [
+            {
+              "AccepterVpcInfo": {
+                "OwnerId": "421515025823",
+                "Region": "ap-southeast-1",
+                "VpcId": "vpc-0d53143e2f0a14450"
+              },
+              "RequesterVpcInfo": {
+                "OwnerId": "421515025823",
+                "Region": "ap-southeast-1",
+                "VpcId": "vpc-0fda586ca71a8e583"
+              },
+              "Status": {
+                "Code": "deleted",
+                "Message": "Deleted by 421515025823"
+              },
+              "Tags": [
+                {
+                  "Key": "Project",
+                  "Value": "soc-automation"
+                },
+                {
+                  "Key": "Name",
+                  "Value": "soc-automation-soc-to-mgmt-peering"
+                }
+              ],
+              "VpcPeeringConnectionId": "pcx-0ec60bac4cf5228bc"
+            }
+          ]
+        }
+      },
+      "vpcs": {
+        "command": "aws ec2 describe-vpcs --region ap-southeast-1 --vpc-ids vpc-0d53143e2f0a14450 vpc-0fda586ca71a8e583 --output json",
+        "returncode": 254,
+        "stderr_summary": "An error occurred (InvalidVpcID.NotFound) when calling the DescribeVpcs operation: The vpc ID 'vpc-0d53143e2f0a14450' does not exist",
+        "stdout": null
+      }
+    },
+    "iam_checks": {
+      "instance_profile_SOC-Middleware-Profile": {
+        "command": "aws iam get-instance-profile --instance-profile-name SOC-Middleware-Profile --query {InstanceProfileName:InstanceProfile.InstanceProfileName,Arn:InstanceProfile.Arn,Roles:InstanceProfile.Roles[].RoleName} --output json",
+        "returncode": 254,
+        "stderr_summary": "An error occurred (NoSuchEntity) when calling the GetInstanceProfile operation: Instance Profile SOC-Middleware-Profile cannot be found.",
+        "stdout": null
+      },
+      "instance_profile_SOC-Middleware-Role": {
+        "command": "aws iam get-instance-profile --instance-profile-name SOC-Middleware-Role --query {InstanceProfileName:InstanceProfile.InstanceProfileName,Arn:InstanceProfile.Arn,Roles:InstanceProfile.Roles[].RoleName} --output json",
+        "returncode": 254,
+        "stderr_summary": "An error occurred (NoSuchEntity) when calling the GetInstanceProfile operation: Instance Profile SOC-Middleware-Role cannot be found.",
+        "stdout": null
+      },
+      "policy_SOC-Middleware-WebSG-Policy": {
+        "command": "aws iam get-policy --policy-arn arn:aws:iam::421515025823:policy/SOC-Middleware-WebSG-Policy --query {Arn:Policy.Arn,PolicyName:Policy.PolicyName,AttachmentCount:Policy.AttachmentCount} --output json",
+        "returncode": 254,
+        "stderr_summary": "An error occurred (NoSuchEntity) when calling the GetPolicy operation: Policy arn:aws:iam::421515025823:policy/SOC-Middleware-WebSG-Policy was not found.",
+        "stdout": null
+      },
+      "role_SOC-Middleware-Role": {
+        "command": "aws iam get-role --role-name SOC-Middleware-Role --query {RoleName:Role.RoleName,Arn:Role.Arn} --output json",
+        "returncode": 254,
+        "stderr_summary": "An error occurred (NoSuchEntity) when calling the GetRole operation: The role with name SOC-Middleware-Role cannot be found.",
+        "stdout": null
+      }
+    },
+    "identity": {
+      "Account": "421515025823",
+      "Arn": "arn:aws:iam::421515025823:user/cyber-user"
+    },
+    "name_prefix_checks": {
+      "instances": [],
+      "internet_gateways": [],
+      "route_tables": [],
+      "security_groups": [],
+      "subnets": [],
+      "vpc_peering_connections": [
+        {
+          "Status": {
+            "Code": "deleted",
+            "Message": "Deleted by 421515025823"
+          },
+          "Tags": [
+            {
+              "Key": "Project",
+              "Value": "soc-automation"
+            },
+            {
+              "Key": "Name",
+              "Value": "soc-automation-soc-to-mgmt-peering"
+            }
+          ],
+          "VpcPeeringConnectionId": "pcx-0ec60bac4cf5228bc"
+        }
+      ],
+      "vpcs": []
+    },
+    "tagged_project_resources": {
+      "ResourceTagMappingList": [
+        {
+          "ResourceARN": "arn:aws:ec2:ap-southeast-1:421515025823:vpc-peering-connection/pcx-0ec60bac4cf5228bc",
+          "Tags": [
+            {
+              "Key": "Project",
+              "Value": "soc-automation"
+            },
+            {
+              "Key": "Name",
+              "Value": "soc-automation-soc-to-mgmt-peering"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "cleanup_continuation": [
+    {
+      "action": "deleted",
+      "resource_id": "SOC-Middleware-Profile",
+      "resource_type": "iam-instance-profile"
+    },
+    {
+      "action": "deleted",
+      "resource_id": "SOC-Middleware-Role",
+      "resource_type": "iam-instance-profile"
+    },
+    {
+      "action": "detached",
+      "resource_id": "SOC-Middleware-WebSG-Policy -> SOC-Middleware-Role",
+      "resource_type": "iam-policy-attachment"
+    },
+    {
+      "action": "deleted",
+      "resource_id": "SOC-SG-Modify-Policy",
+      "resource_type": "iam-inline-role-policy"
+    },
+    {
+      "action": "deleted",
+      "resource_id": "SOC-Middleware-Role",
+      "resource_type": "iam-role"
+    },
+    {
+      "action": "deleted",
+      "resource_id": "SOC-Middleware-WebSG-Policy",
+      "resource_type": "iam-policy"
+    }
+  ],
+  "credential_note": "Sanitized inventory: no credential values, secrets, passwords, user-data, or tokens included.",
+  "generated_at_utc": "2026-09-08T15:36:47.655806+00:00",
+  "region": "ap-southeast-1"
+}

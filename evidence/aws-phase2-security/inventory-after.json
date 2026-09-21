@@ -1,0 +1,506 @@
+{
+  "iam": {
+    "active_response_note": "Security Groups are allow-only; this policy is not an approved functional per-attacker-IP blocking implementation.",
+    "attached_role_policies": [
+      {
+        "PolicyArn": "arn:aws:iam::908157891283:policy/SOC-Middleware-WebSG-Policy",
+        "PolicyName": "SOC-Middleware-WebSG-Policy"
+      }
+    ],
+    "instance_profile": {
+      "Arn": "arn:aws:iam::908157891283:instance-profile/SOC-Middleware-Role",
+      "InstanceProfileName": "SOC-Middleware-Role",
+      "Roles": [
+        "SOC-Middleware-Role"
+      ],
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        }
+      ]
+    },
+    "policy": {
+      "Arn": "arn:aws:iam::908157891283:policy/SOC-Middleware-WebSG-Policy",
+      "DefaultVersionId": "v1",
+      "Document": {
+        "Statement": [
+          {
+            "Action": [
+              "ec2:DescribeSecurityGroups",
+              "ec2:DescribeSecurityGroupRules"
+            ],
+            "Effect": "Allow",
+            "Resource": "*",
+            "Sid": "AllowDescribeSecurityGroups"
+          },
+          {
+            "Action": [
+              "ec2:AuthorizeSecurityGroupIngress",
+              "ec2:RevokeSecurityGroupIngress"
+            ],
+            "Effect": "Allow",
+            "Resource": "arn:aws:ec2:ap-southeast-1:908157891283:security-group/sg-01dc0bd14c2808f21",
+            "Sid": "AllowModifyProdWebSGIngressOnly"
+          }
+        ],
+        "Version": "2012-10-17"
+      },
+      "PolicyName": "SOC-Middleware-WebSG-Policy",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        }
+      ]
+    },
+    "role": {
+      "Arn": "arn:aws:iam::908157891283:role/SOC-Middleware-Role",
+      "RoleName": "SOC-Middleware-Role",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        }
+      ],
+      "TrustPolicy": {
+        "Statement": [
+          {
+            "Action": "sts:AssumeRole",
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "ec2.amazonaws.com"
+            }
+          }
+        ],
+        "Version": "2012-10-17"
+      }
+    }
+  },
+  "identity": {
+    "Account": "908157891283",
+    "Arn": "arn:aws:iam::908157891283:user/soc-project-developer"
+  },
+  "metadata": {
+    "account": "908157891283",
+    "admin_cidr": "112.134.152.91/32",
+    "profile": "soc-project",
+    "project": "soc-automation",
+    "region": "ap-southeast-1"
+  },
+  "security_groups": [
+    {
+      "Description": "Wazuh Manager and Python AI middleware",
+      "GroupId": "sg-0effe1d21b6836624",
+      "GroupName": "soc-automation-security-mgmt-sg",
+      "IpPermissions": [
+        {
+          "FromPort": 1515,
+          "IpProtocol": "tcp",
+          "IpRanges": [
+            {
+              "CidrIp": "10.0.0.0/16"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "ToPort": 1515,
+          "UserIdGroupPairs": []
+        },
+        {
+          "FromPort": 22,
+          "IpProtocol": "tcp",
+          "IpRanges": [
+            {
+              "CidrIp": "112.134.152.91/32"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "ToPort": 22,
+          "UserIdGroupPairs": []
+        },
+        {
+          "FromPort": 1514,
+          "IpProtocol": "tcp",
+          "IpRanges": [
+            {
+              "CidrIp": "10.0.0.0/16"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "ToPort": 1514,
+          "UserIdGroupPairs": []
+        },
+        {
+          "FromPort": 443,
+          "IpProtocol": "tcp",
+          "IpRanges": [
+            {
+              "CidrIp": "112.134.152.91/32"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "ToPort": 443,
+          "UserIdGroupPairs": []
+        },
+        {
+          "FromPort": 55000,
+          "IpProtocol": "tcp",
+          "IpRanges": [
+            {
+              "CidrIp": "112.134.152.91/32"
+            },
+            {
+              "CidrIp": "172.16.1.0/24"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "ToPort": 55000,
+          "UserIdGroupPairs": []
+        }
+      ],
+      "IpPermissionsEgress": [
+        {
+          "IpProtocol": "-1",
+          "IpRanges": [
+            {
+              "CidrIp": "0.0.0.0/0"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "UserIdGroupPairs": []
+        }
+      ],
+      "OwnerId": "908157891283",
+      "SecurityGroupArn": "arn:aws:ec2:ap-southeast-1:908157891283:security-group/sg-0effe1d21b6836624",
+      "Tags": [
+        {
+          "Key": "Name",
+          "Value": "soc-automation-security-mgmt-sg"
+        },
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        }
+      ],
+      "VpcId": "vpc-0fb2381154ad1b418"
+    },
+    {
+      "Description": "Production web server and SSH brute-force target",
+      "GroupId": "sg-01dc0bd14c2808f21",
+      "GroupName": "soc-automation-prod-web-sg",
+      "IpPermissions": [
+        {
+          "FromPort": 80,
+          "IpProtocol": "tcp",
+          "IpRanges": [
+            {
+              "CidrIp": "0.0.0.0/0"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "ToPort": 80,
+          "UserIdGroupPairs": []
+        },
+        {
+          "FromPort": 22,
+          "IpProtocol": "tcp",
+          "IpRanges": [
+            {
+              "CidrIp": "112.134.152.91/32"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "ToPort": 22,
+          "UserIdGroupPairs": []
+        },
+        {
+          "FromPort": 443,
+          "IpProtocol": "tcp",
+          "IpRanges": [
+            {
+              "CidrIp": "0.0.0.0/0"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "ToPort": 443,
+          "UserIdGroupPairs": []
+        }
+      ],
+      "IpPermissionsEgress": [
+        {
+          "IpProtocol": "-1",
+          "IpRanges": [
+            {
+              "CidrIp": "0.0.0.0/0"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "UserIdGroupPairs": []
+        }
+      ],
+      "OwnerId": "908157891283",
+      "SecurityGroupArn": "arn:aws:ec2:ap-southeast-1:908157891283:security-group/sg-01dc0bd14c2808f21",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        },
+        {
+          "Key": "Name",
+          "Value": "soc-automation-prod-web-sg"
+        }
+      ],
+      "VpcId": "vpc-01d5230934a140846"
+    },
+    {
+      "Description": "Production private database server",
+      "GroupId": "sg-03e665ea5e9403e11",
+      "GroupName": "soc-automation-prod-db-sg",
+      "IpPermissions": [
+        {
+          "FromPort": 5432,
+          "IpProtocol": "tcp",
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "ToPort": 5432,
+          "UserIdGroupPairs": [
+            {
+              "GroupId": "sg-01dc0bd14c2808f21",
+              "UserId": "908157891283"
+            }
+          ]
+        },
+        {
+          "FromPort": 22,
+          "IpProtocol": "tcp",
+          "IpRanges": [
+            {
+              "CidrIp": "112.134.152.91/32"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "ToPort": 22,
+          "UserIdGroupPairs": [
+            {
+              "GroupId": "sg-0effe1d21b6836624",
+              "PeeringStatus": "active",
+              "UserId": "908157891283",
+              "VpcId": "vpc-0fb2381154ad1b418",
+              "VpcPeeringConnectionId": "pcx-0d0b43fb860ec81c6"
+            }
+          ]
+        }
+      ],
+      "IpPermissionsEgress": [
+        {
+          "IpProtocol": "-1",
+          "IpRanges": [
+            {
+              "CidrIp": "0.0.0.0/0"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "UserIdGroupPairs": []
+        }
+      ],
+      "OwnerId": "908157891283",
+      "SecurityGroupArn": "arn:aws:ec2:ap-southeast-1:908157891283:security-group/sg-03e665ea5e9403e11",
+      "Tags": [
+        {
+          "Key": "Name",
+          "Value": "soc-automation-prod-db-sg"
+        },
+        {
+          "Key": "Project",
+          "Value": "soc-automation"
+        }
+      ],
+      "VpcId": "vpc-01d5230934a140846"
+    }
+  ],
+  "verification": [
+    {
+      "detail": "908157891283",
+      "label": "account guard",
+      "status": "PASS"
+    },
+    {
+      "detail": "3",
+      "label": "exactly three project security groups",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "label": "SG sg-01dc0bd14c2808f21 exists",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation-prod-web-sg",
+      "label": "SG sg-01dc0bd14c2808f21 name tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation",
+      "label": "SG sg-01dc0bd14c2808f21 project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "vpc-01d5230934a140846",
+      "label": "SG sg-01dc0bd14c2808f21 VPC",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "label": "SG sg-0effe1d21b6836624 exists",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation-security-mgmt-sg",
+      "label": "SG sg-0effe1d21b6836624 name tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation",
+      "label": "SG sg-0effe1d21b6836624 project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "vpc-0fb2381154ad1b418",
+      "label": "SG sg-0effe1d21b6836624 VPC",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "label": "SG sg-03e665ea5e9403e11 exists",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation-prod-db-sg",
+      "label": "SG sg-03e665ea5e9403e11 name tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation",
+      "label": "SG sg-03e665ea5e9403e11 project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "vpc-01d5230934a140846",
+      "label": "SG sg-03e665ea5e9403e11 VPC",
+      "status": "PASS"
+    },
+    {
+      "detail": "[]",
+      "label": "SG sg-01dc0bd14c2808f21 all intended ingress rules exist",
+      "status": "PASS"
+    },
+    {
+      "detail": "[]",
+      "label": "SG sg-01dc0bd14c2808f21 no unintended ingress rules",
+      "status": "PASS"
+    },
+    {
+      "detail": "[]",
+      "label": "SG sg-0effe1d21b6836624 all intended ingress rules exist",
+      "status": "PASS"
+    },
+    {
+      "detail": "[]",
+      "label": "SG sg-0effe1d21b6836624 no unintended ingress rules",
+      "status": "PASS"
+    },
+    {
+      "detail": "[]",
+      "label": "SG sg-03e665ea5e9403e11 all intended ingress rules exist",
+      "status": "PASS"
+    },
+    {
+      "detail": "[]",
+      "label": "SG sg-03e665ea5e9403e11 no unintended ingress rules",
+      "status": "PASS"
+    },
+    {
+      "detail": "[]",
+      "label": "no SSH/22 from 0.0.0.0/0",
+      "status": "PASS"
+    },
+    {
+      "detail": "[]",
+      "label": "no PostgreSQL/5432 from 0.0.0.0/0",
+      "status": "PASS"
+    },
+    {
+      "detail": "[]",
+      "label": "no Wazuh dashboard/443 from 0.0.0.0/0 on security-mgmt-sg",
+      "status": "PASS"
+    },
+    {
+      "detail": "[]",
+      "label": "no Wazuh ports 1514/1515/55000 from 0.0.0.0/0",
+      "status": "PASS"
+    },
+    {
+      "detail": "SOC-Middleware-Role",
+      "label": "IAM role exists",
+      "status": "PASS"
+    },
+    {
+      "detail": "[{'Key': 'Project', 'Value': 'soc-automation'}]",
+      "label": "IAM role Project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "{\"Statement\": [{\"Action\": \"sts:AssumeRole\", \"Effect\": \"Allow\", \"Principal\": {\"Service\": \"ec2.amazonaws.com\"}}], \"Version\": \"2012-10-17\"}",
+      "label": "trust policy allows only ec2.amazonaws.com",
+      "status": "PASS"
+    },
+    {
+      "detail": "SOC-Middleware-Role",
+      "label": "instance profile exists",
+      "status": "PASS"
+    },
+    {
+      "detail": "[{'Key': 'Project', 'Value': 'soc-automation'}]",
+      "label": "instance profile Project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "['SOC-Middleware-Role']",
+      "label": "role present in instance profile",
+      "status": "PASS"
+    },
+    {
+      "detail": "arn:aws:iam::908157891283:policy/SOC-Middleware-WebSG-Policy",
+      "label": "SOC-Middleware-WebSG-Policy exists",
+      "status": "PASS"
+    },
+    {
+      "detail": "[{'Key': 'Project', 'Value': 'soc-automation'}]",
+      "label": "SOC-Middleware-WebSG-Policy Project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "[{'PolicyName': 'SOC-Middleware-WebSG-Policy', 'PolicyArn': 'arn:aws:iam::908157891283:policy/SOC-Middleware-WebSG-Policy'}]",
+      "label": "SOC-Middleware-WebSG-Policy attached to role",
+      "status": "PASS"
+    },
+    {
+      "detail": "[{\"Action\": [\"ec2:AuthorizeSecurityGroupIngress\", \"ec2:RevokeSecurityGroupIngress\"], \"Effect\": \"Allow\", \"Resource\": \"arn:aws:ec2:ap-southeast-1:908157891283:security-group/sg-01dc0bd14c2808f21\", \"Sid\": \"AllowModifyProdWebSGIngressOnly\"}]",
+      "label": "middleware policy modify actions target only prod-web-sg",
+      "status": "PASS"
+    }
+  ]
+}

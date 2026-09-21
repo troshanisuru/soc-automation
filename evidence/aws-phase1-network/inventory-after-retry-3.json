@@ -1,0 +1,828 @@
+{
+  "identity": {
+    "Account": "908157891283",
+    "Arn": "arn:aws:iam::908157891283:user/soc-project-developer"
+  },
+  "metadata": {
+    "account": "908157891283",
+    "az": "ap-southeast-1a",
+    "profile": "soc-project",
+    "project": "soc-automation",
+    "region": "ap-southeast-1"
+  },
+  "resources": {
+    "ec2_instance_reservations": [],
+    "internet_gateways": [
+      {
+        "Attachments": [
+          {
+            "State": "available",
+            "VpcId": "vpc-0fb2381154ad1b418"
+          }
+        ],
+        "InternetGatewayId": "igw-019c11b265c872311",
+        "OwnerId": "908157891283",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-security-igw"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ]
+      },
+      {
+        "Attachments": [
+          {
+            "State": "available",
+            "VpcId": "vpc-01d5230934a140846"
+          }
+        ],
+        "InternetGatewayId": "igw-06e6b0d1f11011563",
+        "OwnerId": "908157891283",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-prod-igw"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ]
+      }
+    ],
+    "route_tables": [
+      {
+        "Associations": [
+          {
+            "AssociationState": {
+              "State": "associated"
+            },
+            "Main": false,
+            "RouteTableAssociationId": "rtbassoc-07d9292b1213265a2",
+            "RouteTableId": "rtb-02eedd48a40d1af95",
+            "SubnetId": "subnet-09438c38e60394950"
+          }
+        ],
+        "OwnerId": "908157891283",
+        "PropagatingVgws": [],
+        "RouteTableId": "rtb-02eedd48a40d1af95",
+        "Routes": [
+          {
+            "DestinationCidrBlock": "172.16.0.0/16",
+            "Origin": "CreateRoute",
+            "State": "active",
+            "VpcPeeringConnectionId": "pcx-0d0b43fb860ec81c6"
+          },
+          {
+            "DestinationCidrBlock": "10.0.0.0/16",
+            "GatewayId": "local",
+            "Origin": "CreateRouteTable",
+            "State": "active"
+          },
+          {
+            "DestinationCidrBlock": "0.0.0.0/0",
+            "GatewayId": "igw-06e6b0d1f11011563",
+            "Origin": "CreateRoute",
+            "State": "active"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          },
+          {
+            "Key": "Name",
+            "Value": "soc-automation-prod-public-rt"
+          }
+        ],
+        "VpcId": "vpc-01d5230934a140846"
+      },
+      {
+        "Associations": [
+          {
+            "AssociationState": {
+              "State": "associated"
+            },
+            "Main": false,
+            "RouteTableAssociationId": "rtbassoc-0564169e93fd4c76f",
+            "RouteTableId": "rtb-0194a18d251c136b3",
+            "SubnetId": "subnet-045f32f0821d7cb3e"
+          }
+        ],
+        "OwnerId": "908157891283",
+        "PropagatingVgws": [],
+        "RouteTableId": "rtb-0194a18d251c136b3",
+        "Routes": [
+          {
+            "DestinationCidrBlock": "172.16.0.0/16",
+            "Origin": "CreateRoute",
+            "State": "active",
+            "VpcPeeringConnectionId": "pcx-0d0b43fb860ec81c6"
+          },
+          {
+            "DestinationCidrBlock": "10.0.0.0/16",
+            "GatewayId": "local",
+            "Origin": "CreateRouteTable",
+            "State": "active"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-prod-private-rt"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ],
+        "VpcId": "vpc-01d5230934a140846"
+      },
+      {
+        "Associations": [
+          {
+            "AssociationState": {
+              "State": "associated"
+            },
+            "Main": false,
+            "RouteTableAssociationId": "rtbassoc-02c8f68d1a4d3108e",
+            "RouteTableId": "rtb-07b6607b14a11e620",
+            "SubnetId": "subnet-0192340171c348f23"
+          }
+        ],
+        "OwnerId": "908157891283",
+        "PropagatingVgws": [],
+        "RouteTableId": "rtb-07b6607b14a11e620",
+        "Routes": [
+          {
+            "DestinationCidrBlock": "172.16.0.0/16",
+            "GatewayId": "local",
+            "Origin": "CreateRouteTable",
+            "State": "active"
+          },
+          {
+            "DestinationCidrBlock": "10.0.0.0/16",
+            "Origin": "CreateRoute",
+            "State": "active",
+            "VpcPeeringConnectionId": "pcx-0d0b43fb860ec81c6"
+          },
+          {
+            "DestinationCidrBlock": "0.0.0.0/0",
+            "GatewayId": "igw-019c11b265c872311",
+            "Origin": "CreateRoute",
+            "State": "active"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-security-mgmt-rt"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ],
+        "VpcId": "vpc-0fb2381154ad1b418"
+      }
+    ],
+    "security_groups": [],
+    "subnets": [
+      {
+        "AssignIpv6AddressOnCreation": false,
+        "AvailabilityZone": "ap-southeast-1a",
+        "AvailabilityZoneId": "apse1-az2",
+        "AvailableIpAddressCount": 251,
+        "BlockPublicAccessStates": {
+          "InternetGatewayBlockMode": "off"
+        },
+        "CidrBlock": "10.0.1.0/24",
+        "DefaultForAz": false,
+        "EnableDns64": false,
+        "Ipv6CidrBlockAssociationSet": [],
+        "Ipv6Native": false,
+        "MapCustomerOwnedIpOnLaunch": false,
+        "MapPublicIpOnLaunch": true,
+        "OwnerId": "908157891283",
+        "PrivateDnsNameOptionsOnLaunch": {
+          "EnableResourceNameDnsAAAARecord": false,
+          "EnableResourceNameDnsARecord": false,
+          "HostnameType": "ip-name"
+        },
+        "State": "available",
+        "SubnetArn": "arn:aws:ec2:ap-southeast-1:908157891283:subnet/subnet-09438c38e60394950",
+        "SubnetId": "subnet-09438c38e60394950",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-prod-public-1a"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ],
+        "VpcId": "vpc-01d5230934a140846"
+      },
+      {
+        "AssignIpv6AddressOnCreation": false,
+        "AvailabilityZone": "ap-southeast-1a",
+        "AvailabilityZoneId": "apse1-az2",
+        "AvailableIpAddressCount": 251,
+        "BlockPublicAccessStates": {
+          "InternetGatewayBlockMode": "off"
+        },
+        "CidrBlock": "10.0.2.0/24",
+        "DefaultForAz": false,
+        "EnableDns64": false,
+        "Ipv6CidrBlockAssociationSet": [],
+        "Ipv6Native": false,
+        "MapCustomerOwnedIpOnLaunch": false,
+        "MapPublicIpOnLaunch": false,
+        "OwnerId": "908157891283",
+        "PrivateDnsNameOptionsOnLaunch": {
+          "EnableResourceNameDnsAAAARecord": false,
+          "EnableResourceNameDnsARecord": false,
+          "HostnameType": "ip-name"
+        },
+        "State": "available",
+        "SubnetArn": "arn:aws:ec2:ap-southeast-1:908157891283:subnet/subnet-045f32f0821d7cb3e",
+        "SubnetId": "subnet-045f32f0821d7cb3e",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-prod-private-1a"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ],
+        "VpcId": "vpc-01d5230934a140846"
+      },
+      {
+        "AssignIpv6AddressOnCreation": false,
+        "AvailabilityZone": "ap-southeast-1a",
+        "AvailabilityZoneId": "apse1-az2",
+        "AvailableIpAddressCount": 251,
+        "BlockPublicAccessStates": {
+          "InternetGatewayBlockMode": "off"
+        },
+        "CidrBlock": "172.16.1.0/24",
+        "DefaultForAz": false,
+        "EnableDns64": false,
+        "Ipv6CidrBlockAssociationSet": [],
+        "Ipv6Native": false,
+        "MapCustomerOwnedIpOnLaunch": false,
+        "MapPublicIpOnLaunch": true,
+        "OwnerId": "908157891283",
+        "PrivateDnsNameOptionsOnLaunch": {
+          "EnableResourceNameDnsAAAARecord": false,
+          "EnableResourceNameDnsARecord": false,
+          "HostnameType": "ip-name"
+        },
+        "State": "available",
+        "SubnetArn": "arn:aws:ec2:ap-southeast-1:908157891283:subnet/subnet-0192340171c348f23",
+        "SubnetId": "subnet-0192340171c348f23",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-security-mgmt-1a"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ],
+        "VpcId": "vpc-0fb2381154ad1b418"
+      }
+    ],
+    "vpc_dns_attributes": {
+      "vpc-01d5230934a140846": {
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true
+      },
+      "vpc-0fb2381154ad1b418": {
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true
+      }
+    },
+    "vpc_peering_connections": [
+      {
+        "AccepterVpcInfo": {
+          "CidrBlock": "172.16.0.0/16",
+          "CidrBlockSet": [
+            {
+              "CidrBlock": "172.16.0.0/16"
+            }
+          ],
+          "OwnerId": "908157891283",
+          "PeeringOptions": {
+            "AllowDnsResolutionFromRemoteVpc": false,
+            "AllowEgressFromLocalClassicLinkToRemoteVpc": false,
+            "AllowEgressFromLocalVpcToRemoteClassicLink": false
+          },
+          "Region": "ap-southeast-1",
+          "VpcId": "vpc-0fb2381154ad1b418"
+        },
+        "RequesterVpcInfo": {
+          "CidrBlock": "10.0.0.0/16",
+          "CidrBlockSet": [
+            {
+              "CidrBlock": "10.0.0.0/16"
+            }
+          ],
+          "OwnerId": "908157891283",
+          "PeeringOptions": {
+            "AllowDnsResolutionFromRemoteVpc": false,
+            "AllowEgressFromLocalClassicLinkToRemoteVpc": false,
+            "AllowEgressFromLocalVpcToRemoteClassicLink": false
+          },
+          "Region": "ap-southeast-1",
+          "VpcId": "vpc-01d5230934a140846"
+        },
+        "Status": {
+          "Code": "active",
+          "Message": "Active"
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          },
+          {
+            "Key": "Name",
+            "Value": "soc-automation-prod-to-security-peering"
+          }
+        ],
+        "VpcPeeringConnectionId": "pcx-0d0b43fb860ec81c6"
+      }
+    ],
+    "vpcs": [
+      {
+        "BlockPublicAccessStates": {
+          "InternetGatewayBlockMode": "off"
+        },
+        "CidrBlock": "172.16.0.0/16",
+        "CidrBlockAssociationSet": [
+          {
+            "AssociationId": "vpc-cidr-assoc-0192ca001ac8dc3f5",
+            "CidrBlock": "172.16.0.0/16",
+            "CidrBlockState": {
+              "State": "associated"
+            }
+          }
+        ],
+        "DhcpOptionsId": "dopt-0ff72280112bb67d9",
+        "InstanceTenancy": "default",
+        "IsDefault": false,
+        "OwnerId": "908157891283",
+        "State": "available",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          },
+          {
+            "Key": "Name",
+            "Value": "soc-automation-security-vpc"
+          }
+        ],
+        "VpcId": "vpc-0fb2381154ad1b418"
+      },
+      {
+        "BlockPublicAccessStates": {
+          "InternetGatewayBlockMode": "off"
+        },
+        "CidrBlock": "10.0.0.0/16",
+        "CidrBlockAssociationSet": [
+          {
+            "AssociationId": "vpc-cidr-assoc-0a63b2cc81294c394",
+            "CidrBlock": "10.0.0.0/16",
+            "CidrBlockState": {
+              "State": "associated"
+            }
+          }
+        ],
+        "DhcpOptionsId": "dopt-0ff72280112bb67d9",
+        "InstanceTenancy": "default",
+        "IsDefault": false,
+        "OwnerId": "908157891283",
+        "State": "available",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "soc-automation-prod-vpc"
+          },
+          {
+            "Key": "Project",
+            "Value": "soc-automation"
+          }
+        ],
+        "VpcId": "vpc-01d5230934a140846"
+      }
+    ]
+  },
+  "verification": [
+    {
+      "detail": "908157891283",
+      "label": "account guard",
+      "status": "PASS"
+    },
+    {
+      "detail": "2",
+      "label": "project VPC count is 2",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "label": "VPC soc-automation-prod-vpc exists",
+      "status": "PASS"
+    },
+    {
+      "detail": "vpc-01d5230934a140846",
+      "label": "VPC soc-automation-prod-vpc id",
+      "status": "PASS"
+    },
+    {
+      "detail": "10.0.0.0/16",
+      "label": "VPC soc-automation-prod-vpc cidr",
+      "status": "PASS"
+    },
+    {
+      "detail": "False",
+      "label": "VPC soc-automation-prod-vpc non-default",
+      "status": "PASS"
+    },
+    {
+      "detail": "available",
+      "label": "VPC soc-automation-prod-vpc state available",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation",
+      "label": "VPC soc-automation-prod-vpc Project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation-prod-vpc",
+      "label": "VPC soc-automation-prod-vpc Name tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "True",
+      "label": "VPC soc-automation-prod-vpc DNS support",
+      "status": "PASS"
+    },
+    {
+      "detail": "True",
+      "label": "VPC soc-automation-prod-vpc DNS hostnames",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "label": "VPC soc-automation-security-vpc exists",
+      "status": "PASS"
+    },
+    {
+      "detail": "vpc-0fb2381154ad1b418",
+      "label": "VPC soc-automation-security-vpc id",
+      "status": "PASS"
+    },
+    {
+      "detail": "172.16.0.0/16",
+      "label": "VPC soc-automation-security-vpc cidr",
+      "status": "PASS"
+    },
+    {
+      "detail": "False",
+      "label": "VPC soc-automation-security-vpc non-default",
+      "status": "PASS"
+    },
+    {
+      "detail": "available",
+      "label": "VPC soc-automation-security-vpc state available",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation",
+      "label": "VPC soc-automation-security-vpc Project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation-security-vpc",
+      "label": "VPC soc-automation-security-vpc Name tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "True",
+      "label": "VPC soc-automation-security-vpc DNS support",
+      "status": "PASS"
+    },
+    {
+      "detail": "True",
+      "label": "VPC soc-automation-security-vpc DNS hostnames",
+      "status": "PASS"
+    },
+    {
+      "detail": "3",
+      "label": "project subnet count is 3",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "label": "Subnet soc-automation-prod-public-1a exists",
+      "status": "PASS"
+    },
+    {
+      "detail": "10.0.1.0/24",
+      "label": "Subnet soc-automation-prod-public-1a cidr",
+      "status": "PASS"
+    },
+    {
+      "detail": "vpc-01d5230934a140846",
+      "label": "Subnet soc-automation-prod-public-1a VPC",
+      "status": "PASS"
+    },
+    {
+      "detail": "ap-southeast-1a",
+      "label": "Subnet soc-automation-prod-public-1a AZ",
+      "status": "PASS"
+    },
+    {
+      "detail": "True",
+      "label": "Subnet soc-automation-prod-public-1a public IP mapping",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation",
+      "label": "Subnet soc-automation-prod-public-1a Project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation-prod-public-1a",
+      "label": "Subnet soc-automation-prod-public-1a Name tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "label": "Subnet soc-automation-prod-private-1a exists",
+      "status": "PASS"
+    },
+    {
+      "detail": "10.0.2.0/24",
+      "label": "Subnet soc-automation-prod-private-1a cidr",
+      "status": "PASS"
+    },
+    {
+      "detail": "vpc-01d5230934a140846",
+      "label": "Subnet soc-automation-prod-private-1a VPC",
+      "status": "PASS"
+    },
+    {
+      "detail": "ap-southeast-1a",
+      "label": "Subnet soc-automation-prod-private-1a AZ",
+      "status": "PASS"
+    },
+    {
+      "detail": "False",
+      "label": "Subnet soc-automation-prod-private-1a public IP mapping",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation",
+      "label": "Subnet soc-automation-prod-private-1a Project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation-prod-private-1a",
+      "label": "Subnet soc-automation-prod-private-1a Name tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "label": "Subnet soc-automation-security-mgmt-1a exists",
+      "status": "PASS"
+    },
+    {
+      "detail": "172.16.1.0/24",
+      "label": "Subnet soc-automation-security-mgmt-1a cidr",
+      "status": "PASS"
+    },
+    {
+      "detail": "vpc-0fb2381154ad1b418",
+      "label": "Subnet soc-automation-security-mgmt-1a VPC",
+      "status": "PASS"
+    },
+    {
+      "detail": "ap-southeast-1a",
+      "label": "Subnet soc-automation-security-mgmt-1a AZ",
+      "status": "PASS"
+    },
+    {
+      "detail": "True",
+      "label": "Subnet soc-automation-security-mgmt-1a public IP mapping",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation",
+      "label": "Subnet soc-automation-security-mgmt-1a Project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation-security-mgmt-1a",
+      "label": "Subnet soc-automation-security-mgmt-1a Name tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "2",
+      "label": "project IGW count is 2",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "label": "IGW soc-automation-prod-igw exists",
+      "status": "PASS"
+    },
+    {
+      "detail": "vpc-01d5230934a140846",
+      "label": "IGW soc-automation-prod-igw attached to expected VPC",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation",
+      "label": "IGW soc-automation-prod-igw Project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation-prod-igw",
+      "label": "IGW soc-automation-prod-igw Name tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "label": "IGW soc-automation-security-igw exists",
+      "status": "PASS"
+    },
+    {
+      "detail": "vpc-0fb2381154ad1b418",
+      "label": "IGW soc-automation-security-igw attached to expected VPC",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation",
+      "label": "IGW soc-automation-security-igw Project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation-security-igw",
+      "label": "IGW soc-automation-security-igw Name tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "3",
+      "label": "project custom route table count is 3",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "label": "Route table soc-automation-prod-public-rt exists",
+      "status": "PASS"
+    },
+    {
+      "detail": "vpc-01d5230934a140846",
+      "label": "Route table soc-automation-prod-public-rt VPC",
+      "status": "PASS"
+    },
+    {
+      "detail": "subnet-09438c38e60394950",
+      "label": "Route table soc-automation-prod-public-rt subnet association",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation",
+      "label": "Route table soc-automation-prod-public-rt Project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation-prod-public-rt",
+      "label": "Route table soc-automation-prod-public-rt Name tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "label": "Route table soc-automation-prod-private-rt exists",
+      "status": "PASS"
+    },
+    {
+      "detail": "vpc-01d5230934a140846",
+      "label": "Route table soc-automation-prod-private-rt VPC",
+      "status": "PASS"
+    },
+    {
+      "detail": "subnet-045f32f0821d7cb3e",
+      "label": "Route table soc-automation-prod-private-rt subnet association",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation",
+      "label": "Route table soc-automation-prod-private-rt Project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation-prod-private-rt",
+      "label": "Route table soc-automation-prod-private-rt Name tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "label": "Route table soc-automation-security-mgmt-rt exists",
+      "status": "PASS"
+    },
+    {
+      "detail": "vpc-0fb2381154ad1b418",
+      "label": "Route table soc-automation-security-mgmt-rt VPC",
+      "status": "PASS"
+    },
+    {
+      "detail": "subnet-0192340171c348f23",
+      "label": "Route table soc-automation-security-mgmt-rt subnet association",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation",
+      "label": "Route table soc-automation-security-mgmt-rt Project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation-security-mgmt-rt",
+      "label": "Route table soc-automation-security-mgmt-rt Name tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "1",
+      "label": "one active project peering connection",
+      "status": "PASS"
+    },
+    {
+      "detail": "vpc-01d5230934a140846 vpc-0fb2381154ad1b418",
+      "label": "peering connects expected VPCs",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation",
+      "label": "peering Project tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "soc-automation-prod-to-security-peering",
+      "label": "peering Name tag",
+      "status": "PASS"
+    },
+    {
+      "detail": "igw-06e6b0d1f11011563",
+      "label": "prod public default route to prod IGW",
+      "status": "PASS"
+    },
+    {
+      "detail": "igw-019c11b265c872311",
+      "label": "security mgmt default route to security IGW",
+      "status": "PASS"
+    },
+    {
+      "detail": "None",
+      "label": "prod private has no internet route",
+      "status": "PASS"
+    },
+    {
+      "detail": "pcx-0d0b43fb860ec81c6",
+      "label": "prod public peering route to security CIDR",
+      "status": "PASS"
+    },
+    {
+      "detail": "pcx-0d0b43fb860ec81c6",
+      "label": "prod private peering route to security CIDR",
+      "status": "PASS"
+    },
+    {
+      "detail": "pcx-0d0b43fb860ec81c6",
+      "label": "security mgmt peering route to prod CIDR",
+      "status": "PASS"
+    },
+    {
+      "detail": "0",
+      "label": "zero project EC2 instances",
+      "status": "PASS"
+    },
+    {
+      "detail": "0",
+      "label": "zero project security groups before Phase 2",
+      "status": "PASS"
+    }
+  ]
+}

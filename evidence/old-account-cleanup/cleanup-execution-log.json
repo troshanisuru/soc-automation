@@ -1,0 +1,705 @@
+{
+  "account_id": "421515025823",
+  "commands": [
+    {
+      "command": "aws sts get-caller-identity --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"UserId\": \"AIDAWEJCA3WPSUKUIJCEK\",\n    \"Account\": \"421515025823\",\n    \"Arn\": \"arn:aws:iam::421515025823:user/cyber-user\"\n}",
+      "timestamp_utc": "2026-09-08T15:31:01.809343+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws configure get region",
+      "returncode": 0,
+      "stdout": "ap-southeast-1",
+      "timestamp_utc": "2026-09-08T15:31:02.101376+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-vpcs --region ap-southeast-1 --vpc-ids vpc-0d53143e2f0a14450 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Vpcs\": [\n        {\n            \"OwnerId\": \"421515025823\",\n            \"InstanceTenancy\": \"default\",\n            \"CidrBlockAssociationSet\": [\n                {\n                    \"AssociationId\": \"vpc-cidr-assoc-0b54c59dff4710b12\",\n                    \"CidrBlock\": \"10.1.0.0/16\",\n                    \"CidrBlockState\": {\n                        \"State\": \"associated\"\n                    }\n                }\n            ],\n            \"IsDefault\": false,\n            \"Tags\": [\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-mgmt-vpc\"\n                },\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                }\n            ],\n            \"BlockPublicAccessStates\": {\n                \"InternetGatewayBlockMode\": \"off\"\n            },\n            \"VpcId\": \"vpc-0d53143e2f0a14450\",\n            \"State\": \"available\",\n            \"CidrBlock\": \"10.1.0.0/16\",\n            \"DhcpOptionsId\": \"dopt-07faca3bc137149a8\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:03.975182+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=vpc Name=resource-id,Values=vpc-0d53143e2f0a14450 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"vpc-0d53143e2f0a14450\",\n            \"ResourceType\": \"vpc\",\n            \"Value\": \"soc-automation-mgmt-vpc\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"vpc-0d53143e2f0a14450\",\n            \"ResourceType\": \"vpc\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:04.676392+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-network-interfaces --region ap-southeast-1 --filters Name=vpc-id,Values=vpc-0d53143e2f0a14450 --query NetworkInterfaces[].NetworkInterfaceId --output text",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:05.413909+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-instances --region ap-southeast-1 --filters Name=vpc-id,Values=vpc-0d53143e2f0a14450 Name=instance-state-name,Values=pending,running,stopping,stopped,shutting-down --query Reservations[].Instances[].InstanceId --output text",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:06.106299+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-vpc-endpoints --region ap-southeast-1 --filters Name=vpc-id,Values=vpc-0d53143e2f0a14450 --query VpcEndpoints[].VpcEndpointId --output text",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:06.857570+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-nat-gateways --region ap-southeast-1 --filter Name=vpc-id,Values=vpc-0d53143e2f0a14450 --query NatGateways[?State!=`deleted`].NatGatewayId --output text",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:07.579548+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws elbv2 describe-load-balancers --region ap-southeast-1 --query LoadBalancers[?VpcId==`vpc-0d53143e2f0a14450`].LoadBalancerArn --output text",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:09.315629+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-vpcs --region ap-southeast-1 --vpc-ids vpc-0fda586ca71a8e583 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Vpcs\": [\n        {\n            \"OwnerId\": \"421515025823\",\n            \"InstanceTenancy\": \"default\",\n            \"CidrBlockAssociationSet\": [\n                {\n                    \"AssociationId\": \"vpc-cidr-assoc-0c8dc7fbf5257a19b\",\n                    \"CidrBlock\": \"10.0.0.0/16\",\n                    \"CidrBlockState\": {\n                        \"State\": \"associated\"\n                    }\n                }\n            ],\n            \"IsDefault\": false,\n            \"Tags\": [\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-soc-vpc\"\n                },\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                }\n            ],\n            \"BlockPublicAccessStates\": {\n                \"InternetGatewayBlockMode\": \"off\"\n            },\n            \"VpcId\": \"vpc-0fda586ca71a8e583\",\n            \"State\": \"available\",\n            \"CidrBlock\": \"10.0.0.0/16\",\n            \"DhcpOptionsId\": \"dopt-07faca3bc137149a8\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:10.089792+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=vpc Name=resource-id,Values=vpc-0fda586ca71a8e583 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"vpc-0fda586ca71a8e583\",\n            \"ResourceType\": \"vpc\",\n            \"Value\": \"soc-automation-soc-vpc\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"vpc-0fda586ca71a8e583\",\n            \"ResourceType\": \"vpc\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:10.792395+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-network-interfaces --region ap-southeast-1 --filters Name=vpc-id,Values=vpc-0fda586ca71a8e583 --query NetworkInterfaces[].NetworkInterfaceId --output text",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:11.474179+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-instances --region ap-southeast-1 --filters Name=vpc-id,Values=vpc-0fda586ca71a8e583 Name=instance-state-name,Values=pending,running,stopping,stopped,shutting-down --query Reservations[].Instances[].InstanceId --output text",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:12.231709+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-vpc-endpoints --region ap-southeast-1 --filters Name=vpc-id,Values=vpc-0fda586ca71a8e583 --query VpcEndpoints[].VpcEndpointId --output text",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:12.968653+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-nat-gateways --region ap-southeast-1 --filter Name=vpc-id,Values=vpc-0fda586ca71a8e583 --query NatGateways[?State!=`deleted`].NatGatewayId --output text",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:13.669670+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws elbv2 describe-load-balancers --region ap-southeast-1 --query LoadBalancers[?VpcId==`vpc-0fda586ca71a8e583`].LoadBalancerArn --output text",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:14.291132+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-vpc-peering-connections --region ap-southeast-1 --vpc-peering-connection-ids pcx-0ec60bac4cf5228bc --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"VpcPeeringConnections\": [\n        {\n            \"AccepterVpcInfo\": {\n                \"CidrBlock\": \"10.1.0.0/16\",\n                \"CidrBlockSet\": [\n                    {\n                        \"CidrBlock\": \"10.1.0.0/16\"\n                    }\n                ],\n                \"OwnerId\": \"421515025823\",\n                \"PeeringOptions\": {\n                    \"AllowDnsResolutionFromRemoteVpc\": false,\n                    \"AllowEgressFromLocalClassicLinkToRemoteVpc\": false,\n                    \"AllowEgressFromLocalVpcToRemoteClassicLink\": false\n                },\n                \"VpcId\": \"vpc-0d53143e2f0a14450\",\n                \"Region\": \"ap-southeast-1\"\n            },\n            \"RequesterVpcInfo\": {\n                \"CidrBlock\": \"10.0.0.0/16\",\n                \"CidrBlockSet\": [\n                    {\n                        \"CidrBlock\": \"10.0.0.0/16\"\n                    }\n                ],\n                \"OwnerId\": \"421515025823\",\n                \"PeeringOptions\": {\n                    \"AllowDnsResolutionFromRemoteVpc\": false,\n                    \"AllowEgressFromLocalClassicLinkToRemoteVpc\": false,\n                    \"AllowEgressFromLocalVpcToRemoteClassicLink\": false\n                },\n                \"VpcId\": \"vpc-0fda586ca71a8e583\",\n                \"Region\": \"ap-southeast-1\"\n            },\n            \"Status\": {\n                \"Code\": \"active\",\n                \"Message\": \"Active\"\n            },\n            \"Tags\": [\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                },\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-soc-to-mgmt-peering\"\n                }\n            ],\n            \"VpcPeeringConnectionId\": \"pcx-0ec60bac4cf5228bc\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:15.022582+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=vpc-peering-connection Name=resource-id,Values=pcx-0ec60bac4cf5228bc --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"pcx-0ec60bac4cf5228bc\",\n            \"ResourceType\": \"vpc-peering-connection\",\n            \"Value\": \"soc-automation-soc-to-mgmt-peering\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"pcx-0ec60bac4cf5228bc\",\n            \"ResourceType\": \"vpc-peering-connection\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:15.740302+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 delete-vpc-peering-connection --region ap-southeast-1 --vpc-peering-connection-id pcx-0ec60bac4cf5228bc",
+      "returncode": 0,
+      "stdout": "{\n    \"Return\": true\n}",
+      "timestamp_utc": "2026-09-08T15:31:16.591240+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-route-tables --region ap-southeast-1 --route-table-ids rtb-053921ab07c4d5e2e --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"RouteTables\": [\n        {\n            \"Associations\": [\n                {\n                    \"Main\": false,\n                    \"RouteTableAssociationId\": \"rtbassoc-09d11a25e45cc140b\",\n                    \"RouteTableId\": \"rtb-053921ab07c4d5e2e\",\n                    \"SubnetId\": \"subnet-04b84a9083b538649\",\n                    \"AssociationState\": {\n                        \"State\": \"associated\"\n                    }\n                }\n            ],\n            \"PropagatingVgws\": [],\n            \"RouteTableId\": \"rtb-053921ab07c4d5e2e\",\n            \"Routes\": [\n                {\n                    \"DestinationCidrBlock\": \"10.0.0.0/16\",\n                    \"Origin\": \"CreateRoute\",\n                    \"State\": \"blackhole\",\n                    \"VpcPeeringConnectionId\": \"pcx-0ec60bac4cf5228bc\"\n                },\n                {\n                    \"DestinationCidrBlock\": \"10.1.0.0/16\",\n                    \"GatewayId\": \"local\",\n                    \"Origin\": \"CreateRouteTable\",\n                    \"State\": \"active\"\n                },\n                {\n                    \"DestinationCidrBlock\": \"0.0.0.0/0\",\n                    \"GatewayId\": \"igw-01b777b4c1c717e9f\",\n                    \"Origin\": \"CreateRoute\",\n                    \"State\": \"active\"\n                }\n            ],\n            \"Tags\": [\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-mgmt-public-rt\"\n                },\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                }\n            ],\n            \"VpcId\": \"vpc-0d53143e2f0a14450\",\n            \"OwnerId\": \"421515025823\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:17.357037+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=route-table Name=resource-id,Values=rtb-053921ab07c4d5e2e --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"rtb-053921ab07c4d5e2e\",\n            \"ResourceType\": \"route-table\",\n            \"Value\": \"soc-automation-mgmt-public-rt\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"rtb-053921ab07c4d5e2e\",\n            \"ResourceType\": \"route-table\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:18.072967+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 disassociate-route-table --region ap-southeast-1 --association-id rtbassoc-09d11a25e45cc140b",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:18.892757+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 delete-route-table --region ap-southeast-1 --route-table-id rtb-053921ab07c4d5e2e",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:19.758399+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-route-tables --region ap-southeast-1 --route-table-ids rtb-00f1d65a0d9a4cf2c --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"RouteTables\": [\n        {\n            \"Associations\": [\n                {\n                    \"Main\": false,\n                    \"RouteTableAssociationId\": \"rtbassoc-03099931c766cfda1\",\n                    \"RouteTableId\": \"rtb-00f1d65a0d9a4cf2c\",\n                    \"SubnetId\": \"subnet-0e6a021cf71f8a608\",\n                    \"AssociationState\": {\n                        \"State\": \"associated\"\n                    }\n                },\n                {\n                    \"Main\": false,\n                    \"RouteTableAssociationId\": \"rtbassoc-0d86ed55f08e094d5\",\n                    \"RouteTableId\": \"rtb-00f1d65a0d9a4cf2c\",\n                    \"SubnetId\": \"subnet-09232eb5d82ddab7a\",\n                    \"AssociationState\": {\n                        \"State\": \"associated\"\n                    }\n                }\n            ],\n            \"PropagatingVgws\": [],\n            \"RouteTableId\": \"rtb-00f1d65a0d9a4cf2c\",\n            \"Routes\": [\n                {\n                    \"DestinationCidrBlock\": \"10.0.0.0/16\",\n                    \"GatewayId\": \"local\",\n                    \"Origin\": \"CreateRouteTable\",\n                    \"State\": \"active\"\n                },\n                {\n                    \"DestinationCidrBlock\": \"10.1.0.0/16\",\n                    \"Origin\": \"CreateRoute\",\n                    \"State\": \"blackhole\",\n                    \"VpcPeeringConnectionId\": \"pcx-0ec60bac4cf5228bc\"\n                }\n            ],\n            \"Tags\": [\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                },\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-soc-private-rt\"\n                }\n            ],\n            \"VpcId\": \"vpc-0fda586ca71a8e583\",\n            \"OwnerId\": \"421515025823\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:20.642468+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=route-table Name=resource-id,Values=rtb-00f1d65a0d9a4cf2c --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"rtb-00f1d65a0d9a4cf2c\",\n            \"ResourceType\": \"route-table\",\n            \"Value\": \"soc-automation-soc-private-rt\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"rtb-00f1d65a0d9a4cf2c\",\n            \"ResourceType\": \"route-table\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:21.339661+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 disassociate-route-table --region ap-southeast-1 --association-id rtbassoc-03099931c766cfda1",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:22.188074+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 disassociate-route-table --region ap-southeast-1 --association-id rtbassoc-0d86ed55f08e094d5",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:23.057431+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 delete-route-table --region ap-southeast-1 --route-table-id rtb-00f1d65a0d9a4cf2c",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:23.854356+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-route-tables --region ap-southeast-1 --route-table-ids rtb-0011c474f65ad1e98 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"RouteTables\": [\n        {\n            \"Associations\": [\n                {\n                    \"Main\": false,\n                    \"RouteTableAssociationId\": \"rtbassoc-026877ecd0e080753\",\n                    \"RouteTableId\": \"rtb-0011c474f65ad1e98\",\n                    \"SubnetId\": \"subnet-0dd8f8677781c9f44\",\n                    \"AssociationState\": {\n                        \"State\": \"associated\"\n                    }\n                },\n                {\n                    \"Main\": false,\n                    \"RouteTableAssociationId\": \"rtbassoc-09a5cd67cb8dc4ae2\",\n                    \"RouteTableId\": \"rtb-0011c474f65ad1e98\",\n                    \"SubnetId\": \"subnet-0a75f102db2028159\",\n                    \"AssociationState\": {\n                        \"State\": \"associated\"\n                    }\n                }\n            ],\n            \"PropagatingVgws\": [],\n            \"RouteTableId\": \"rtb-0011c474f65ad1e98\",\n            \"Routes\": [\n                {\n                    \"DestinationCidrBlock\": \"10.0.0.0/16\",\n                    \"GatewayId\": \"local\",\n                    \"Origin\": \"CreateRouteTable\",\n                    \"State\": \"active\"\n                },\n                {\n                    \"DestinationCidrBlock\": \"10.1.0.0/16\",\n                    \"Origin\": \"CreateRoute\",\n                    \"State\": \"blackhole\",\n                    \"VpcPeeringConnectionId\": \"pcx-0ec60bac4cf5228bc\"\n                },\n                {\n                    \"DestinationCidrBlock\": \"0.0.0.0/0\",\n                    \"GatewayId\": \"igw-07cd9187e7423d4d3\",\n                    \"Origin\": \"CreateRoute\",\n                    \"State\": \"active\"\n                }\n            ],\n            \"Tags\": [\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                },\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-soc-public-rt\"\n                }\n            ],\n            \"VpcId\": \"vpc-0fda586ca71a8e583\",\n            \"OwnerId\": \"421515025823\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:24.602508+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=route-table Name=resource-id,Values=rtb-0011c474f65ad1e98 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"rtb-0011c474f65ad1e98\",\n            \"ResourceType\": \"route-table\",\n            \"Value\": \"soc-automation-soc-public-rt\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"rtb-0011c474f65ad1e98\",\n            \"ResourceType\": \"route-table\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:25.331517+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 disassociate-route-table --region ap-southeast-1 --association-id rtbassoc-026877ecd0e080753",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:26.219342+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 disassociate-route-table --region ap-southeast-1 --association-id rtbassoc-09a5cd67cb8dc4ae2",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:27.093091+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 delete-route-table --region ap-southeast-1 --route-table-id rtb-0011c474f65ad1e98",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:27.954582+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-route-tables --region ap-southeast-1 --route-table-ids rtb-0dd1e11e886f4ad75 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"RouteTables\": [\n        {\n            \"Associations\": [\n                {\n                    \"Main\": false,\n                    \"RouteTableAssociationId\": \"rtbassoc-0b756ad459dbccc97\",\n                    \"RouteTableId\": \"rtb-0dd1e11e886f4ad75\",\n                    \"SubnetId\": \"subnet-07ce59ad6eb6d68aa\",\n                    \"AssociationState\": {\n                        \"State\": \"associated\"\n                    }\n                }\n            ],\n            \"PropagatingVgws\": [],\n            \"RouteTableId\": \"rtb-0dd1e11e886f4ad75\",\n            \"Routes\": [\n                {\n                    \"DestinationCidrBlock\": \"10.0.0.0/16\",\n                    \"Origin\": \"CreateRoute\",\n                    \"State\": \"blackhole\",\n                    \"VpcPeeringConnectionId\": \"pcx-0ec60bac4cf5228bc\"\n                },\n                {\n                    \"DestinationCidrBlock\": \"10.1.0.0/16\",\n                    \"GatewayId\": \"local\",\n                    \"Origin\": \"CreateRouteTable\",\n                    \"State\": \"active\"\n                }\n            ],\n            \"Tags\": [\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-mgmt-private-rt\"\n                },\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                }\n            ],\n            \"VpcId\": \"vpc-0d53143e2f0a14450\",\n            \"OwnerId\": \"421515025823\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:28.648547+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=route-table Name=resource-id,Values=rtb-0dd1e11e886f4ad75 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"rtb-0dd1e11e886f4ad75\",\n            \"ResourceType\": \"route-table\",\n            \"Value\": \"soc-automation-mgmt-private-rt\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"rtb-0dd1e11e886f4ad75\",\n            \"ResourceType\": \"route-table\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:29.359251+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 disassociate-route-table --region ap-southeast-1 --association-id rtbassoc-0b756ad459dbccc97",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:30.211679+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 delete-route-table --region ap-southeast-1 --route-table-id rtb-0dd1e11e886f4ad75",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:31.048769+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-security-groups --region ap-southeast-1 --group-ids sg-039424d17ef6630ec --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"SecurityGroups\": [\n        {\n            \"GroupId\": \"sg-039424d17ef6630ec\",\n            \"IpPermissionsEgress\": [\n                {\n                    \"IpProtocol\": \"-1\",\n                    \"UserIdGroupPairs\": [],\n                    \"IpRanges\": [\n                        {\n                            \"CidrIp\": \"0.0.0.0/0\"\n                        }\n                    ],\n                    \"Ipv6Ranges\": [],\n                    \"PrefixListIds\": []\n                }\n            ],\n            \"Tags\": [\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-db-sg\"\n                },\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                }\n            ],\n            \"VpcId\": \"vpc-0fda586ca71a8e583\",\n            \"SecurityGroupArn\": \"arn:aws:ec2:ap-southeast-1:421515025823:security-group/sg-039424d17ef6630ec\",\n            \"OwnerId\": \"421515025823\",\n            \"GroupName\": \"soc-automation-db-sg\",\n            \"Description\": \"SOC database: Elasticsearch, Wazuh indexer\",\n            \"IpPermissions\": [\n                {\n                    \"IpProtocol\": \"tcp\",\n                    \"FromPort\": 22,\n                    \"ToPort\": 22,\n                    \"UserIdGroupPairs\": [],\n                    \"IpRanges\": [\n                        {\n                            \"CidrIp\": \"10.1.0.0/16\"\n                        }\n                    ],\n                    \"Ipv6Ranges\": [],\n                    \"PrefixListIds\": []\n                },\n                {\n                    \"IpProtocol\": \"tcp\",\n                    \"FromPort\": 9300,\n                    \"ToPort\": 9300,\n                    \"UserIdGroupPairs\": [],\n                    \"IpRanges\": [\n                        {\n                            \"CidrIp\": \"10.0.0.0/16\"\n                        }\n                    ],\n                    \"Ipv6Ranges\": [],\n                    \"PrefixListIds\": []\n                },\n                {\n                    \"IpProtocol\": \"tcp\",\n                    \"FromPort\": 1516,\n                    \"ToPort\": 1516,\n                    \"UserIdGroupPairs\": [\n                        {\n                            \"UserId\": \"421515025823\",\n                            \"GroupId\": \"sg-0f0f82178384295fd\"\n                        }\n                    ],\n                    \"IpRanges\": [],\n                    \"Ipv6Ranges\": [],\n                    \"PrefixListIds\": []\n                },\n                {\n                    \"IpProtocol\": \"tcp\",\n                    \"FromPort\": 9200,\n                    \"ToPort\": 9200,\n                    \"UserIdGroupPairs\": [\n                        {\n                            \"UserId\": \"421515025823\",\n                            \"GroupId\": \"sg-0f0f82178384295fd\"\n                        }\n                    ],\n                    \"IpRanges\": [],\n                    \"Ipv6Ranges\": [],\n                    \"PrefixListIds\": []\n                }\n            ]\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:31.961760+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=security-group Name=resource-id,Values=sg-039424d17ef6630ec --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"sg-039424d17ef6630ec\",\n            \"ResourceType\": \"security-group\",\n            \"Value\": \"soc-automation-db-sg\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"sg-039424d17ef6630ec\",\n            \"ResourceType\": \"security-group\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:32.752751+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 delete-security-group --region ap-southeast-1 --group-id sg-039424d17ef6630ec",
+      "returncode": 0,
+      "stdout": "{\n    \"Return\": true,\n    \"GroupId\": \"sg-039424d17ef6630ec\"\n}",
+      "timestamp_utc": "2026-09-08T15:31:33.784729+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-security-groups --region ap-southeast-1 --group-ids sg-0f0f82178384295fd --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"SecurityGroups\": [\n        {\n            \"GroupId\": \"sg-0f0f82178384295fd\",\n            \"IpPermissionsEgress\": [\n                {\n                    \"IpProtocol\": \"-1\",\n                    \"UserIdGroupPairs\": [],\n                    \"IpRanges\": [\n                        {\n                            \"CidrIp\": \"0.0.0.0/0\"\n                        }\n                    ],\n                    \"Ipv6Ranges\": [],\n                    \"PrefixListIds\": []\n                }\n            ],\n            \"Tags\": [\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-web-sg\"\n                },\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                }\n            ],\n            \"VpcId\": \"vpc-0fda586ca71a8e583\",\n            \"SecurityGroupArn\": \"arn:aws:ec2:ap-southeast-1:421515025823:security-group/sg-0f0f82178384295fd\",\n            \"OwnerId\": \"421515025823\",\n            \"GroupName\": \"soc-automation-web-sg\",\n            \"Description\": \"SOC web-facing: HTTPS, Wazuh agent ports, syslog\",\n            \"IpPermissions\": [\n                {\n                    \"IpProtocol\": \"tcp\",\n                    \"FromPort\": 1515,\n                    \"ToPort\": 1515,\n                    \"UserIdGroupPairs\": [],\n                    \"IpRanges\": [\n                        {\n                            \"CidrIp\": \"10.0.0.0/16\"\n                        }\n                    ],\n                    \"Ipv6Ranges\": [],\n                    \"PrefixListIds\": []\n                },\n                {\n                    \"IpProtocol\": \"tcp\",\n                    \"FromPort\": 22,\n                    \"ToPort\": 22,\n                    \"UserIdGroupPairs\": [],\n                    \"IpRanges\": [\n                        {\n                            \"CidrIp\": \"10.1.0.0/16\"\n                        }\n                    ],\n                    \"Ipv6Ranges\": [],\n                    \"PrefixListIds\": []\n                },\n                {\n                    \"IpProtocol\": \"tcp\",\n                    \"FromPort\": 1514,\n                    \"ToPort\": 1514,\n                    \"UserIdGroupPairs\": [],\n                    \"IpRanges\": [\n                        {\n                            \"CidrIp\": \"10.0.0.0/16\"\n                        }\n                    ],\n                    \"Ipv6Ranges\": [],\n                    \"PrefixListIds\": []\n                },\n                {\n                    \"IpProtocol\": \"tcp\",\n                    \"FromPort\": 443,\n                    \"ToPort\": 443,\n                    \"UserIdGroupPairs\": [],\n                    \"IpRanges\": [\n                        {\n                            \"CidrIp\": \"0.0.0.0/0\"\n                        }\n                    ],\n                    \"Ipv6Ranges\": [],\n                    \"PrefixListIds\": []\n                },\n                {\n                    \"IpProtocol\": \"udp\",\n                    \"FromPort\": 514,\n                    \"ToPort\": 514,\n                    \"UserIdGroupPairs\": [],\n                    \"IpRanges\": [\n                        {\n                            \"CidrIp\": \"10.0.0.0/16\"\n                        }\n                    ],\n                    \"Ipv6Ranges\": [],\n                    \"PrefixListIds\": []\n                }\n            ]\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:34.630877+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=security-group Name=resource-id,Values=sg-0f0f82178384295fd --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"sg-0f0f82178384295fd\",\n            \"ResourceType\": \"security-group\",\n            \"Value\": \"soc-automation-web-sg\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"sg-0f0f82178384295fd\",\n            \"ResourceType\": \"security-group\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:35.432953+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 delete-security-group --region ap-southeast-1 --group-id sg-0f0f82178384295fd",
+      "returncode": 0,
+      "stdout": "{\n    \"Return\": true,\n    \"GroupId\": \"sg-0f0f82178384295fd\"\n}",
+      "timestamp_utc": "2026-09-08T15:31:36.366621+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-security-groups --region ap-southeast-1 --group-ids sg-0dcbfd4796182c3b2 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"SecurityGroups\": [\n        {\n            \"GroupId\": \"sg-0dcbfd4796182c3b2\",\n            \"IpPermissionsEgress\": [\n                {\n                    \"IpProtocol\": \"-1\",\n                    \"UserIdGroupPairs\": [],\n                    \"IpRanges\": [\n                        {\n                            \"CidrIp\": \"0.0.0.0/0\"\n                        }\n                    ],\n                    \"Ipv6Ranges\": [],\n                    \"PrefixListIds\": []\n                }\n            ],\n            \"Tags\": [\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-security-mgmt-sg\"\n                },\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                }\n            ],\n            \"VpcId\": \"vpc-0d53143e2f0a14450\",\n            \"SecurityGroupArn\": \"arn:aws:ec2:ap-southeast-1:421515025823:security-group/sg-0dcbfd4796182c3b2\",\n            \"OwnerId\": \"421515025823\",\n            \"GroupName\": \"soc-automation-security-mgmt-sg\",\n            \"Description\": \"Management bastion: SSH, dashboard access\",\n            \"IpPermissions\": [\n                {\n                    \"IpProtocol\": \"tcp\",\n                    \"FromPort\": 22,\n                    \"ToPort\": 22,\n                    \"UserIdGroupPairs\": [],\n                    \"IpRanges\": [\n                        {\n                            \"CidrIp\": \"0.0.0.0/0\"\n                        }\n                    ],\n                    \"Ipv6Ranges\": [],\n                    \"PrefixListIds\": []\n                },\n                {\n                    \"IpProtocol\": \"tcp\",\n                    \"FromPort\": 443,\n                    \"ToPort\": 443,\n                    \"UserIdGroupPairs\": [],\n                    \"IpRanges\": [\n                        {\n                            \"CidrIp\": \"0.0.0.0/0\"\n                        }\n                    ],\n                    \"Ipv6Ranges\": [],\n                    \"PrefixListIds\": []\n                },\n                {\n                    \"IpProtocol\": \"tcp\",\n                    \"FromPort\": 55000,\n                    \"ToPort\": 55000,\n                    \"UserIdGroupPairs\": [],\n                    \"IpRanges\": [\n                        {\n                            \"CidrIp\": \"10.0.0.0/16\"\n                        }\n                    ],\n                    \"Ipv6Ranges\": [],\n                    \"PrefixListIds\": []\n                }\n            ]\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:37.257218+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=security-group Name=resource-id,Values=sg-0dcbfd4796182c3b2 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"sg-0dcbfd4796182c3b2\",\n            \"ResourceType\": \"security-group\",\n            \"Value\": \"soc-automation-security-mgmt-sg\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"sg-0dcbfd4796182c3b2\",\n            \"ResourceType\": \"security-group\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:38.080583+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 delete-security-group --region ap-southeast-1 --group-id sg-0dcbfd4796182c3b2",
+      "returncode": 0,
+      "stdout": "{\n    \"Return\": true,\n    \"GroupId\": \"sg-0dcbfd4796182c3b2\"\n}",
+      "timestamp_utc": "2026-09-08T15:31:39.026202+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-internet-gateways --region ap-southeast-1 --internet-gateway-ids igw-01b777b4c1c717e9f --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"InternetGateways\": [\n        {\n            \"Attachments\": [\n                {\n                    \"State\": \"available\",\n                    \"VpcId\": \"vpc-0d53143e2f0a14450\"\n                }\n            ],\n            \"InternetGatewayId\": \"igw-01b777b4c1c717e9f\",\n            \"OwnerId\": \"421515025823\",\n            \"Tags\": [\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-mgmt-igw\"\n                },\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                }\n            ]\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:39.743531+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=internet-gateway Name=resource-id,Values=igw-01b777b4c1c717e9f --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"igw-01b777b4c1c717e9f\",\n            \"ResourceType\": \"internet-gateway\",\n            \"Value\": \"soc-automation-mgmt-igw\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"igw-01b777b4c1c717e9f\",\n            \"ResourceType\": \"internet-gateway\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:40.452325+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 detach-internet-gateway --region ap-southeast-1 --internet-gateway-id igw-01b777b4c1c717e9f --vpc-id vpc-0d53143e2f0a14450",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:41.317711+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 delete-internet-gateway --region ap-southeast-1 --internet-gateway-id igw-01b777b4c1c717e9f",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:42.150221+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-internet-gateways --region ap-southeast-1 --internet-gateway-ids igw-07cd9187e7423d4d3 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"InternetGateways\": [\n        {\n            \"Attachments\": [\n                {\n                    \"State\": \"available\",\n                    \"VpcId\": \"vpc-0fda586ca71a8e583\"\n                }\n            ],\n            \"InternetGatewayId\": \"igw-07cd9187e7423d4d3\",\n            \"OwnerId\": \"421515025823\",\n            \"Tags\": [\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-soc-igw\"\n                },\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                }\n            ]\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:42.895429+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=internet-gateway Name=resource-id,Values=igw-07cd9187e7423d4d3 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"igw-07cd9187e7423d4d3\",\n            \"ResourceType\": \"internet-gateway\",\n            \"Value\": \"soc-automation-soc-igw\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"igw-07cd9187e7423d4d3\",\n            \"ResourceType\": \"internet-gateway\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:43.562473+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 detach-internet-gateway --region ap-southeast-1 --internet-gateway-id igw-07cd9187e7423d4d3 --vpc-id vpc-0fda586ca71a8e583",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:44.414520+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 delete-internet-gateway --region ap-southeast-1 --internet-gateway-id igw-07cd9187e7423d4d3",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:45.168584+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-subnets --region ap-southeast-1 --subnet-ids subnet-0dd8f8677781c9f44 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Subnets\": [\n        {\n            \"AvailabilityZoneId\": \"apse1-az2\",\n            \"MapCustomerOwnedIpOnLaunch\": false,\n            \"OwnerId\": \"421515025823\",\n            \"AssignIpv6AddressOnCreation\": false,\n            \"Ipv6CidrBlockAssociationSet\": [],\n            \"Tags\": [\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                },\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-soc-public-1a\"\n                }\n            ],\n            \"SubnetArn\": \"arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-0dd8f8677781c9f44\",\n            \"EnableDns64\": false,\n            \"Ipv6Native\": false,\n            \"PrivateDnsNameOptionsOnLaunch\": {\n                \"HostnameType\": \"ip-name\",\n                \"EnableResourceNameDnsARecord\": false,\n                \"EnableResourceNameDnsAAAARecord\": false\n            },\n            \"BlockPublicAccessStates\": {\n                \"InternetGatewayBlockMode\": \"off\"\n            },\n            \"SubnetId\": \"subnet-0dd8f8677781c9f44\",\n            \"State\": \"available\",\n            \"VpcId\": \"vpc-0fda586ca71a8e583\",\n            \"CidrBlock\": \"10.0.1.0/24\",\n            \"AvailableIpAddressCount\": 251,\n            \"AvailabilityZone\": \"ap-southeast-1a\",\n            \"DefaultForAz\": false,\n            \"MapPublicIpOnLaunch\": true\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:46.057616+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=subnet Name=resource-id,Values=subnet-0dd8f8677781c9f44 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"subnet-0dd8f8677781c9f44\",\n            \"ResourceType\": \"subnet\",\n            \"Value\": \"soc-automation-soc-public-1a\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"subnet-0dd8f8677781c9f44\",\n            \"ResourceType\": \"subnet\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:46.758392+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 delete-subnet --region ap-southeast-1 --subnet-id subnet-0dd8f8677781c9f44",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:48.024501+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-subnets --region ap-southeast-1 --subnet-ids subnet-0e6a021cf71f8a608 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Subnets\": [\n        {\n            \"AvailabilityZoneId\": \"apse1-az1\",\n            \"MapCustomerOwnedIpOnLaunch\": false,\n            \"OwnerId\": \"421515025823\",\n            \"AssignIpv6AddressOnCreation\": false,\n            \"Ipv6CidrBlockAssociationSet\": [],\n            \"Tags\": [\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-soc-private-1b\"\n                },\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                }\n            ],\n            \"SubnetArn\": \"arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-0e6a021cf71f8a608\",\n            \"EnableDns64\": false,\n            \"Ipv6Native\": false,\n            \"PrivateDnsNameOptionsOnLaunch\": {\n                \"HostnameType\": \"ip-name\",\n                \"EnableResourceNameDnsARecord\": false,\n                \"EnableResourceNameDnsAAAARecord\": false\n            },\n            \"BlockPublicAccessStates\": {\n                \"InternetGatewayBlockMode\": \"off\"\n            },\n            \"SubnetId\": \"subnet-0e6a021cf71f8a608\",\n            \"State\": \"available\",\n            \"VpcId\": \"vpc-0fda586ca71a8e583\",\n            \"CidrBlock\": \"10.0.20.0/24\",\n            \"AvailableIpAddressCount\": 251,\n            \"AvailabilityZone\": \"ap-southeast-1b\",\n            \"DefaultForAz\": false,\n            \"MapPublicIpOnLaunch\": false\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:48.925660+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=subnet Name=resource-id,Values=subnet-0e6a021cf71f8a608 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"subnet-0e6a021cf71f8a608\",\n            \"ResourceType\": \"subnet\",\n            \"Value\": \"soc-automation-soc-private-1b\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"subnet-0e6a021cf71f8a608\",\n            \"ResourceType\": \"subnet\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:49.629703+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 delete-subnet --region ap-southeast-1 --subnet-id subnet-0e6a021cf71f8a608",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:50.889603+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-subnets --region ap-southeast-1 --subnet-ids subnet-07ce59ad6eb6d68aa --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Subnets\": [\n        {\n            \"AvailabilityZoneId\": \"apse1-az2\",\n            \"MapCustomerOwnedIpOnLaunch\": false,\n            \"OwnerId\": \"421515025823\",\n            \"AssignIpv6AddressOnCreation\": false,\n            \"Ipv6CidrBlockAssociationSet\": [],\n            \"Tags\": [\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-mgmt-private-1a\"\n                },\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                }\n            ],\n            \"SubnetArn\": \"arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-07ce59ad6eb6d68aa\",\n            \"EnableDns64\": false,\n            \"Ipv6Native\": false,\n            \"PrivateDnsNameOptionsOnLaunch\": {\n                \"HostnameType\": \"ip-name\",\n                \"EnableResourceNameDnsARecord\": false,\n                \"EnableResourceNameDnsAAAARecord\": false\n            },\n            \"BlockPublicAccessStates\": {\n                \"InternetGatewayBlockMode\": \"off\"\n            },\n            \"SubnetId\": \"subnet-07ce59ad6eb6d68aa\",\n            \"State\": \"available\",\n            \"VpcId\": \"vpc-0d53143e2f0a14450\",\n            \"CidrBlock\": \"10.1.10.0/24\",\n            \"AvailableIpAddressCount\": 251,\n            \"AvailabilityZone\": \"ap-southeast-1a\",\n            \"DefaultForAz\": false,\n            \"MapPublicIpOnLaunch\": false\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:51.765320+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=subnet Name=resource-id,Values=subnet-07ce59ad6eb6d68aa --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"subnet-07ce59ad6eb6d68aa\",\n            \"ResourceType\": \"subnet\",\n            \"Value\": \"soc-automation-mgmt-private-1a\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"subnet-07ce59ad6eb6d68aa\",\n            \"ResourceType\": \"subnet\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:52.480380+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 delete-subnet --region ap-southeast-1 --subnet-id subnet-07ce59ad6eb6d68aa",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:53.557839+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-subnets --region ap-southeast-1 --subnet-ids subnet-0a75f102db2028159 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Subnets\": [\n        {\n            \"AvailabilityZoneId\": \"apse1-az1\",\n            \"MapCustomerOwnedIpOnLaunch\": false,\n            \"OwnerId\": \"421515025823\",\n            \"AssignIpv6AddressOnCreation\": false,\n            \"Ipv6CidrBlockAssociationSet\": [],\n            \"Tags\": [\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                },\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-soc-public-1b\"\n                }\n            ],\n            \"SubnetArn\": \"arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-0a75f102db2028159\",\n            \"EnableDns64\": false,\n            \"Ipv6Native\": false,\n            \"PrivateDnsNameOptionsOnLaunch\": {\n                \"HostnameType\": \"ip-name\",\n                \"EnableResourceNameDnsARecord\": false,\n                \"EnableResourceNameDnsAAAARecord\": false\n            },\n            \"BlockPublicAccessStates\": {\n                \"InternetGatewayBlockMode\": \"off\"\n            },\n            \"SubnetId\": \"subnet-0a75f102db2028159\",\n            \"State\": \"available\",\n            \"VpcId\": \"vpc-0fda586ca71a8e583\",\n            \"CidrBlock\": \"10.0.2.0/24\",\n            \"AvailableIpAddressCount\": 251,\n            \"AvailabilityZone\": \"ap-southeast-1b\",\n            \"DefaultForAz\": false,\n            \"MapPublicIpOnLaunch\": true\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:54.526768+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=subnet Name=resource-id,Values=subnet-0a75f102db2028159 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"subnet-0a75f102db2028159\",\n            \"ResourceType\": \"subnet\",\n            \"Value\": \"soc-automation-soc-public-1b\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"subnet-0a75f102db2028159\",\n            \"ResourceType\": \"subnet\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:55.181983+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 delete-subnet --region ap-southeast-1 --subnet-id subnet-0a75f102db2028159",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:56.254562+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-subnets --region ap-southeast-1 --subnet-ids subnet-09232eb5d82ddab7a --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Subnets\": [\n        {\n            \"AvailabilityZoneId\": \"apse1-az2\",\n            \"MapCustomerOwnedIpOnLaunch\": false,\n            \"OwnerId\": \"421515025823\",\n            \"AssignIpv6AddressOnCreation\": false,\n            \"Ipv6CidrBlockAssociationSet\": [],\n            \"Tags\": [\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                },\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-soc-private-1a\"\n                }\n            ],\n            \"SubnetArn\": \"arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-09232eb5d82ddab7a\",\n            \"EnableDns64\": false,\n            \"Ipv6Native\": false,\n            \"PrivateDnsNameOptionsOnLaunch\": {\n                \"HostnameType\": \"ip-name\",\n                \"EnableResourceNameDnsARecord\": false,\n                \"EnableResourceNameDnsAAAARecord\": false\n            },\n            \"BlockPublicAccessStates\": {\n                \"InternetGatewayBlockMode\": \"off\"\n            },\n            \"SubnetId\": \"subnet-09232eb5d82ddab7a\",\n            \"State\": \"available\",\n            \"VpcId\": \"vpc-0fda586ca71a8e583\",\n            \"CidrBlock\": \"10.0.10.0/24\",\n            \"AvailableIpAddressCount\": 251,\n            \"AvailabilityZone\": \"ap-southeast-1a\",\n            \"DefaultForAz\": false,\n            \"MapPublicIpOnLaunch\": false\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:57.115449+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=subnet Name=resource-id,Values=subnet-09232eb5d82ddab7a --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"subnet-09232eb5d82ddab7a\",\n            \"ResourceType\": \"subnet\",\n            \"Value\": \"soc-automation-soc-private-1a\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"subnet-09232eb5d82ddab7a\",\n            \"ResourceType\": \"subnet\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:57.813186+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 delete-subnet --region ap-southeast-1 --subnet-id subnet-09232eb5d82ddab7a",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:31:58.889641+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-subnets --region ap-southeast-1 --subnet-ids subnet-04b84a9083b538649 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Subnets\": [\n        {\n            \"AvailabilityZoneId\": \"apse1-az2\",\n            \"MapCustomerOwnedIpOnLaunch\": false,\n            \"OwnerId\": \"421515025823\",\n            \"AssignIpv6AddressOnCreation\": false,\n            \"Ipv6CidrBlockAssociationSet\": [],\n            \"Tags\": [\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-mgmt-public-1a\"\n                },\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                }\n            ],\n            \"SubnetArn\": \"arn:aws:ec2:ap-southeast-1:421515025823:subnet/subnet-04b84a9083b538649\",\n            \"EnableDns64\": false,\n            \"Ipv6Native\": false,\n            \"PrivateDnsNameOptionsOnLaunch\": {\n                \"HostnameType\": \"ip-name\",\n                \"EnableResourceNameDnsARecord\": false,\n                \"EnableResourceNameDnsAAAARecord\": false\n            },\n            \"BlockPublicAccessStates\": {\n                \"InternetGatewayBlockMode\": \"off\"\n            },\n            \"SubnetId\": \"subnet-04b84a9083b538649\",\n            \"State\": \"available\",\n            \"VpcId\": \"vpc-0d53143e2f0a14450\",\n            \"CidrBlock\": \"10.1.1.0/24\",\n            \"AvailableIpAddressCount\": 251,\n            \"AvailabilityZone\": \"ap-southeast-1a\",\n            \"DefaultForAz\": false,\n            \"MapPublicIpOnLaunch\": true\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:31:59.819710+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=subnet Name=resource-id,Values=subnet-04b84a9083b538649 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"subnet-04b84a9083b538649\",\n            \"ResourceType\": \"subnet\",\n            \"Value\": \"soc-automation-mgmt-public-1a\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"subnet-04b84a9083b538649\",\n            \"ResourceType\": \"subnet\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:32:00.513501+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 delete-subnet --region ap-southeast-1 --subnet-id subnet-04b84a9083b538649",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:32:01.545779+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-vpcs --region ap-southeast-1 --vpc-ids vpc-0d53143e2f0a14450 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Vpcs\": [\n        {\n            \"OwnerId\": \"421515025823\",\n            \"InstanceTenancy\": \"default\",\n            \"CidrBlockAssociationSet\": [\n                {\n                    \"AssociationId\": \"vpc-cidr-assoc-0b54c59dff4710b12\",\n                    \"CidrBlock\": \"10.1.0.0/16\",\n                    \"CidrBlockState\": {\n                        \"State\": \"associated\"\n                    }\n                }\n            ],\n            \"IsDefault\": false,\n            \"Tags\": [\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-mgmt-vpc\"\n                },\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                }\n            ],\n            \"BlockPublicAccessStates\": {\n                \"InternetGatewayBlockMode\": \"off\"\n            },\n            \"VpcId\": \"vpc-0d53143e2f0a14450\",\n            \"State\": \"available\",\n            \"CidrBlock\": \"10.1.0.0/16\",\n            \"DhcpOptionsId\": \"dopt-07faca3bc137149a8\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:32:02.351003+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=vpc Name=resource-id,Values=vpc-0d53143e2f0a14450 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"vpc-0d53143e2f0a14450\",\n            \"ResourceType\": \"vpc\",\n            \"Value\": \"soc-automation-mgmt-vpc\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"vpc-0d53143e2f0a14450\",\n            \"ResourceType\": \"vpc\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:32:03.006345+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 delete-vpc --region ap-southeast-1 --vpc-id vpc-0d53143e2f0a14450",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:32:04.073410+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws ec2 describe-vpcs --region ap-southeast-1 --vpc-ids vpc-0fda586ca71a8e583 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Vpcs\": [\n        {\n            \"OwnerId\": \"421515025823\",\n            \"InstanceTenancy\": \"default\",\n            \"CidrBlockAssociationSet\": [\n                {\n                    \"AssociationId\": \"vpc-cidr-assoc-0c8dc7fbf5257a19b\",\n                    \"CidrBlock\": \"10.0.0.0/16\",\n                    \"CidrBlockState\": {\n                        \"State\": \"associated\"\n                    }\n                }\n            ],\n            \"IsDefault\": false,\n            \"Tags\": [\n                {\n                    \"Key\": \"Name\",\n                    \"Value\": \"soc-automation-soc-vpc\"\n                },\n                {\n                    \"Key\": \"Project\",\n                    \"Value\": \"soc-automation\"\n                }\n            ],\n            \"BlockPublicAccessStates\": {\n                \"InternetGatewayBlockMode\": \"off\"\n            },\n            \"VpcId\": \"vpc-0fda586ca71a8e583\",\n            \"State\": \"available\",\n            \"CidrBlock\": \"10.0.0.0/16\",\n            \"DhcpOptionsId\": \"dopt-07faca3bc137149a8\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:32:04.985737+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 describe-tags --region ap-southeast-1 --filters Name=resource-type,Values=vpc Name=resource-id,Values=vpc-0fda586ca71a8e583 --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Tags\": [\n        {\n            \"Key\": \"Name\",\n            \"ResourceId\": \"vpc-0fda586ca71a8e583\",\n            \"ResourceType\": \"vpc\",\n            \"Value\": \"soc-automation-soc-vpc\"\n        },\n        {\n            \"Key\": \"Project\",\n            \"ResourceId\": \"vpc-0fda586ca71a8e583\",\n            \"ResourceType\": \"vpc\",\n            \"Value\": \"soc-automation\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:32:05.647763+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws ec2 delete-vpc --region ap-southeast-1 --vpc-id vpc-0fda586ca71a8e583",
+      "returncode": 0,
+      "timestamp_utc": "2026-09-08T15:32:06.631855+00:00",
+      "write_command": true
+    },
+    {
+      "command": "aws iam get-policy --policy-arn arn:aws:iam::421515025823:policy/SOC-Middleware-WebSG-Policy --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Policy\": {\n        \"PolicyName\": \"SOC-Middleware-WebSG-Policy\",\n        \"PolicyId\": \"ANPAWEJCA3WPQGEW4Q3PH\",\n        \"Arn\": \"arn:aws:iam::421515025823:policy/SOC-Middleware-WebSG-Policy\",\n        \"Path\": \"/\",\n        \"DefaultVersionId\": \"v1\",\n        \"AttachmentCount\": 1,\n        \"PermissionsBoundaryUsageCount\": 0,\n        \"IsAttachable\": true,\n        \"Description\": \"Allows SOC middleware to modify ingress on web SG sg-0f0f82178384295fd\",\n        \"CreateDate\": \"2026-09-08T13:08:57+00:00\",\n        \"UpdateDate\": \"2026-09-08T13:08:57+00:00\",\n        \"Tags\": [\n            {\n                \"Key\": \"Project\",\n                \"Value\": \"soc-automation\"\n            }\n        ]\n    }\n}",
+      "timestamp_utc": "2026-09-08T15:32:09.823508+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws iam list-entities-for-policy --policy-arn arn:aws:iam::421515025823:policy/SOC-Middleware-WebSG-Policy --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"PolicyGroups\": [],\n    \"PolicyUsers\": [],\n    \"PolicyRoles\": [\n        {\n            \"RoleName\": \"SOC-Middleware-Role\",\n            \"RoleId\": \"AROAWEJCA3WPUQJ5WNWKI\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:32:11.668678+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws iam get-role --role-name SOC-Middleware-Role --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Role\": {\n        \"Path\": \"/\",\n        \"RoleName\": \"SOC-Middleware-Role\",\n        \"RoleId\": \"AROAWEJCA3WPUQJ5WNWKI\",\n        \"Arn\": \"arn:aws:iam::421515025823:role/SOC-Middleware-Role\",\n        \"CreateDate\": \"2026-08-01T05:06:07+00:00\",\n        \"AssumeRolePolicyDocument\": {\n            \"Version\": \"2012-10-17\",\n            \"Statement\": [\n                {\n                    \"Effect\": \"Allow\",\n                    \"Principal\": {\n                        \"Service\": \"ec2.amazonaws.com\"\n                    },\n                    \"Action\": \"sts:AssumeRole\"\n                }\n            ]\n        },\n        \"MaxSessionDuration\": 3600,\n        \"RoleLastUsed\": {\n            \"LastUsedDate\": \"2026-08-03T08:02:56+00:00\",\n            \"Region\": \"us-east-1\"\n        }\n    }\n}",
+      "timestamp_utc": "2026-09-08T15:32:13.589201+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws iam list-attached-role-policies --role-name SOC-Middleware-Role --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"AttachedPolicies\": [\n        {\n            \"PolicyName\": \"SOC-Middleware-WebSG-Policy\",\n            \"PolicyArn\": \"arn:aws:iam::421515025823:policy/SOC-Middleware-WebSG-Policy\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:32:15.425938+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws iam list-role-policies --role-name SOC-Middleware-Role --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"PolicyNames\": [\n        \"SOC-SG-Modify-Policy\"\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:32:17.175437+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws iam list-instance-profiles-for-role --role-name SOC-Middleware-Role --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"InstanceProfiles\": [\n        {\n            \"Path\": \"/\",\n            \"InstanceProfileName\": \"SOC-Middleware-Profile\",\n            \"InstanceProfileId\": \"AIPAWEJCA3WPZCK7HNG4H\",\n            \"Arn\": \"arn:aws:iam::421515025823:instance-profile/SOC-Middleware-Profile\",\n            \"CreateDate\": \"2026-08-01T05:07:38+00:00\",\n            \"Roles\": [\n                {\n                    \"Path\": \"/\",\n                    \"RoleName\": \"SOC-Middleware-Role\",\n                    \"RoleId\": \"AROAWEJCA3WPUQJ5WNWKI\",\n                    \"Arn\": \"arn:aws:iam::421515025823:role/SOC-Middleware-Role\",\n                    \"CreateDate\": \"2026-08-01T05:06:07+00:00\",\n                    \"AssumeRolePolicyDocument\": {\n                        \"Version\": \"2012-10-17\",\n                        \"Statement\": [\n                            {\n                                \"Effect\": \"Allow\",\n                                \"Principal\": {\n                                    \"Service\": \"ec2.amazonaws.com\"\n                                },\n                                \"Action\": \"sts:AssumeRole\"\n                            }\n                        ]\n                    }\n                }\n            ]\n        },\n        {\n            \"Path\": \"/\",\n            \"InstanceProfileName\": \"SOC-Middleware-Role\",\n            \"InstanceProfileId\": \"AIPAWEJCA3WP6EYVXXJMS\",\n            \"Arn\": \"arn:aws:iam::421515025823:instance-profile/SOC-Middleware-Role\",\n            \"CreateDate\": \"2026-09-08T13:09:02+00:00\",\n            \"Roles\": [\n                {\n                    \"Path\": \"/\",\n                    \"RoleName\": \"SOC-Middleware-Role\",\n                    \"RoleId\": \"AROAWEJCA3WPUQJ5WNWKI\",\n                    \"Arn\": \"arn:aws:iam::421515025823:role/SOC-Middleware-Role\",\n                    \"CreateDate\": \"2026-08-01T05:06:07+00:00\",\n                    \"AssumeRolePolicyDocument\": {\n                        \"Version\": \"2012-10-17\",\n                        \"Statement\": [\n                            {\n                                \"Effect\": \"Allow\",\n                                \"Principal\": {\n                                    \"Service\": \"ec2.amazonaws.com\"\n                                },\n                                \"Action\": \"sts:AssumeRole\"\n                            }\n                        ]\n                    }\n                }\n            ]\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:32:18.936875+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws iam get-instance-profile --instance-profile-name SOC-Middleware-Role --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"InstanceProfile\": {\n        \"Path\": \"/\",\n        \"InstanceProfileName\": \"SOC-Middleware-Role\",\n        \"InstanceProfileId\": \"AIPAWEJCA3WP6EYVXXJMS\",\n        \"Arn\": \"arn:aws:iam::421515025823:instance-profile/SOC-Middleware-Role\",\n        \"CreateDate\": \"2026-09-08T13:09:02+00:00\",\n        \"Roles\": [\n            {\n                \"Path\": \"/\",\n                \"RoleName\": \"SOC-Middleware-Role\",\n                \"RoleId\": \"AROAWEJCA3WPUQJ5WNWKI\",\n                \"Arn\": \"arn:aws:iam::421515025823:role/SOC-Middleware-Role\",\n                \"CreateDate\": \"2026-08-01T05:06:07+00:00\",\n                \"AssumeRolePolicyDocument\": {\n                    \"Version\": \"2012-10-17\",\n                    \"Statement\": [\n                        {\n                            \"Effect\": \"Allow\",\n                            \"Principal\": {\n                                \"Service\": \"ec2.amazonaws.com\"\n                            },\n                            \"Action\": \"sts:AssumeRole\"\n                        }\n                    ]\n                }\n            }\n        ],\n        \"Tags\": []\n    }\n}",
+      "timestamp_utc": "2026-09-08T15:32:20.973796+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws iam list-policy-versions --policy-arn arn:aws:iam::421515025823:policy/SOC-Middleware-WebSG-Policy --output json",
+      "returncode": 0,
+      "stdout": "{\n    \"Versions\": [\n        {\n            \"VersionId\": \"v1\",\n            \"IsDefaultVersion\": true,\n            \"CreateDate\": \"2026-09-08T13:08:57+00:00\"\n        }\n    ]\n}",
+      "timestamp_utc": "2026-09-08T15:32:22.784876+00:00",
+      "write_command": false
+    },
+    {
+      "command": "aws iam delete-policy-version --policy-arn arn:aws:iam::421515025823:policy/SOC-Middleware-WebSG-Policy --version-id v1",
+      "returncode": 254,
+      "stderr": "An error occurred (DeleteConflict) when calling the DeletePolicyVersion operation: Cannot delete the default version of a policy.",
+      "timestamp_utc": "2026-09-08T15:32:24.327070+00:00",
+      "write_command": true
+    }
+  ],
+  "deleted": [
+    {
+      "id": "pcx-0ec60bac4cf5228bc",
+      "type": "vpc-peering-connection"
+    },
+    {
+      "id": "rtbassoc-09d11a25e45cc140b",
+      "type": "route-table-association"
+    },
+    {
+      "id": "rtb-053921ab07c4d5e2e",
+      "type": "route-table"
+    },
+    {
+      "id": "rtbassoc-03099931c766cfda1",
+      "type": "route-table-association"
+    },
+    {
+      "id": "rtbassoc-0d86ed55f08e094d5",
+      "type": "route-table-association"
+    },
+    {
+      "id": "rtb-00f1d65a0d9a4cf2c",
+      "type": "route-table"
+    },
+    {
+      "id": "rtbassoc-026877ecd0e080753",
+      "type": "route-table-association"
+    },
+    {
+      "id": "rtbassoc-09a5cd67cb8dc4ae2",
+      "type": "route-table-association"
+    },
+    {
+      "id": "rtb-0011c474f65ad1e98",
+      "type": "route-table"
+    },
+    {
+      "id": "rtbassoc-0b756ad459dbccc97",
+      "type": "route-table-association"
+    },
+    {
+      "id": "rtb-0dd1e11e886f4ad75",
+      "type": "route-table"
+    },
+    {
+      "id": "sg-039424d17ef6630ec",
+      "type": "security-group"
+    },
+    {
+      "id": "sg-0f0f82178384295fd",
+      "type": "security-group"
+    },
+    {
+      "id": "sg-0dcbfd4796182c3b2",
+      "type": "security-group"
+    },
+    {
+      "id": "igw-01b777b4c1c717e9f->vpc-0d53143e2f0a14450",
+      "type": "internet-gateway-attachment"
+    },
+    {
+      "id": "igw-01b777b4c1c717e9f",
+      "type": "internet-gateway"
+    },
+    {
+      "id": "igw-07cd9187e7423d4d3->vpc-0fda586ca71a8e583",
+      "type": "internet-gateway-attachment"
+    },
+    {
+      "id": "igw-07cd9187e7423d4d3",
+      "type": "internet-gateway"
+    },
+    {
+      "id": "subnet-0dd8f8677781c9f44",
+      "type": "subnet"
+    },
+    {
+      "id": "subnet-0e6a021cf71f8a608",
+      "type": "subnet"
+    },
+    {
+      "id": "subnet-07ce59ad6eb6d68aa",
+      "type": "subnet"
+    },
+    {
+      "id": "subnet-0a75f102db2028159",
+      "type": "subnet"
+    },
+    {
+      "id": "subnet-09232eb5d82ddab7a",
+      "type": "subnet"
+    },
+    {
+      "id": "subnet-04b84a9083b538649",
+      "type": "subnet"
+    },
+    {
+      "id": "vpc-0d53143e2f0a14450",
+      "type": "vpc"
+    },
+    {
+      "id": "vpc-0fda586ca71a8e583",
+      "type": "vpc"
+    }
+  ],
+  "failed": [
+    "Command failed: aws iam delete-policy-version --policy-arn arn:aws:iam::421515025823:policy/SOC-Middleware-WebSG-Policy --version-id v1\nAn error occurred (DeleteConflict) when calling the DeletePolicyVersion operation: Cannot delete the default version of a policy."
+  ],
+  "generated_at_utc": "2026-09-08T15:32:24.327166+00:00",
+  "region": "ap-southeast-1",
+  "skipped": [
+    {
+      "id": "SOC-Middleware-Role",
+      "reason": "unexpected role dependencies found; left for manual review",
+      "type": "iam-role"
+    },
+    {
+      "id": "SOC-Middleware-Role",
+      "reason": "still contains role bindings; left for manual review",
+      "type": "iam-instance-profile"
+    }
+  ]
+}
