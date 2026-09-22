@@ -53,7 +53,18 @@
         "arn:aws:ec2:ap-southeast-1:908157891283:security-group/sg-01dc0bd14c2808f21",
         "arn:aws:ec2:ap-southeast-1:908157891283:security-group/sg-0effe1d21b6836624",
         "arn:aws:ec2:ap-southeast-1:908157891283:security-group/sg-03e665ea5e9403e11",
-        "arn:aws:ec2:ap-southeast-1:908157891283:network-interface/*",
+        "arn:aws:ec2:ap-southeast-1:908157891283:network-interface/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-southeast-1"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": [
         "arn:aws:ec2:ap-southeast-1:908157891283:instance/*",
         "arn:aws:ec2:ap-southeast-1:908157891283:volume/*"
       ],

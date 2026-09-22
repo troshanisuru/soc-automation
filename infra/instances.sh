@@ -653,7 +653,7 @@ run_plan_only() {
     echo "AMI root device: $AMI_ROOT_DEVICE"
     plan_instance "$WEB_INSTANCE_NAME" "web" "t3.micro" "12" "$PROD_PUBLIC_SUBNET_ID" "$WEB_SG_ID" "true" "$WEB_USER_DATA" ""
     plan_instance "$DB_INSTANCE_NAME" "db" "t3.micro" "12" "$PROD_PRIVATE_SUBNET_ID" "$DB_SG_ID" "false" "$DB_USER_DATA" ""
-    plan_instance "$WAZUH_INSTANCE_NAME" "wazuh" "t3.large" "50" "$SECURITY_MGMT_SUBNET_ID" "$MGMT_SG_ID" "true" "$WAZUH_USER_DATA" "$INSTANCE_PROFILE_NAME"
+    plan_instance "$WAZUH_INSTANCE_NAME" "wazuh" "${WAZUH_INSTANCE_TYPE:-t3.micro}" "50" "$SECURITY_MGMT_SUBNET_ID" "$MGMT_SG_ID" "true" "$WAZUH_USER_DATA" "$INSTANCE_PROFILE_NAME"
     echo ""
     echo "PLAN_ONLY complete. No key pair import, RunInstances, waiters, or evidence inventory writes were executed."
 }
@@ -721,7 +721,7 @@ ensure_key_pair
 echo "=== Creating/reusing EC2 instances ==="
 launch_instance "$WEB_INSTANCE_NAME" "web" "t3.micro" "12" "$PROD_PUBLIC_SUBNET_ID" "$WEB_SG_ID" "true" "$WEB_USER_DATA" "" WEB_INSTANCE_ID
 launch_instance "$DB_INSTANCE_NAME" "db" "t3.micro" "12" "$PROD_PRIVATE_SUBNET_ID" "$DB_SG_ID" "false" "$DB_USER_DATA" "" DB_INSTANCE_ID
-launch_instance "$WAZUH_INSTANCE_NAME" "wazuh" "t3.large" "50" "$SECURITY_MGMT_SUBNET_ID" "$MGMT_SG_ID" "true" "$WAZUH_USER_DATA" "$INSTANCE_PROFILE_NAME" WAZUH_INSTANCE_ID
+launch_instance "$WAZUH_INSTANCE_NAME" "wazuh" "${WAZUH_INSTANCE_TYPE:-t3.micro}" "50" "$SECURITY_MGMT_SUBNET_ID" "$MGMT_SG_ID" "true" "$WAZUH_USER_DATA" "$INSTANCE_PROFILE_NAME" WAZUH_INSTANCE_ID
 
 wait_for_instances
 write_inventory
