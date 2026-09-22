@@ -1,0 +1,91 @@
+{
+  "instances": [
+    {
+      "BlockDeviceMappings": [
+        {
+          "DeleteOnTermination": true,
+          "DeviceName": "/dev/sda1",
+          "VolumeId": "vol-0b16e735742f25fa0"
+        }
+      ],
+      "Environment": "lab",
+      "IamInstanceProfile": "arn:aws:iam::908157891283:instance-profile/SOC-Middleware-Role",
+      "ImageId": "ami-0d95f2f0cc4ab4566",
+      "InstanceId": "i-016d9423ecc670c58",
+      "InstanceType": "t3.micro",
+      "Name": "soc-automation-wazuh",
+      "PrivateIpAddress": "172.16.1.132",
+      "Project": "soc-automation",
+      "PublicIpAddress": "54.179.26.15",
+      "Role": "wazuh",
+      "RootDeviceName": "/dev/sda1",
+      "SecurityGroups": [
+        "sg-0effe1d21b6836624"
+      ],
+      "State": "running",
+      "SubnetId": "subnet-0192340171c348f23",
+      "VpcId": "vpc-0fb2381154ad1b418"
+    },
+    {
+      "BlockDeviceMappings": [
+        {
+          "DeleteOnTermination": true,
+          "DeviceName": "/dev/sda1",
+          "VolumeId": "vol-02282e8f3f1c61bbd"
+        }
+      ],
+      "Environment": "lab",
+      "IamInstanceProfile": null,
+      "ImageId": "ami-0d95f2f0cc4ab4566",
+      "InstanceId": "i-0d511a9478594ce7d",
+      "InstanceType": "t3.micro",
+      "Name": "soc-automation-web",
+      "PrivateIpAddress": "10.0.1.31",
+      "Project": "soc-automation",
+      "PublicIpAddress": "54.169.120.235",
+      "Role": "web",
+      "RootDeviceName": "/dev/sda1",
+      "SecurityGroups": [
+        "sg-01dc0bd14c2808f21"
+      ],
+      "State": "running",
+      "SubnetId": "subnet-09438c38e60394950",
+      "VpcId": "vpc-01d5230934a140846"
+    },
+    {
+      "BlockDeviceMappings": [
+        {
+          "DeleteOnTermination": true,
+          "DeviceName": "/dev/sda1",
+          "VolumeId": "vol-0bff2237db83189c6"
+        }
+      ],
+      "Environment": "lab",
+      "IamInstanceProfile": null,
+      "ImageId": "ami-0d95f2f0cc4ab4566",
+      "InstanceId": "i-013c4f271d7741dec",
+      "InstanceType": "t3.micro",
+      "Name": "soc-automation-db",
+      "PrivateIpAddress": "10.0.2.109",
+      "Project": "soc-automation",
+      "PublicIpAddress": null,
+      "Role": "db",
+      "RootDeviceName": "/dev/sda1",
+      "SecurityGroups": [
+        "sg-03e665ea5e9403e11"
+      ],
+      "State": "running",
+      "SubnetId": "subnet-045f32f0821d7cb3e",
+      "VpcId": "vpc-01d5230934a140846"
+    }
+  ],
+  "metadata": {
+    "account": "908157891283",
+    "ami_id": "ami-0d95f2f0cc4ab4566",
+    "availability_zone": "ap-southeast-1a",
+    "note": "Sanitized inventory. No credentials, key material, passwords, tokens, or user-data are included.",
+    "profile": "default",
+    "project": "soc-automation",
+    "region": "ap-southeast-1"
+  }
+}
