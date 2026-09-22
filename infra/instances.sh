@@ -526,6 +526,7 @@ find_instance() {
                   "Name=tag:Name,Values=${name}" \
                   "Name=tag:Role,Values=${role}" \
                   "Name=tag:Environment,Values=${ENVIRONMENT}" \
+                  "Name=instance-state-name,Values=pending,running,stopped,stopping" \
         --output json)
 
     printf '%s' "$instances_json" | python3 -c "

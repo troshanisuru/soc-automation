@@ -5,44 +5,44 @@
         {
           "DeleteOnTermination": true,
           "DeviceName": "/dev/sda1",
-          "VolumeId": "vol-0b16e735742f25fa0"
+          "VolumeId": "vol-03d12bcffe976580d"
         }
       ],
       "Environment": "lab",
-      "IamInstanceProfile": "arn:aws:iam::908157891283:instance-profile/SOC-Middleware-Role",
+      "IamInstanceProfile": null,
       "ImageId": "ami-0d95f2f0cc4ab4566",
-      "InstanceId": "i-016d9423ecc670c58",
+      "InstanceId": "i-064148a7962815669",
       "InstanceType": "t3.micro",
-      "Name": "soc-automation-wazuh",
-      "PrivateIpAddress": "172.16.1.132",
+      "Name": "soc-automation-db",
+      "PrivateIpAddress": "10.0.2.186",
       "Project": "soc-automation",
-      "PublicIpAddress": "54.179.26.15",
-      "Role": "wazuh",
+      "PublicIpAddress": null,
+      "Role": "db",
       "RootDeviceName": "/dev/sda1",
       "SecurityGroups": [
-        "sg-0effe1d21b6836624"
+        "sg-03e665ea5e9403e11"
       ],
       "State": "running",
-      "SubnetId": "subnet-0192340171c348f23",
-      "VpcId": "vpc-0fb2381154ad1b418"
+      "SubnetId": "subnet-045f32f0821d7cb3e",
+      "VpcId": "vpc-01d5230934a140846"
     },
     {
       "BlockDeviceMappings": [
         {
           "DeleteOnTermination": true,
           "DeviceName": "/dev/sda1",
-          "VolumeId": "vol-02282e8f3f1c61bbd"
+          "VolumeId": "vol-07287577c947dba1f"
         }
       ],
       "Environment": "lab",
       "IamInstanceProfile": null,
       "ImageId": "ami-0d95f2f0cc4ab4566",
-      "InstanceId": "i-0d511a9478594ce7d",
+      "InstanceId": "i-0e92011f436a3baad",
       "InstanceType": "t3.micro",
       "Name": "soc-automation-web",
-      "PrivateIpAddress": "10.0.1.31",
+      "PrivateIpAddress": "10.0.1.195",
       "Project": "soc-automation",
-      "PublicIpAddress": "54.169.120.235",
+      "PublicIpAddress": "52.76.39.134",
       "Role": "web",
       "RootDeviceName": "/dev/sda1",
       "SecurityGroups": [
@@ -57,26 +57,26 @@
         {
           "DeleteOnTermination": true,
           "DeviceName": "/dev/sda1",
-          "VolumeId": "vol-0bff2237db83189c6"
+          "VolumeId": "vol-0b0f17b11e4ef9ee6"
         }
       ],
       "Environment": "lab",
-      "IamInstanceProfile": null,
+      "IamInstanceProfile": "arn:aws:iam::908157891283:instance-profile/SOC-Middleware-Role",
       "ImageId": "ami-0d95f2f0cc4ab4566",
-      "InstanceId": "i-013c4f271d7741dec",
+      "InstanceId": "i-0fe7ae677567b5ac3",
       "InstanceType": "t3.micro",
-      "Name": "soc-automation-db",
-      "PrivateIpAddress": "10.0.2.109",
+      "Name": "soc-automation-wazuh",
+      "PrivateIpAddress": "172.16.1.96",
       "Project": "soc-automation",
-      "PublicIpAddress": null,
-      "Role": "db",
+      "PublicIpAddress": "52.77.213.48",
+      "Role": "wazuh",
       "RootDeviceName": "/dev/sda1",
       "SecurityGroups": [
-        "sg-03e665ea5e9403e11"
+        "sg-0effe1d21b6836624"
       ],
       "State": "running",
-      "SubnetId": "subnet-045f32f0821d7cb3e",
-      "VpcId": "vpc-01d5230934a140846"
+      "SubnetId": "subnet-0192340171c348f23",
+      "VpcId": "vpc-0fb2381154ad1b418"
     }
   ],
   "metadata": {
