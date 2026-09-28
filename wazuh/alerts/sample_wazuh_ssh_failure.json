@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-09-26T03:15:22.123Z",
+  "rule": {
+    "level": 5,
+    "description": "sshd: Attempt to login using a non-existent user",
+    "id": "5710",
+    "groups": [
+      "syslog",
+      "sshd"
+    ]
+  },
+  "agent": {
+    "id": "001",
+    "name": "production-web-01"
+  },
+  "manager": {
+    "name": "wazuh-manager"
+  },
+  "data": {
+    "srcip": "192.168.1.105",
+    "dstuser": "admin_test"
+  }
+}

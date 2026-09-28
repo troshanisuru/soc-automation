@@ -1,0 +1,33 @@
+{
+  "timestamp": "2026-09-27T11:30:15.456Z",
+  "rule": {
+    "level": 10,
+    "description": "AWS WAF: SQL Injection attack detected in HTTP GET request URI parameter",
+    "id": "80201",
+    "groups": [
+      "aws",
+      "waf",
+      "sqli"
+    ]
+  },
+  "agent": {
+    "id": "000",
+    "name": "wazuh-aws-collector"
+  },
+  "manager": {
+    "name": "wazuh-manager"
+  },
+  "data": {
+    "integration": "aws",
+    "aws": {
+      "action": "BLOCK",
+      "terminatingRuleId": "AWS-AWSManagedRulesSQLiRuleSet",
+      "httpRequest": {
+        "clientIp": "198.51.100.44",
+        "country": "US",
+        "uri": "/api/v1/users?id=1%20OR%201=1",
+        "httpMethod": "GET"
+      }
+    }
+  }
+}

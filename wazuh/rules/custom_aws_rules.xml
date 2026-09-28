@@ -1,0 +1,31 @@
+<!--
+  wazuh/rules/custom_aws_rules.xml
+  Custom Wazuh Rules for AWS WAF and VPC Flow Log Detection
+  Place in /var/ossec/etc/rules/local_rules.xml on Wazuh Manager.
+-->
+
+<group name="aws,waf,vpcflow,">
+
+  <!-- Rule for AWS WAF Block Events -->
+  <rule id="100201" level="10">
+    <field name="integration">aws</field>
+    <field name="aws.action">BLOCK</field>
+    <description">AWS WAF blocked web request: Threat pattern detected by terminating rule $(aws.terminatingRuleId)</description>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+    <group>web_attack,pci_dss_11.4,</group>
+  </rule>
+
+  <!-- Rule for AWS VPC Flow Log Rejections -->
+  <rule id="100202" level="7">
+    <field name="integration">aws</field>
+    <field name="aws.action">REJECT</field>
+    <description">AWS VPC Flow Log rejected inbound connection from $(aws.srcaddr) to $(aws.dstaddr)</description>
+    <mitre>
+      <id>T1046</id>
+    </mitre>
+    <group>network_anomaly,reconnaissance,</group>
+  </rule>
+
+</group>

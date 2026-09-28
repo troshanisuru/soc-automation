@@ -1,0 +1,41 @@
+<!-- 
+  wazuh/config/wazuh_ossec_aws.xml
+  Wazuh AWS S3 Integration Configuration
+  Append or merge this block into /var/ossec/etc/ossec.conf on the Wazuh Manager instance.
+-->
+
+<ossec_config>
+
+  <!-- AWS VPC Flow Logs Ingestion from S3 -->
+  <wodle name="aws-s3">
+    <disabled>no</disabled>
+    <interval>10m</interval>
+    <run_on_start>yes</run_on_start>
+    <skip_on_error>yes</skip_on_error>
+    <bucket type="vpcflow">
+      <name>aws-waf-logs-soc-project-BUCKET_NAME_SUFFIX</name>
+      <path>vpc-logs/</path>
+      <!-- Option A: Explicit IAM Access Keys -->
+      <access_key>YOUR_AWS_ACCESS_KEY_ID</access_key>
+      <secret_key>YOUR_AWS_SECRET_ACCESS_KEY</secret_key>
+      <region>ap-southeast-1</region>
+    </bucket>
+  </wodle>
+
+  <!-- AWS WAF Logs Ingestion from S3 -->
+  <wodle name="aws-s3">
+    <disabled>no</disabled>
+    <interval>10m</interval>
+    <run_on_start>yes</run_on_start>
+    <skip_on_error>yes</skip_on_error>
+    <bucket type="waf">
+      <name>aws-waf-logs-soc-project-BUCKET_NAME_SUFFIX</name>
+      <path>waf-logs/</path>
+      <!-- Option A: Explicit IAM Access Keys -->
+      <access_key>YOUR_AWS_ACCESS_KEY_ID</access_key>
+      <secret_key>YOUR_AWS_SECRET_ACCESS_KEY</secret_key>
+      <region>ap-southeast-1</region>
+    </bucket>
+  </wodle>
+
+</ossec_config>
