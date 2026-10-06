@@ -1,0 +1,18 @@
+# ai_engine/config/models.yaml
+# Per-agent model routing. To upgrade one agent, change one line here - no code changes.
+# Validated by ai_engine/config/loader.py (fails closed on any error).
+
+# Only these hosts may ever be called. Using a remote Ollama? Prefer an SSH tunnel
+# (ssh -L 11434:localhost:11434 ...) so this stays localhost; otherwise add the host here.
+ollama_base_url: "http://localhost:11434"   # can be overridden with env OLLAMA_BASE_URL (still checked)
+allowed_hosts: ["localhost", "127.0.0.1"]
+
+defaults:
+  timeout_seconds: 120    # per-request ceiling
+  num_ctx: 4096           # explicit context window (prompt is capped well below this)
+  keep_alive: "30m"       # keep the model in RAM; a cold load cost ~9s of a 16s call
+
+# Keep temperature low-to-zero everywhere: consistency, not creativity.
+triage_agent:   { model: "llama3.1:latest", num_predict: 300, temperature: 0.1 }
+mitre_agent:    { model: "llama3.1:latest", num_predict: 200, temperature: 0.1 }
+decision_agent: { model: "llama3.1:latest", num_predict: 150, temperature: 0.0 }

@@ -1,0 +1,27 @@
+{
+  "_comment": "Curated subset of MITRE ATT&CK (exact technique IDs only, one primary tactic each). Severity is derived from the tactic via tactic_weights in config/thresholds.yaml - there is deliberately no severity number here (single source of truth). Anything not listed is rejected by the gate (fail closed).",
+  "techniques": [
+    { "id": "T1595", "name": "Active Scanning", "tactic": "Reconnaissance" },
+    { "id": "T1046", "name": "Network Service Discovery", "tactic": "Discovery" },
+    { "id": "T1190", "name": "Exploit Public-Facing Application", "tactic": "Initial Access" },
+    { "id": "T1133", "name": "External Remote Services", "tactic": "Initial Access" },
+    { "id": "T1078", "name": "Valid Accounts", "tactic": "Initial Access" },
+    { "id": "T1059", "name": "Command and Scripting Interpreter", "tactic": "Execution" },
+    { "id": "T1505", "name": "Server Software Component", "tactic": "Persistence" },
+    { "id": "T1110", "name": "Brute Force", "tactic": "Credential Access" },
+    { "id": "T1552", "name": "Unsecured Credentials", "tactic": "Credential Access" },
+    { "id": "T1068", "name": "Exploitation for Privilege Escalation", "tactic": "Privilege Escalation" },
+    { "id": "T1005", "name": "Data from Local System", "tactic": "Collection" },
+    { "id": "T1213", "name": "Data from Information Repositories", "tactic": "Collection" },
+    { "id": "T1071", "name": "Application Layer Protocol", "tactic": "Command and Control" },
+    { "id": "T1105", "name": "Ingress Tool Transfer", "tactic": "Command and Control" },
+    { "id": "T1573", "name": "Encrypted Channel", "tactic": "Command and Control" },
+    { "id": "T1498", "name": "Network Denial of Service", "tactic": "Impact" },
+    { "id": "T1499", "name": "Endpoint Denial of Service", "tactic": "Impact" },
+    { "id": "T1021", "name": "Remote Services", "tactic": "Lateral Movement" },
+    { "id": "T1210", "name": "Exploitation of Remote Services", "tactic": "Lateral Movement" },
+    { "id": "T1570", "name": "Lateral Tool Transfer", "tactic": "Lateral Movement" },
+    { "id": "T1041", "name": "Exfiltration Over C2 Channel", "tactic": "Exfiltration" },
+    { "id": "T1048", "name": "Exfiltration Over Alternative Protocol", "tactic": "Exfiltration" }
+  ]
+}

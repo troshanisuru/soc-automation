@@ -1,0 +1,59 @@
+# ai_engine/config/thresholds.yaml
+# Single source of truth for gate thresholds, scoring weights, correlation limits.
+# Loaded and validated by ai_engine/config/loader.py (fails closed on any error).
+
+correlation:
+  window_seconds: 60            # rolling window: gap allowed between events of one incident
+  max_incident_seconds: 300     # hard cap on one incident's total span (stops drip-feed starvation)
+  max_events_per_incident: 500  # hard cap on events held per incident
+  max_open_incidents: 10000     # hard cap on concurrently open keys (stops IP-spoof memory growth)
+  dedupe_ttl_seconds: 3600      # how long a seen event_id is remembered
+  dedupe_max_entries: 100000    # hard cap on remembered event_ids
+  processing_ttl_seconds: 600   # a processing lock older than this is treated as stale
+
+# Reserved for the (not yet built) executor: minimum gap before re-acting on the same key.
+cooldown_seconds: 600
+
+gate:
+  autonomous_threshold: 0.75    # risk_score >= this  -> autonomous
+  soft_threshold: 0.45          # soft <= risk_score < autonomous -> soft_contain (only soft_rate_limit)
+                                # risk_score < soft   -> escalate
+
+# Must sum to 1.0
+weights:
+  mitre_severity: 0.35
+  asset_criticality: 0.25
+  source_diversity: 0.20
+  signature_confidence: 0.20
+
+# Tactic-weighted MITRE severity (Lateral Movement > Initial Access, per plan section 5).
+# Every tactic used in reference/mitre_attack.json must appear here.
+tactic_weights:
+  Reconnaissance: 0.20
+  Discovery: 0.35
+  Initial Access: 0.60
+  Execution: 0.70
+  Persistence: 0.70
+  Credential Access: 0.70
+  Privilege Escalation: 0.80
+  Collection: 0.80
+  Command and Control: 0.85
+  Impact: 0.90
+  Lateral Movement: 0.95
+  Exfiltration: 0.95
+
+# Static asset map. asset_tag is split into alphanumeric tokens (trailing digits stripped,
+# so "db01" -> "db"); the HIGHEST matching tier wins. Whole-token match only.
+asset_criticality:
+  default: 0.50
+  tiers:
+    db: 1.00
+    database: 1.00
+    prod: 0.90
+    production: 0.90
+    wazuh: 0.85
+    mgmt: 0.85
+    web: 0.70
+    internal: 0.50
+    dev: 0.30
+    test: 0.20

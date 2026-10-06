@@ -7,3 +7,6 @@ numpy
 scikit-learn
 joblib
 pytest
+# ai_engine (needs Python >= 3.10)
+pydantic>=2.5,<3
+PyYAML>=6.0
