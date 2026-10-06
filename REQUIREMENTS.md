@@ -6,7 +6,7 @@
 | --- | --- |
 | FR1 | The system shall ingest authentication and security alerts. |
 | FR2 | The system shall normalise alert data into a consistent format. |
-| FR3 | The system shall classify events as benign or malicious. |
+| FR3 | The system shall classify events as benign or malicious, and map malicious activity to MITRE ATT&CK techniques. |
 | FR4 | The system shall trigger an AWS API/Boto3 block action for approved malicious events. |
 | FR5 | The system shall keep an audit log of automated actions. |
 

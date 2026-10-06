@@ -28,8 +28,8 @@ IAM policy JSON cannot contain comments, so policy notes are documented here and
 
 ## Folder Purpose
 
+- `ai_engine/` - AI-driven multi-agent SOC reasoning and decision pipeline.
+- `archive/` - Archived prototype v1 code.
+- `evidence/` - Project evidence and artifacts.
 - `infra/` - Infrastructure configuration and automation scripts.
-- `middleware/` - Python middleware and decision engine components.
-- `ml/` - Machine learning training, evaluation, and model artifacts.
-- `tests/` - Test cases and reproducible test evidence.
 - `wazuh/` - Wazuh configuration, alert examples, and ingestion resources.

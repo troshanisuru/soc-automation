@@ -1,7 +1,7 @@
 # Autonomous Multi-Agent SOC Brain Architecture
 
 ## Overview
-This project implements an autonomous Security Operations Center (SOC) incident response pipeline. Security log telemetry from AWS infrastructure (AWS WAF and VPC Flow Logs) is ingested natively by the Wazuh Security Platform, normalized into standard data models, and analyzed by an LLM-driven multi-agent framework built with **LangGraph** and **LangChain**.
+This project implements an autonomous Security Operations Center (SOC) incident response pipeline. Security log telemetry from AWS infrastructure (AWS WAF and VPC Flow Logs) is ingested natively by the Wazuh Security Platform, normalized into standard data models, and analyzed by an LLM-driven multi-agent framework built with a hand-rolled deterministic Python state machine.
 
 ---
 
@@ -24,34 +24,41 @@ graph TD
     end
 
     subgraph SOC Brain Core
-        Parser["parser.py<br/>(Schema Normalization)"]
+        Correlate["correlate (code)"]
+        Triage["triage (LLM)"]
+        Val1["validate"]
+        Mitre["mitre (LLM)"]
+        Val2["validate"]
+        Decision["decision (LLM)"]
+        Val3["validate"]
+        Gate["gate (code, scoring)"]
+        ExecEsc["execute | escalate"]
+        Audit["audit log"]
         
-        subgraph LangGraph Multi-Agent Engine
-            Triage["Triage Node<br/>(Context Enrichment)"]
-            Decision["Decision Node<br/>(LLM / Llama 3.1 & OWASP LLM01 Enclosure)"]
-            Gate["Deterministic Gate<br/>(Rule Guardrails & Policy Thresholds)"]
-        end
-
-        Boto3["AWS Boto3 SDK<br/>(Automated Remediation / Revoke Security Group Ingress)"]
+        Correlate --> Triage
+        Triage --> Val1
+        Val1 --> Mitre
+        Mitre --> Val2
+        Val2 --> Decision
+        Decision --> Val3
+        Val3 --> Gate
+        Gate --> ExecEsc
+        ExecEsc --> Audit
     end
 
     WAF -->|Logs| S3
     VPC -->|Logs| S3
     S3 -->|Pull via IAM User / 10m Interval| Wazuh
     Wazuh -->|Generate| Alerts
-    Alerts -->|Ingest & Parse| Parser
-    Parser -->|NormalizedEvent| Triage
-    Triage --> Decision
-    Decision --> Gate
-    Gate -->|Approved Mitigation| Boto3
+    Alerts -->|Ingest & Parse| Correlate
 
     classDef aws fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#FFFFFF;
     classDef wazuh fill:#00A4E4,stroke:#111111,stroke-width:2px,color:#FFFFFF;
     classDef brain fill:#2C3E50,stroke:#18BC9C,stroke-width:2px,color:#FFFFFF;
 
-    class WAF,VPC,S3,Boto3 aws;
+    class WAF,VPC,S3 aws;
     class Wazuh,Alerts wazuh;
-    class Parser,Triage,Decision,Gate brain;
+    class Correlate,Triage,Val1,Mitre,Val2,Decision,Val3,Gate,ExecEsc,Audit brain;
 ```
 
 ---
@@ -64,15 +71,15 @@ graph TD
    - Logs are continuously written to partitioned folders (`waf-logs/`, `vpc-logs/`) inside an Amazon S3 Bucket (`aws-waf-logs-soc-project-*`).
 
 2. **Wazuh Monitoring Phase:**
-   - The Wazuh Manager uses its native `<awss3>` integration module to pull raw log archives from S3 at 10-minute intervals.
+   - The Wazuh Manager uses its native `<awss3>` integration module to pull raw log archives from S3 on a 10-minute poll interval. Both WAF and VPC Flow Log ingestions operate on this 10-minute interval.
    - Wazuh parses the raw log objects and emits unified JSON alerts, embedding AWS payload attributes under `data.aws.*`.
 
-3. **Normalization Phase (`parser.py` & `schema.py`):**
+3. **Normalization Phase:**
    - The SOC Brain receives the Wazuh JSON payload.
-   - `parse_wazuh_alert()` dynamically inspects `data.aws` to determine if the log originates from AWS WAF, AWS VPC Flow Logs, or standard Linux host security logs (`sshd`, `syslog`).
    - Standardizes the event into a strongly-typed `NormalizedEvent` Pydantic model.
 
-4. **Multi-Agent Decision & Mitigation Phase:**
-   - **Triage Node:** Enriches and structures event telemetry.
-   - **Decision Node:** Analyzes threat indicators using Llama 3.1 wrapped strictly within `<untrusted_log>` XML tags to prevent **OWASP LLM01 Prompt Injection**.
-   - **Deterministic Gate:** Evaluates risk scores against defined policy thresholds (`risk_score >= 5.0`) to validate mitigation plans before executing Boto3 AWS API actions.
+4. **Multi-Agent Decision & Mitigation Phase (Deterministic State Machine):**
+   - The reasoning layer uses a hand-rolled deterministic Python state machine.
+   - **Three agents in sequence**: Triage -> MITRE mapping -> Decision. 
+   - Each agent has its own Pydantic schema, and the output is strictly validated before the next stage runs.
+   - **Deterministic Gate**: Evaluates risk scores against defined policy thresholds (autonomous_threshold: 0.75, soft_threshold: 0.45) to validate mitigation plans before executing actions. If validation fails at any point, the pipeline short-circuits to escalate and logs to the audit log.

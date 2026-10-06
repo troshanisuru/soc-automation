@@ -2,10 +2,6 @@ boto3
 botocore
 python-dotenv
 requests
-pandas
-numpy
-scikit-learn
-joblib
 pytest
 # ai_engine (needs Python >= 3.10)
 pydantic>=2.5,<3
