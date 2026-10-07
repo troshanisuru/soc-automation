@@ -13,6 +13,6 @@ defaults:
   keep_alive: "30m"       # keep the model in RAM; a cold load cost ~9s of a 16s call
 
 # Keep temperature low-to-zero everywhere: consistency, not creativity.
-triage_agent:   { model: "llama3.1:latest", num_predict: 300, temperature: 0.1 }
-mitre_agent:    { model: "llama3.1:latest", num_predict: 200, temperature: 0.1 }
-decision_agent: { model: "llama3.1:latest", num_predict: 150, temperature: 0.0 }
+triage_agent:   { model: "llama3.1:latest", num_predict: 2000, temperature: 0.1 }
+mitre_agent:    { model: "llama3.1:latest", num_predict: 1500, temperature: 0.1 }
+decision_agent: { model: "llama3.1:latest", num_predict: 1000, temperature: 0.0 }

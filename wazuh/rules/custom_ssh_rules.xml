@@ -1,0 +1,19 @@
+<!--
+  wazuh/rules/custom_ssh_rules.xml
+  Custom Wazuh Rules for SSH Brute Force Detection
+  Place in /var/ossec/etc/rules/local_rules.xml on Wazuh Manager.
+-->
+<group name="syslog,sshd,">
+
+  <!-- Rule for Custom SSH Brute-force Detection -->
+  <rule id="100301" level="10" frequency="6" timeframe="120">
+    <if_matched_sid>5716</if_matched_sid>
+    <same_source_ip />
+    <description>Custom SSH Brute-force: Multiple failed logins from $(srcip)</description>
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+    <group>authentication_failures,brute_force,</group>
+  </rule>
+
+</group>

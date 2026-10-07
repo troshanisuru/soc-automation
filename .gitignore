@@ -71,3 +71,4 @@ Thumbs.db
 # Never commit access guides / credential notes
 ssh_access_guide.md
 *access_guide*
+ai_engine/manual_smoke_test.py
