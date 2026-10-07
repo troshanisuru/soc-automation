@@ -55,9 +55,9 @@ def test_severity_is_bounded(bad):
 
 
 def test_timestamps_are_normalised_to_utc():
-    assert event(timestamp=datetime(2026, 10, 6, 12, 0)).timestamp == T0
+    assert event(timestamp=T0.replace(tzinfo=None)).timestamp == T0
     ist = timezone(timedelta(hours=5, minutes=30))
-    assert event(timestamp=datetime(2026, 10, 6, 17, 30, tzinfo=ist)).timestamp == T0
+    assert event(timestamp=T0.astimezone(ist)).timestamp == T0
 
 
 def test_raw_indicator_is_sanitised_and_capped():

@@ -179,7 +179,7 @@ def test_naive_and_aware_timestamps_do_not_crash():
     """Regression: mixing naive/aware datetimes raised TypeError inside the lock."""
     c, _ = make()
     naive = NormalizedEvent(
-        event_id="n1", source="waf", timestamp=datetime(2026, 10, 6, 12, 0, 5),
+        event_id="n1", source="waf", timestamp=T0.replace(tzinfo=None) + timedelta(seconds=5),
         source_ip="198.51.100.44", asset_tag="web-server-01", severity=3, raw_indicator="x",
     )
     inc = c.process_event(make_event("a1", 0))

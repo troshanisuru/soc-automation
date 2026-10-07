@@ -10,7 +10,7 @@ from ai_engine.schemas.models import (
     TriageOutput,
 )
 
-T0 = datetime(2026, 10, 6, 12, 0, 0, tzinfo=timezone.utc)
+T0 = datetime.now(timezone.utc) - timedelta(seconds=60)
 
 
 def make_event(
