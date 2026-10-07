@@ -1,3 +1,4 @@
+import ipaddress
 import json
 import logging
 import os
@@ -62,8 +63,47 @@ def _is_shadow_mode() -> bool:
     return os.environ.get("SHADOW_MODE", "true").lower() == "true"
 
 
+def _is_protected_ip(ip: str) -> bool:
+    try:
+        ip_obj = ipaddress.ip_address(ip)
+    except ValueError:
+        return True  # Malformed IPs are refused
+
+    protected_cidrs = [
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "127.0.0.0/8"
+    ]
+    env_cidrs = os.environ.get("PROTECTED_CIDRS", "")
+    if env_cidrs:
+        protected_cidrs.extend(c.strip() for c in env_cidrs.split(",") if c.strip())
+
+    for cidr in protected_cidrs:
+        try:
+            if ip_obj in ipaddress.ip_network(cidr):
+                return True
+        except ValueError:
+            continue
+
+    return False
+
+
 def _check_authorization(state: IncidentState, requested_action: str) -> Optional[ExecutionResult]:
     """Check if the final_decision authorizes this action. Return ExecutionResult on refusal."""
+    ip = state.correlation_key[0]
+    if _is_protected_ip(ip):
+        err_msg = f"action {requested_action} refused: IP {ip} is protected or malformed"
+        logger.error(err_msg)
+        _audit({
+            "ts": time.time(),
+            "incident_id": state.incident_id,
+            "action": requested_action,
+            "status": "refused",
+            "reason": err_msg
+        })
+        return ExecutionResult(action=requested_action, status="refused", details={"error": err_msg})
+
     fd = state.final_decision
     if fd == "escalate":
         err_msg = f"escalate decision refuses automated action {requested_action}"
@@ -218,21 +258,20 @@ def execute_isolate_sg(state: IncidentState) -> ExecutionResult:
     if refusal:
         return refusal
     
-    ip = state.correlation_key[0]
-    sg_id = os.environ.get("ISOLATE_SG_ID", "sg-dummy")
-    region = os.environ.get("AWS_REGION", "ap-southeast-1")
-    
-    kwargs = {
-        "GroupId": sg_id,
-        "IpPermissions": [
-            {
-                "IpProtocol": "-1",
-                "IpRanges": [{"CidrIp": f"{ip}/32"}]
-            }
-        ]
+    # isolation requires a human-approval path that does not exist yet.
+    # The audit record describes what a quarantine would do (replace the instance's 
+    # security groups with a quarantine SG that allows only the Wazuh manager and admin IP) 
+    # but never calls it.
+    call_record = {
+        "ts": time.time(),
+        "incident_id": state.incident_id,
+        "action": action,
+        "status": "simulated",
+        "shadow_mode": True,
+        "details": "simulated quarantine: replace instance SG with quarantine SG (allowing only Wazuh mgr and admin IP)"
     }
-    
-    return _execute_or_simulate(state, action, "ec2", "revoke_security_group_ingress", kwargs, region_name=region)
+    _audit(call_record)
+    return ExecutionResult(action=action, status="simulated", details={"simulated_call": call_record["details"]})
 
 
 def execute_no_action(state: IncidentState) -> ExecutionResult:
