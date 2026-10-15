@@ -65,6 +65,14 @@ def test_raw_indicator_is_sanitised_and_capped():
     assert len(event(raw_indicator="A" * 5000).raw_indicator) == 512
 
 
+def test_username_is_sanitised_and_capped():
+    assert event(username="a\nb\x00c\u202ed").username == "a b c d"
+    assert len(event(username="A" * 500).username) == 64
+    assert event(username=None).username is None
+    with pytest.raises(ValidationError):
+        event(auth_outcome="unknown")
+
+
 def test_evidence_is_immutable_and_strict():
     e = event()
     with pytest.raises(ValidationError):

@@ -3,7 +3,7 @@ import json
 import time
 import uuid
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from collections import defaultdict
 from ai_engine.schemas.models import NormalizedEvent
 from ai_engine.main import run_incident
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def parse_wazuh_alert(alert_dict: dict) -> NormalizedEvent:
     """Convert a Wazuh alert JSON dict into a NormalizedEvent."""
     # Extract timestamp
-    raw_ts = alert_dict.get("timestamp", datetime.utcnow().isoformat() + "Z")
+    raw_ts = alert_dict.get("timestamp", datetime.now(timezone.utc).isoformat())
     if raw_ts.endswith("Z"):
         raw_ts = raw_ts[:-1] + "+00:00"
     
@@ -35,6 +35,26 @@ def parse_wazuh_alert(alert_dict: dict) -> NormalizedEvent:
     severity = rule.get("level", 1)
     raw_indicator = rule.get("description", "Unknown alert")
     
+    rule_id = str(rule.get("id", ""))
+    username = None
+    auth_outcome = None
+    user_valid = None
+
+    if rule_id in ("5710", "5716", "5715", "100301"):
+        username = data.get("dstuser") or data.get("srcuser")
+        if rule_id == "5710":
+            auth_outcome = "failure"
+            user_valid = False
+        elif rule_id == "5716":
+            auth_outcome = "failure"
+            user_valid = True
+        elif rule_id == "5715":
+            auth_outcome = "success"
+            user_valid = True
+        elif rule_id == "100301":
+            auth_outcome = "failure"
+            user_valid = None
+
     return NormalizedEvent(
         event_id=f"evt-{uuid.uuid4().hex[:8]}",
         source="wazuh",
@@ -42,7 +62,10 @@ def parse_wazuh_alert(alert_dict: dict) -> NormalizedEvent:
         source_ip=src_ip,
         asset_tag=asset_tag,
         severity=severity,
-        raw_indicator=raw_indicator
+        raw_indicator=raw_indicator,
+        username=username,
+        auth_outcome=auth_outcome,
+        user_valid=user_valid,
     )
 
 def poll_alerts(log_path: str, interval: int = 30):

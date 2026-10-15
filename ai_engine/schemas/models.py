@@ -25,6 +25,7 @@ from pydantic import (
 )
 
 MAX_RAW_INDICATOR_CHARS = 512
+MAX_USERNAME_CHARS = 64
 
 # NB: pydantic-core uses the Rust regex engine where `$` matches only at the true end of
 # the string (Python's `re` would also accept a trailing newline).
@@ -60,6 +61,9 @@ class NormalizedEvent(BaseModel):
     asset_tag: AssetTag
     severity: int = Field(ge=0, le=10)  # 0-10, mapped from native severity
     raw_indicator: str                 # short, sanitised description
+    username: Optional[str] = Field(default=None, max_length=MAX_USERNAME_CHARS)
+    auth_outcome: Optional[Literal["failure", "success"]] = None
+    user_valid: Optional[bool] = None
 
     @field_validator("timestamp")
     @classmethod
@@ -81,6 +85,15 @@ class NormalizedEvent(BaseModel):
         if isinstance(value, str):
             return sanitize_text(value, MAX_RAW_INDICATOR_CHARS)
         return value  # non-str: let normal type validation reject it
+
+    @field_validator("username", mode="before")
+    @classmethod
+    def _clean_username(cls, value: object) -> object:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            return sanitize_text(value, MAX_USERNAME_CHARS)
+        return value
 
 
 class TriageOutput(BaseModel):
