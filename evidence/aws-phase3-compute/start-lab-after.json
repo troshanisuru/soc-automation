@@ -1,0 +1,35 @@
+{
+  "instances": [
+    {
+      "InstanceId": "i-064148a7962815669",
+      "Name": "soc-automation-db",
+      "PrivateIpAddress": "10.0.2.186",
+      "PublicIpAddress": null,
+      "Role": "db",
+      "State": "running"
+    },
+    {
+      "InstanceId": "i-0e92011f436a3baad",
+      "Name": "soc-automation-web",
+      "PrivateIpAddress": "10.0.1.195",
+      "PublicIpAddress": "13.250.10.232",
+      "Role": "web",
+      "State": "running"
+    },
+    {
+      "InstanceId": "i-0fe7ae677567b5ac3",
+      "Name": "soc-automation-wazuh",
+      "PrivateIpAddress": "172.16.1.96",
+      "PublicIpAddress": "47.129.143.16",
+      "Role": "wazuh",
+      "State": "running"
+    }
+  ],
+  "metadata": {
+    "account": "908157891283",
+    "note": "Sanitized start-lab inventory. No credentials, key material, passwords, tokens, or user-data are included.",
+    "profile": "soc-project",
+    "project": "soc-automation",
+    "region": "ap-southeast-1"
+  }
+}

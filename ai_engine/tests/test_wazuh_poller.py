@@ -101,7 +101,7 @@ def test_parse_wazuh_rule_100301_custom_ssh_bruteforce():
     }
     event = parse_wazuh_alert(alert)
     assert event.username == "charlie"
-    assert event.auth_outcome == "failure"
+    assert event.auth_outcome is None
     assert event.user_valid is None
 
 def test_parse_wazuh_other_rule_leaves_auth_fields_none():

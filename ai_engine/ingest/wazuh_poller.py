@@ -5,11 +5,21 @@ import uuid
 import logging
 from datetime import datetime, timezone
 from collections import defaultdict
+from typing import Optional
 from ai_engine.schemas.models import NormalizedEvent
 from ai_engine.main import run_incident
+from ai_engine.baseline.store import BaselineStore
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+_baseline_store: Optional[BaselineStore] = None
+
+def get_baseline_store() -> BaselineStore:
+    global _baseline_store
+    if _baseline_store is None:
+        _baseline_store = BaselineStore()
+    return _baseline_store
 
 def parse_wazuh_alert(alert_dict: dict) -> NormalizedEvent:
     """Convert a Wazuh alert JSON dict into a NormalizedEvent."""
@@ -52,7 +62,7 @@ def parse_wazuh_alert(alert_dict: dict) -> NormalizedEvent:
             auth_outcome = "success"
             user_valid = True
         elif rule_id == "100301":
-            auth_outcome = "failure"
+            auth_outcome = None
             user_valid = None
 
     return NormalizedEvent(
@@ -87,8 +97,13 @@ def poll_alerts(log_path: str, interval: int = 30):
         
         time.sleep(interval)
 
-def process_lines(lines: list):
+def process_lines(lines: list, store: Optional[BaselineStore] = None):
+    if store is None:
+        store = get_baseline_store()
+
     events_by_key = defaultdict(list)
+    all_events = []
+    ips_with_failures = set()
     
     for line in lines:
         if not line.strip():
@@ -96,6 +111,9 @@ def process_lines(lines: list):
         try:
             alert = json.loads(line)
             event = parse_wazuh_alert(alert)
+            all_events.append(event)
+            if event.auth_outcome == "failure":
+                ips_with_failures.add(event.source_ip)
             key = (event.source_ip, event.asset_tag)
             events_by_key[key].append(event)
         except json.JSONDecodeError:
@@ -103,6 +121,12 @@ def process_lines(lines: list):
         except Exception as e:
             logger.error(f"Error processing alert: {e}")
             
+    # Baseline learning: record successes only if source_ip had no failures in this batch
+    for event in all_events:
+        if event.auth_outcome == "success" and event.source_ip not in ips_with_failures:
+            if event.username:
+                store.record_success(event.username, event.source_ip, event.timestamp)
+
     for key, events in events_by_key.items():
         logger.info(f"Running incident for key: {key} with {len(events)} events")
         try:

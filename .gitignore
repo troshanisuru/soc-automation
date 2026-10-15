@@ -72,3 +72,4 @@ Thumbs.db
 ssh_access_guide.md
 *access_guide*
 ai_engine/manual_smoke_test.py
+ai_engine/data/

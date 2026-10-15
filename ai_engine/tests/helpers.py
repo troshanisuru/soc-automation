@@ -1,6 +1,7 @@
 """Shared test helpers."""
 
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 from ai_engine.schemas.models import (
     DecisionOutput,
@@ -21,6 +22,9 @@ def make_event(
     source: str = "wazuh",
     severity: int = 5,
     indicator: str = "test indicator",
+    username: Optional[str] = None,
+    auth_outcome: Optional[str] = None,
+    user_valid: Optional[bool] = None,
 ) -> NormalizedEvent:
     return NormalizedEvent(
         event_id=event_id,
@@ -30,6 +34,9 @@ def make_event(
         asset_tag=asset,
         severity=severity,
         raw_indicator=indicator,
+        username=username,
+        auth_outcome=auth_outcome,
+        user_valid=user_valid,
     )
 
 
