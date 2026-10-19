@@ -108,3 +108,17 @@ def test_agent_exception_fails_closed(isolated_audit):
 def test_empty_events_rejected():
     with pytest.raises(ValueError):
         run_incident([])
+
+
+def test_pipeline_policy_exception_fails_closed(isolated_audit):
+    cite = ["evt-101", "evt-102", "evt-103"]
+    with patch(f"{P}.run_triage_agent", return_value=triage(cite)), \
+         patch(f"{P}.run_mitre_agent", return_value=mitre(cite)), \
+         patch(f"{P}.run_decision_agent", return_value=decision(cite)), \
+         patch(f"{P}.apply_auth_policy", side_effect=RuntimeError("policy crashed")):
+        state = run_incident(events())
+    assert state.final_decision == "escalate"
+    assert any("policy raised RuntimeError" in e for e in state.validation_errors)
+    (record,) = audit_records(isolated_audit)
+    assert record["halted_at"] == "policy"
+    assert record["final_decision"] == "escalate"

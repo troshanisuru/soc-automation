@@ -1,7 +1,8 @@
 import pytest
 import json
 from datetime import datetime
-from ai_engine.ingest.wazuh_poller import parse_wazuh_alert
+from unittest.mock import MagicMock, patch
+from ai_engine.ingest.wazuh_poller import parse_wazuh_alert, process_lines
 
 def test_parse_wazuh_ssh_alert():
     raw_json = """{
@@ -128,3 +129,60 @@ def test_parse_wazuh_sanitizes_and_truncates_username():
     assert "\n" not in event.username
     assert len(event.username) == 64
     assert event.username == ("attacker " + ("x" * 500))[:64]
+
+
+@pytest.mark.parametrize(
+    "final_decision,proposed_action,expected_called",
+    [
+        ("escalate", "block_ip_waf", None),
+        ("escalate", "soft_rate_limit", None),
+        ("soft_contain", "block_ip_waf", "soft_rate_limit"),
+        ("soft_contain", "soft_rate_limit", "soft_rate_limit"),
+        ("autonomous", "block_ip_waf", "block_ip_waf"),
+        ("autonomous", "isolate_sg", "isolate_sg"),
+        ("autonomous", "soft_rate_limit", "soft_rate_limit"),
+        ("autonomous", "no_action", "no_action"),
+    ],
+)
+def test_poller_executor_dispatch_for_decisions(final_decision, proposed_action, expected_called):
+    mock_state = MagicMock()
+    mock_state.incident_id = "inc-001"
+    mock_state.final_decision = final_decision
+    mock_state.decision = MagicMock()
+    mock_state.decision.proposed_action = proposed_action
+
+    alert_line = json.dumps({
+        "timestamp": "2026-09-26T03:15:22.123Z",
+        "rule": {"id": "5710", "level": 5, "description": "test alert"},
+        "agent": {"name": "web-01"},
+        "data": {"srcip": "198.51.100.44", "dstuser": "alice"}
+    })
+
+    store = MagicMock()
+
+    with patch("ai_engine.ingest.wazuh_poller.run_incident", return_value=mock_state), \
+         patch("ai_engine.ingest.wazuh_poller.execute_block_ip_waf") as m_block, \
+         patch("ai_engine.ingest.wazuh_poller.execute_isolate_sg") as m_isolate, \
+         patch("ai_engine.ingest.wazuh_poller.execute_soft_rate_limit") as m_rate, \
+         patch("ai_engine.ingest.wazuh_poller.execute_no_action") as m_no_action:
+
+        process_lines([alert_line], store=store)
+
+        executors = {
+            "block_ip_waf": m_block,
+            "isolate_sg": m_isolate,
+            "soft_rate_limit": m_rate,
+            "no_action": m_no_action,
+        }
+
+        if expected_called is None:
+            # Escalate must never call any executor
+            for name, mock_fn in executors.items():
+                assert mock_fn.call_count == 0, f"Expected {name} not to be called for {final_decision}"
+        else:
+            for name, mock_fn in executors.items():
+                if name == expected_called:
+                    assert mock_fn.call_count == 1, f"Expected {name} to be called once"
+                    assert mock_fn.call_args[0][0] == mock_state
+                else:
+                    assert mock_fn.call_count == 0, f"Expected {name} not to be called"

@@ -16,14 +16,15 @@ to recording the gate verdict; a future executor must act only on ``final_decisi
 
 import logging
 import time
-from datetime import timedelta
-from typing import Callable, List, Optional
+from datetime import datetime, timedelta
+from typing import Any, Callable, List, Optional
 
 from ai_engine.agents import base
 from ai_engine.agents.decision_agent import run_decision_agent
 from ai_engine.agents.mitre_agent import run_mitre_agent
 from ai_engine.agents.triage_agent import run_triage_agent
 from ai_engine.correlation.correlate import EventCorrelator
+from ai_engine.gate.policy import apply_auth_policy
 from ai_engine.gate.scoring import apply_gate
 from ai_engine.gate.validator import validate_incident_state
 from ai_engine.schemas.models import IncidentState, NormalizedEvent
@@ -95,7 +96,11 @@ def _run_stage(state: IncidentState, name: str, fn: Callable[[], object], starte
     return True
 
 
-def run_pipeline(events: List[NormalizedEvent]) -> IncidentState:
+def run_pipeline(
+    events: List[NormalizedEvent],
+    baseline: Any = None,
+    now: Optional[datetime] = None,
+) -> IncidentState:
     started = time.perf_counter()
     state = _correlate(events)
 
@@ -110,5 +115,11 @@ def run_pipeline(events: List[NormalizedEvent]) -> IncidentState:
         apply_gate(state)
     except Exception as exc:
         return _escalate(state, "gate", f"gate raised {type(exc).__name__}", started)
+
+    try:
+        apply_auth_policy(state, baseline=baseline, now=now)
+    except Exception as exc:
+        return _escalate(state, "policy", f"policy raised {type(exc).__name__}", started)
+
     _audit_final(state, "gate", started)
     return state

@@ -6,9 +6,16 @@ import logging
 from datetime import datetime, timezone
 from collections import defaultdict
 from typing import Optional
-from ai_engine.schemas.models import NormalizedEvent
+from ai_engine.schemas.models import IncidentState, NormalizedEvent
 from ai_engine.main import run_incident
 from ai_engine.baseline.store import BaselineStore
+from ai_engine.executor.boto3_executor import (
+    ExecutionResult,
+    execute_block_ip_waf,
+    execute_isolate_sg,
+    execute_no_action,
+    execute_soft_rate_limit,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -97,6 +104,34 @@ def poll_alerts(log_path: str, interval: int = 30):
         
         time.sleep(interval)
 
+def dispatch_execution(incident_state: IncidentState) -> Optional[ExecutionResult]:
+    """Execute action based on incident's final_decision.
+
+    - escalate: no call (returns None)
+    - soft_contain: soft_rate_limit only
+    - autonomous: matching execute_* for proposed_action
+    """
+    decision = incident_state.final_decision
+    if decision == "escalate":
+        return None
+    elif decision == "soft_contain":
+        return execute_soft_rate_limit(incident_state)
+    elif decision == "autonomous":
+        proposed = incident_state.decision.proposed_action if incident_state.decision else None
+        if proposed == "block_ip_waf":
+            return execute_block_ip_waf(incident_state)
+        elif proposed == "isolate_sg":
+            return execute_isolate_sg(incident_state)
+        elif proposed == "soft_rate_limit":
+            return execute_soft_rate_limit(incident_state)
+        elif proposed == "no_action":
+            return execute_no_action(incident_state)
+        else:
+            logger.warning(f"No executor matching autonomous proposed_action: {proposed}")
+            return None
+    return None
+
+
 def process_lines(lines: list, store: Optional[BaselineStore] = None):
     if store is None:
         store = get_baseline_store()
@@ -130,9 +165,12 @@ def process_lines(lines: list, store: Optional[BaselineStore] = None):
     for key, events in events_by_key.items():
         logger.info(f"Running incident for key: {key} with {len(events)} events")
         try:
-            incident_state = run_incident(events)
+            incident_state = run_incident(events, baseline=store)
             if incident_state:
-                logger.info(f"Final Decision for incident {incident_state.incident_id}: {incident_state.final_decision}")
+                execution_result = dispatch_execution(incident_state)
+                logger.info(
+                    f"Final Decision for incident {incident_state.incident_id}: {incident_state.final_decision} | Execution: {execution_result}"
+                )
             else:
                 logger.warning("run_incident returned None")
         except Exception as e:
