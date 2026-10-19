@@ -129,13 +129,45 @@ def test_r2_invalid_user_ratio_never_downgraded(memory_store):
 
 
 # ------------------------------------------------------------------ Rule R3: Stale credentials
-def test_r3_stale_credentials_known_pair_downgrades_to_soft_contain(memory_store):
+def test_r3_stale_credentials_known_pair_downgrades_to_escalate(memory_store):
     now = datetime.now(timezone.utc)
     ip = "198.51.100.44"
     user = "alice"
     memory_store.record_success(user, ip, now - timedelta(days=2))
 
-    # Single known user, 60s gaps (>= 30s)
+    # Single known user, 60s gaps (>= 30s) -> escalate for human review
+    events = [
+        make_event(f"evt-{i}", offset=i * 60, ip=ip, username=user, auth_outcome="failure", user_valid=True)
+        for i in range(5)
+    ]
+    state = _make_incident_with_decision(events, decision="autonomous")
+    apply_auth_policy(state, baseline=memory_store, now=now)
+    assert state.final_decision == "escalate"
+
+
+def test_r3_does_not_downgrade_if_median_gap_too_fast(memory_store):
+    now = datetime.now(timezone.utc)
+    ip = "198.51.100.44"
+    user = "alice"
+    memory_store.record_success(user, ip, now - timedelta(days=2))
+
+    # Gaps are 10s (< 30s): does not escalate via R3; capped at soft_contain by single-source cap
+    events = [
+        make_event(f"evt-{i}", offset=i * 10, ip=ip, username=user, auth_outcome="failure", user_valid=True)
+        for i in range(5)
+    ]
+    state = _make_incident_with_decision(events, decision="autonomous")
+    apply_auth_policy(state, baseline=memory_store, now=now)
+    assert state.final_decision == "soft_contain"
+
+
+def test_r3_does_not_downgrade_if_unknown_pair(memory_store):
+    now = datetime.now(timezone.utc)
+    ip = "198.51.100.44"
+    user = "unknown_user"
+    # Not recorded in memory_store
+
+    # Does not escalate via R3; capped at soft_contain by single-source cap
     events = [
         make_event(f"evt-{i}", offset=i * 60, ip=ip, username=user, auth_outcome="failure", user_valid=True)
         for i in range(5)
@@ -145,40 +177,8 @@ def test_r3_stale_credentials_known_pair_downgrades_to_soft_contain(memory_store
     assert state.final_decision == "soft_contain"
 
 
-def test_r3_does_not_downgrade_if_median_gap_too_fast(memory_store):
-    now = datetime.now(timezone.utc)
-    ip = "198.51.100.44"
-    user = "alice"
-    memory_store.record_success(user, ip, now - timedelta(days=2))
-
-    # Gaps are 10s (< 30s)
-    events = [
-        make_event(f"evt-{i}", offset=i * 10, ip=ip, username=user, auth_outcome="failure", user_valid=True)
-        for i in range(5)
-    ]
-    state = _make_incident_with_decision(events, decision="autonomous")
-    apply_auth_policy(state, baseline=memory_store, now=now)
-    # Does not qualify for R3 stale password; remains autonomous
-    assert state.final_decision == "autonomous"
-
-
-def test_r3_does_not_downgrade_if_unknown_pair(memory_store):
-    now = datetime.now(timezone.utc)
-    ip = "198.51.100.44"
-    user = "unknown_user"
-    # Not recorded in memory_store
-
-    events = [
-        make_event(f"evt-{i}", offset=i * 60, ip=ip, username=user, auth_outcome="failure", user_valid=True)
-        for i in range(5)
-    ]
-    state = _make_incident_with_decision(events, decision="autonomous")
-    apply_auth_policy(state, baseline=memory_store, now=now)
-    assert state.final_decision == "autonomous"
-
-
 # ------------------------------------------------------------------ Rule R4: Success after failure
-def test_r4_success_after_failure_downgrades_to_soft_contain(memory_store):
+def test_r4_success_after_failure_maintains_decision(memory_store):
     now = datetime.now(timezone.utc)
     ip = "198.51.100.44"
     user = "bob"
@@ -190,7 +190,7 @@ def test_r4_success_after_failure_downgrades_to_soft_contain(memory_store):
     ]
     state = _make_incident_with_decision(events, decision="autonomous")
     apply_auth_policy(state, baseline=memory_store, now=now)
-    assert state.final_decision == "soft_contain"
+    assert state.final_decision == "autonomous"
 
 
 def test_r4_multiple_users_does_not_downgrade(memory_store):
@@ -205,6 +205,23 @@ def test_r4_multiple_users_does_not_downgrade(memory_store):
     state = _make_incident_with_decision(events, decision="autonomous")
     apply_auth_policy(state, baseline=memory_store, now=now)
     assert state.final_decision == "autonomous"
+
+
+# ------------------------------------------------------------------ Single-source cap
+def test_single_source_cap_lowers_autonomous_to_soft_contain(memory_store):
+    now = datetime.now(timezone.utc)
+    ip = "198.51.100.44"
+
+    # 2 usernames, 10s gaps, one source: autonomous -> soft_contain
+    events = [
+        make_event("evt-1", 0, ip=ip, username="user1", auth_outcome="failure"),
+        make_event("evt-2", 10, ip=ip, username="user2", auth_outcome="failure"),
+        make_event("evt-3", 20, ip=ip, username="user1", auth_outcome="failure"),
+        make_event("evt-4", 30, ip=ip, username="user2", auth_outcome="failure"),
+    ]
+    state = _make_incident_with_decision(events, decision="autonomous")
+    apply_auth_policy(state, baseline=memory_store, now=now)
+    assert state.final_decision == "soft_contain"
 
 
 # ------------------------------------------------------------------ Rule R5: Fast burst unknown pair
@@ -286,6 +303,7 @@ def test_default_baseline_is_null_baseline():
         for i in range(5)
     ]
     state = _make_incident_with_decision(events, decision="autonomous")
-    # baseline=None -> NullBaseline: is_known_pair is False, so R3 does NOT match
+    # baseline=None -> NullBaseline: is_known_pair is False, so R3 does NOT match (does not escalate);
+    # Single-source cap applies -> soft_contain
     apply_auth_policy(state, baseline=None, now=now)
-    assert state.final_decision == "autonomous"
+    assert state.final_decision == "soft_contain"
