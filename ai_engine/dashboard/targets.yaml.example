@@ -1,0 +1,40 @@
+# Target infrastructure endpoints for SOC Observability Dashboard
+# Real hosts should be filled in once instances are provisioned.
+# Each target requires:
+#   name: Unique human-readable identifier
+#   type: "tcp_port" | "http"
+#   host: IP address or hostname
+#   port: TCP port number
+#   path: Optional request path (for type: http, default: /)
+
+targets:
+  - name: wazuh_manager_1514
+    type: tcp_port
+    host: 127.0.0.1
+    port: 1514
+
+  - name: wazuh_manager_55000
+    type: tcp_port
+    host: 127.0.0.1
+    port: 55000
+
+  - name: ollama
+    type: http
+    host: 127.0.0.1
+    port: 11434
+    path: /api/tags
+
+  - name: web_server_22
+    type: tcp_port
+    host: 127.0.0.1
+    port: 22
+
+  - name: web_server_80
+    type: tcp_port
+    host: 127.0.0.1
+    port: 80
+
+  - name: db_server_22
+    type: tcp_port
+    host: 127.0.0.1
+    port: 22
