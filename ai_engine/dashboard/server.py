@@ -1074,7 +1074,7 @@ HTML_PAGE = """<!DOCTYPE html>
 
         const latencyText = (t.latency_ms !== null && t.latency_ms !== undefined)
           ? `<span class="mono">${t.latency_ms} ms</span>`
-          : '<span style="color:var(--text-dim);">&mdash;</span>';
+          : '<span style="color:var(--text-dim);">—</span>';
 
         const endpoint = t.type === 'http'
           ? `${t.host}:${t.port || 80}${t.path || '/'}`
@@ -1082,11 +1082,11 @@ HTML_PAGE = """<!DOCTYPE html>
 
         const lastChecked = t.last_checked
           ? new Date(t.last_checked).toLocaleTimeString()
-          : '&mdash;';
+          : '—';
 
         const errorHtml = t.error
           ? `<span class="error-text">${escapeHtml(t.error)}</span>`
-          : (t.status === 'up' ? '<span class="success-text">Reachable (OK)</span>' : '<span style="color:var(--text-dim);">&mdash;</span>');
+          : (t.status === 'up' ? '<span class="success-text">Reachable (OK)</span>' : '<span style="color:var(--text-dim);">—</span>');
 
         return `<tr class="hover-row">
           <td style="font-weight:600;">${escapeHtml(t.name)}</td>
@@ -1134,10 +1134,10 @@ HTML_PAGE = """<!DOCTYPE html>
         const isExp = expandedIncidents.has(inc.incident_id);
         const decBadgeClass = inc.final_decision === 'autonomous' ? 'badge-autonomous' : (inc.final_decision === 'soft_contain' ? 'badge-soft_contain' : 'badge-escalate');
 
-        const keyStr = (inc.correlation_key && inc.correlation_key.length) ? inc.correlation_key.join(' / ') : '&mdash;';
-        const timeStr = inc.timestamp ? new Date(inc.timestamp).toLocaleString() : '&mdash;';
-        const riskStr = (inc.risk_score !== null && inc.risk_score !== undefined) ? Number(inc.risk_score).toFixed(2) : '&mdash;';
-        const durStr = inc.duration_ms ? `${(inc.duration_ms / 1000).toFixed(2)}s` : '&mdash;';
+        const keyStr = (inc.correlation_key && inc.correlation_key.length) ? inc.correlation_key.join(' / ') : '—';
+        const timeStr = inc.timestamp ? new Date(inc.timestamp).toLocaleString() : '—';
+        const riskStr = (inc.risk_score !== null && inc.risk_score !== undefined) ? Number(inc.risk_score).toFixed(2) : '—';
+        const durStr = inc.duration_ms ? `${(inc.duration_ms / 1000).toFixed(2)}s` : '—';
 
         rowsHtml += `<tr class="hover-row clickable-row ${isExp ? 'expanded' : ''}" onclick="toggleIncident('${inc.incident_id}')">
           <td><span class="expand-icon">&#9654;</span></td>
@@ -1146,7 +1146,7 @@ HTML_PAGE = """<!DOCTYPE html>
           <td class="mono">${escapeHtml(keyStr)}</td>
           <td>${inc.event_count || 0}</td>
           <td><span class="badge ${decBadgeClass}">${escapeHtml(inc.final_decision || 'unknown')}</span></td>
-          <td class="mono" style="color:#e2e8f0;">${escapeHtml(inc.proposed_action || '&mdash;')}</td>
+          <td class="mono" style="color:#e2e8f0;">${escapeHtml(inc.proposed_action || '—')}</td>
           <td class="mono">${riskStr}</td>
           <td class="mono">${durStr}</td>
         </tr>`;
