@@ -1,0 +1,41 @@
+{
+  "data": {
+    "availability-domain": null,
+    "cidr-block": "172.16.1.0/24",
+    "compartment-id": "ocid1.tenancy.oc1..aaaaaaaaczd46q2x7vvqwb35wnuvetzlervmdfiv36wvlfhwgk34xx3ztz7q",
+    "defined-tags": {
+      "Oracle-Tags": {
+        "CreatedBy": "default/troshanisuru@outlook.com",
+        "CreatedOn": "2026-11-20T08:30:02.367Z"
+      }
+    },
+    "dhcp-options-id": "ocid1.dhcpoptions.oc1.ap-mumbai-1.aaaaaaaaep7vdahavidafmyclqx5ard25raljlrmxtesdj3q7cqfn7esl4ma",
+    "display-name": "security-mgmt-subnet",
+    "dns-label": "secmgmt",
+    "freeform-tags": {
+      "Environment": "lab",
+      "Project": "soc-automation"
+    },
+    "id": "ocid1.subnet.oc1.ap-mumbai-1.aaaaaaaarclixaeghulnynbphzjgrk3smdi2ljsmv76esh35lyrj5puuat5a",
+    "ipv4-cidr-blocks": [
+      "172.16.1.0/24"
+    ],
+    "ipv6-cidr-block": null,
+    "ipv6-cidr-blocks": null,
+    "ipv6-virtual-router-ip": null,
+    "lifecycle-state": "AVAILABLE",
+    "prohibit-internet-ingress": false,
+    "prohibit-public-ip-on-vnic": false,
+    "route-table-id": "ocid1.routetable.oc1.ap-mumbai-1.aaaaaaaazdxdfri5khlwqy3jj6h6uevrrnkk75skbgvusb65pr7eni4jsmuq",
+    "security-list-ids": [
+      "ocid1.securitylist.oc1.ap-mumbai-1.aaaaaaaadorymwu3e62j2snxdoc6k5gnirb6pael4yty24yl6u65k26h73ha"
+    ],
+    "subnet-domain-name": "secmgmt.securityvcn.oraclevcn.com",
+    "system-tags": {},
+    "time-created": "2026-11-20T08:30:02.416000+00:00",
+    "vcn-id": "ocid1.vcn.oc1.ap-mumbai-1.amaaaaaaekmgisaaxdlmn73nhgvo3alxkhujhlna7ezri5jprubn6g73w53a",
+    "virtual-router-ip": "172.16.1.1",
+    "virtual-router-mac": "00:00:17:EE:74:79"
+  },
+  "etag": "88c76627"
+}

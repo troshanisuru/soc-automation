@@ -1,0 +1,35 @@
+{
+  "data": {
+    "byoipv6-cidr-blocks": null,
+    "cidr-block": "172.16.0.0/16",
+    "cidr-blocks": [
+      "172.16.0.0/16"
+    ],
+    "compartment-id": "ocid1.tenancy.oc1..aaaaaaaaczd46q2x7vvqwb35wnuvetzlervmdfiv36wvlfhwgk34xx3ztz7q",
+    "default-dhcp-options-id": "ocid1.dhcpoptions.oc1.ap-mumbai-1.aaaaaaaaep7vdahavidafmyclqx5ard25raljlrmxtesdj3q7cqfn7esl4ma",
+    "default-route-table-id": "ocid1.routetable.oc1.ap-mumbai-1.aaaaaaaamankxxi6z6eahcvf4hg6ppwuumedyc7lnd4ifuoo7drf64tz4mbq",
+    "default-security-list-id": "ocid1.securitylist.oc1.ap-mumbai-1.aaaaaaaadorymwu3e62j2snxdoc6k5gnirb6pael4yty24yl6u65k26h73ha",
+    "defined-tags": {
+      "Oracle-Tags": {
+        "CreatedBy": "default/troshanisuru@outlook.com",
+        "CreatedOn": "2026-11-20T08:29:44.363Z"
+      }
+    },
+    "display-name": "security-vcn",
+    "dns-label": "securityvcn",
+    "freeform-tags": {
+      "Environment": "lab",
+      "Project": "soc-automation"
+    },
+    "id": "ocid1.vcn.oc1.ap-mumbai-1.amaaaaaaekmgisaaxdlmn73nhgvo3alxkhujhlna7ezri5jprubn6g73w53a",
+    "ipv6-cidr-blocks": null,
+    "ipv6-private-cidr-blocks": null,
+    "is-zpr-only": null,
+    "lifecycle-state": "AVAILABLE",
+    "security-attributes": {},
+    "system-tags": {},
+    "time-created": "2026-11-20T08:29:44.456000+00:00",
+    "vcn-domain-name": "securityvcn.oraclevcn.com"
+  },
+  "etag": "67e6230f"
+}

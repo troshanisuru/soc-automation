@@ -1,0 +1,23 @@
+{
+  "data": [
+    {
+      "compartment-id": "ocid1.tenancy.oc1..aaaaaaaaczd46q2x7vvqwb35wnuvetzlervmdfiv36wvlfhwgk34xx3ztz7q",
+      "defined-tags": {
+        "Oracle-Tags": {
+          "CreatedBy": "default/troshanisuru@outlook.com",
+          "CreatedOn": "2026-11-20T08:30:08.494Z"
+        }
+      },
+      "display-name": "security-nsg",
+      "freeform-tags": {
+        "Environment": "lab",
+        "Project": "soc-automation"
+      },
+      "id": "ocid1.networksecuritygroup.oc1.ap-mumbai-1.aaaaaaaaas56wn577qhtgufdpnqhvkd6x2hq3eppcnx4ejfutcyi6gfvo5ra",
+      "lifecycle-state": "AVAILABLE",
+      "system-tags": null,
+      "time-created": "2026-11-20T08:30:08.610000+00:00",
+      "vcn-id": "ocid1.vcn.oc1.ap-mumbai-1.amaaaaaaekmgisaaxdlmn73nhgvo3alxkhujhlna7ezri5jprubn6g73w53a"
+    }
+  ]
+}

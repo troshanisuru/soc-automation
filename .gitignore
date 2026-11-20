@@ -77,6 +77,6 @@ ssh_access_guide.md
 ai_engine/manual_smoke_test.py
 ai_engine/data/
 
-# Dashboard targets (may contain real private IPs in production)
-ai_engine/dashboard/targets.yaml
+# Dashboard targets
+!ai_engine/dashboard/targets.yaml
 !ai_engine/dashboard/targets.yaml.example
