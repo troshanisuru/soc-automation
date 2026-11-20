@@ -1,5 +1,5 @@
-boto3
-botocore
+oci
+oci-cli
 python-dotenv
 requests
 pytest

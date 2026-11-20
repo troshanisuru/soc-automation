@@ -14,7 +14,9 @@ env/
 .env.*
 !.env.example
 
-# AWS credentials
+# Cloud credentials (OCI & AWS)
+.oci/
+oci/config
 .aws/
 aws/credentials
 aws/config
@@ -64,9 +66,10 @@ htmlcov/
 test-output/
 results/
 
-# OS files
+# OS and editor files
 .DS_Store
 Thumbs.db
+.vscode/
 
 # Never commit access guides / credential notes
 ssh_access_guide.md

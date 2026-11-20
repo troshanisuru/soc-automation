@@ -1,26 +1,29 @@
-# Autonomous Multi-Agent SOC Brain Architecture
+# Autonomous Multi-Agent SOC Brain Architecture (Oracle Cloud Infrastructure)
 
 ## Overview
-This project implements an autonomous Security Operations Center (SOC) incident response pipeline. Security log telemetry from AWS infrastructure (AWS WAF and VPC Flow Logs) is ingested natively by the Wazuh Security Platform, normalized into standard data models, and analyzed by an LLM-driven multi-agent framework built with a hand-rolled deterministic Python state machine.
+This project implements an autonomous Security Operations Center (SOC) incident response pipeline on **Oracle Cloud Infrastructure (OCI)**. Security log telemetry from OCI infrastructure (OCI Web Application Firewall, OCI VCN Flow Logs, and host authentication logs from Compute instances) is ingested by the Wazuh Security Platform, normalized into standard Pydantic data models, and analyzed by an LLM-driven multi-agent framework governed by a deterministic Python state machine and OCI active-response executor.
+
+> For a complete comparison between the previous AWS architecture and this Oracle Cloud Infrastructure architecture, see [docs/AWS_TO_OCI_MIGRATION.md](docs/AWS_TO_OCI_MIGRATION.md).
 
 ---
 
-## Unified Data Ingestion & SOC Pipeline Architecture
+## Unified Data Ingestion & SOC Pipeline Architecture (OCI)
 
 ```mermaid
 graph TD
-    subgraph AWS Telemetry Sources
-        WAF["AWS WAF Logs<br/>(Web ACL Blocks/Allows)"]
-        VPC["AWS VPC Flow Logs<br/>(Network Interfaces)"]
+    subgraph OCI Telemetry Sources
+        WAF["OCI WAF Logs<br/>(Edge Policy Blocks/Alerts)"]
+        VCN["OCI VCN Flow Logs<br/>(VNIC / Subnet Telemetry)"]
+        Host["OCI Compute Agents<br/>(Web & DB SSH Auth Logs)"]
     end
 
-    subgraph Centralized Storage
-        S3["Amazon S3 Bucket<br/>(aws-waf-logs-soc-project-*)"]
+    subgraph Centralized Storage & Logging
+        OS["OCI Logging & Object Storage<br/>(soc-waf-vcn-logs-bucket)"]
     end
 
     subgraph Monitoring & Detection
-        Wazuh["Wazuh Manager<br/>(Native <awss3> Module)"]
-        Alerts["Wazuh JSON Alerts<br/>(data.aws.* payload)"]
+        Wazuh["Wazuh Manager (VM.Standard.A1.Flex)<br/>(Agent 1514/tcp + S3-Compatible / Log Pull)"]
+        Alerts["Wazuh JSON Alerts<br/>(data.oci.* / data.srcip payload)"]
     end
 
     subgraph SOC Brain Core
@@ -32,7 +35,7 @@ graph TD
         Decision["decision (LLM)"]
         Val3["validate"]
         Gate["gate (code, scoring)"]
-        ExecEsc["execute | escalate"]
+        ExecEsc["oci_executor | escalate"]
         Audit["audit log"]
         
         Correlate --> Triage
@@ -46,17 +49,18 @@ graph TD
         ExecEsc --> Audit
     end
 
-    WAF -->|Logs| S3
-    VPC -->|Logs| S3
-    S3 -->|Pull via IAM User / 10m Interval| Wazuh
+    WAF -->|Logs| OS
+    VCN -->|Logs| OS
+    OS -->|Pull via S3-Compat / Connector| Wazuh
+    Host -->|Wazuh Agent 1514/tcp via LPG Peering| Wazuh
     Wazuh -->|Generate| Alerts
     Alerts -->|Ingest & Parse| Correlate
 
-    classDef aws fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#FFFFFF;
+    classDef oci fill:#F80000,stroke:#312D2A,stroke-width:2px,color:#FFFFFF;
     classDef wazuh fill:#00A4E4,stroke:#111111,stroke-width:2px,color:#FFFFFF;
     classDef brain fill:#2C3E50,stroke:#18BC9C,stroke-width:2px,color:#FFFFFF;
 
-    class WAF,VPC,S3 aws;
+    class WAF,VCN,Host,OS oci;
     class Wazuh,Alerts wazuh;
     class Correlate,Triage,Val1,Mitre,Val2,Decision,Val3,Gate,ExecEsc,Audit brain;
 ```
@@ -66,20 +70,18 @@ graph TD
 ## Data Flow Details
 
 1. **Telemetry Ingestion Phase:**
-   - AWS WAF records HTTP request details (`clientIp`, `uri`, `terminatingRuleId`).
-   - AWS VPC Flow Logs record network interface IP flows (`srcaddr`, `dstaddr`, `action`).
-   - Logs are continuously written to partitioned folders (`waf-logs/`, `vpc-logs/`) inside an Amazon S3 Bucket (`aws-waf-logs-soc-project-*`).
+   - **Host Telemetry**: Wazuh agents on `soc-automation-web` and `soc-automation-db` in the Production VCN (`10.0.0.0/16`) forward real-time SSH and HTTP log events across the **Local Peering Gateway (LPG)** to the Wazuh Manager in the Security VCN (`172.16.0.0/16`).
+   - **OCI Cloud Telemetry**: OCI WAF records HTTP inspection events (`clientIp`, `uri`, `ruleKey`) and OCI VCN Flow Logs record VNIC IP flows (`sourceAddress`, `destinationAddress`, `action`). Logs are exported to OCI Object Storage (`soc-waf-vcn-logs-*`).
 
 2. **Wazuh Monitoring Phase:**
-   - The Wazuh Manager uses its native `<awss3>` integration module to pull raw log archives from S3 on a 10-minute poll interval. Both WAF and VPC Flow Log ingestions operate on this 10-minute interval.
-   - Wazuh parses the raw log objects and emits unified JSON alerts, embedding AWS payload attributes under `data.aws.*`.
+   - The Wazuh Manager (running on an OCI Always Free `VM.Standard.A1.Flex` instance with 4 OCPUs and 24 GB RAM) ingests both direct agent streams (`1514/tcp`) and OCI Object Storage log archives (via OCI's S3-compatible Customer Secret Key endpoint or OCI Logging integration).
+   - Wazuh evaluates custom rules (`wazuh/rules/custom_oci_rules.xml` and `wazuh/rules/custom_ssh_rules.xml`) and emits unified JSON alerts to `/var/ossec/logs/alerts/alerts.json`.
 
 3. **Normalization Phase:**
-   - The SOC Brain receives the Wazuh JSON payload.
-   - Standardizes the event into a strongly-typed `NormalizedEvent` Pydantic model.
+   - The SOC Brain (`ai_engine/ingest/wazuh_poller.py`) tails the Wazuh JSON alerts and normalizes both OCI cloud payloads (`data.oci.*` / `data.aws.*` S3-compat) and host authentication alerts into the strongly-typed `NormalizedEvent` Pydantic model.
 
 4. **Multi-Agent Decision & Mitigation Phase (Deterministic State Machine):**
-   - The reasoning layer uses a hand-rolled deterministic Python state machine.
-   - **Three agents in sequence**: Triage -> MITRE mapping -> Decision. 
-   - Each agent has its own Pydantic schema, and the output is strictly validated before the next stage runs.
-   - **Deterministic Gate**: Evaluates risk scores against defined policy thresholds (autonomous_threshold: 0.75, soft_threshold: 0.45) to validate mitigation plans before executing actions. If validation fails at any point, the pipeline short-circuits to escalate and logs to the audit log.
+   - **Three agents in sequence**: `TriageAgent` -> `MitreAgent` -> `DecisionAgent`.
+   - Each agent output is strictly validated against its Pydantic schema before the next stage runs.
+   - **Deterministic Gate**: Evaluates weighted risk scores against policy thresholds (`autonomous_threshold: 0.75`, `soft_threshold: 0.45`) before authorizing active response.
+   - **OCI Active Response Executor (`ai_engine/executor/oci_executor.py`)**: Uses the `oci` Python SDK (supporting both local `~/.oci/config` profiles and on-instance Dynamic Group Instance Principals) to update OCI WAF Network Address Lists or OCI Network Security Groups (NSGs), with built-in `SHADOW_MODE` simulation and protected-IP safety guards.

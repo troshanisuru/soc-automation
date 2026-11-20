@@ -1,114 +1,55 @@
-# Phase 3 EC2 Instance Specification
+# Phase 3 OCI Compute Instance Specification (Always Free Tier)
 
-This document defines the lowest-cost academic lab EC2 design for the `soc-automation` project. It is local preparation only until `infra/instances.sh` is explicitly authorized and run.
+This document defines the **Oracle Cloud Infrastructure (OCI) Always Free Tier** compute design for the `soc-automation` project.
 
 ## Target Environment
 
-- AWS account: `908157891283`
-- AWS CLI profile: `soc-project`
-- Region: `ap-southeast-1`
-- Availability Zone: `ap-southeast-1a`
-- Project tag: `soc-automation`
-- Environment tag: `lab`
-- Admin CIDR: set `ADMIN_IP_CIDR=<your-admin-public-ip>/32` at run time
+- OCI CLI profile: `soc-project`
+- OCI Region: `ap-singapore-1` (configurable via `OCI_REGION`)
+- Compartment OCID: set `OCI_COMPARTMENT_OCID`
+- Tenancy guard: set `EXPECTED_OCI_TENANCY_OCID`
+- Freeform tags on all resources: `{"Project": "soc-automation", "Environment": "lab"}`
 
-## Dependency IDs
+## Instance Matrix (100% Within OCI Always Free Allowance)
 
-The script verifies these Phase 1 and Phase 2 resources before instance creation:
+| Display Name | Role Tag | OCI Shape | Architecture | OCPUs / Memory | Subnet | NSG | Public IPv4 | Boot Volume | Cloud-Init User-Data |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `soc-automation-web` | `web` | `VM.Standard.E2.1.Micro` | `x86_64` | 1 OCPU (1/8 core) / 1 GB RAM | `soc-automation-prod-public` | `soc-automation-prod-web-nsg` | Enabled | 47 GB Always Free | `infra/user-data/web.sh` |
+| `soc-automation-db` | `db` | `VM.Standard.E2.1.Micro` | `x86_64` | 1 OCPU (1/8 core) / 1 GB RAM | `soc-automation-prod-private` | `soc-automation-prod-db-nsg` | Disabled | 47 GB Always Free | `infra/user-data/db.sh` |
+| `soc-automation-wazuh` | `wazuh` | `VM.Standard.A1.Flex` | `aarch64` (Ampere ARM64) | **4 OCPUs / 24 GB RAM** | `soc-automation-security-mgmt` | `soc-automation-security-mgmt-nsg` | Enabled | 100 GB Always Free | `infra/user-data/wazuh-base.sh` |
 
-- Production VPC: `vpc-01d5230934a140846`
-- Security VPC: `vpc-0fb2381154ad1b418`
-- VPC peering: `pcx-0d0b43fb860ec81c6`
-- Web SG: `sg-01dc0bd14c2808f21`
-- Management SG: `sg-0effe1d21b6836624`
-- DB SG: `sg-03e665ea5e9403e11`
-- Instance profile: `SOC-Middleware-Role`
+> **Why this sizing works on OCI**: OCI Always Free Tier grants 2x `VM.Standard.E2.1.Micro` instances plus up to 4 OCPUs and 24 GB RAM of `VM.Standard.A1.Flex` capacity, and up to 200 GB of total Block/Boot Volume storage (`47 + 47 + 100 = 194 GB <= 200 GB`). This gives the Wazuh Manager, Indexer, Dashboard, and Python AI SOC Engine 24 GB RAM at $0 cost.
 
-Subnets are discovered by `Project` and `Name` tags rather than hardcoded IDs:
+## Image Selection
 
-- `soc-automation-prod-public-1a`
-- `soc-automation-prod-private-1a`
-- `soc-automation-security-mgmt-1a`
-
-## AMI Selection
-
-`infra/instances.sh` resolves the AMI dynamically with `ec2:DescribeImages`.
-
-Required AMI properties:
-
-- Owner: Canonical account `099720109477`
-- Ubuntu Server 22.04 LTS Jammy
-- x86_64 architecture
-- EBS-backed root device
-- HVM virtualization
-- Available state
-
-The script rejects non-Canonical images and non-22.04 image names. If several images match, it sorts by `CreationDate` and `ImageId`, then chooses the newest deterministically.
-
-## Instance Matrix
-
-| Name | Role tag | Type | Subnet | Security group | Public IPv4 | IAM profile | Root volume | User-data |
-|---|---|---:|---|---|---|---|---|---|
-| `soc-automation-web` | `web` | `t3.micro` | `soc-automation-prod-public-1a` | `prod-web-sg` | enabled | none | 12 GiB encrypted gp3 | `infra/user-data/web.sh` |
-| `soc-automation-db` | `db` | `t3.micro` | `soc-automation-prod-private-1a` | `prod-db-sg` | disabled | none | 12 GiB encrypted gp3 | `infra/user-data/db.sh` |
-| `soc-automation-wazuh` | `wazuh` | `t3.large` | `soc-automation-security-mgmt-1a` | `security-mgmt-sg` | enabled | `SOC-Middleware-Role` | 50 GiB encrypted gp3 | `infra/user-data/wazuh-base.sh` |
-
-Root EBS volumes use `DeleteOnTermination=true`. Detailed monitoring is left disabled because detailed monitoring is billable in ordinary EC2 usage.
-
-## Wazuh Sizing Note
-
-The `soc-automation-wazuh` host uses `t3.large` to keep academic lab cost low. This has less CPU than Wazuh's official 1-25-agent recommendation, so it is suitable for a constrained demonstration lab, not a production deployment. Wazuh installation and tuning remain later controlled tasks.
-
-## User-Data Scope
-
-- Web user-data installs and enables Nginx and keeps `/var/log/auth.log` available for Wazuh ingestion.
-- DB user-data avoids `apt update`, package downloads, PostgreSQL installation, and password creation because the private subnet has no NAT gateway.
-- Wazuh user-data performs only safe base configuration. It does not install Wazuh and does not create passwords.
-
-No user-data file contains credentials, tokens, passwords, private keys, or generated secrets.
+`infra/instances.sh` dynamically resolves the latest official **Canonical Ubuntu 22.04 / 24.04 LTS** platform image in the target region matching each instance's shape (`VM.Standard.E2.1.Micro` -> `x86_64` Ubuntu image; `VM.Standard.A1.Flex` -> `aarch64` Ubuntu image) using `oci compute image list`.
 
 ## SSH Key Design
 
-The EC2 key pair name is `soc-automation-key`.
+The instances are provisioned with the local Ed25519 SSH public key generated during local PC binding:
 
-The script requires this existing local public key:
-
-```bash
+```text
 ~/.ssh/soc-automation-ed25519.pub
 ```
 
-If the public key is missing, create it locally before provisioning:
+If missing, generate it via `bash infra/bind-local-pc.sh` or:
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/soc-automation-ed25519 -C soc-automation-key
+ssh-keygen -t ed25519 -f ~/.ssh/soc-automation-ed25519 -N "" -C "soc-automation-oci-key"
 ```
 
-Only the `.pub` file is imported into EC2. The private key must stay outside the repository and must never be pasted into chat, user-data, evidence files, or AWS Console policy documents. Do not create or download an AWS `.pem` private key.
+## OS Firewall Note on OCI Ubuntu Images
 
-## Cost Controls
+Canonical Ubuntu images on OCI include preconfigured `iptables` rules that reject inbound traffic on ports other than `22/tcp` even when allowed by an OCI NSG. The cloud-init scripts in `infra/user-data/web.sh` and `infra/user-data/wazuh-base.sh` automatically open the required ports (`80, 443` on Web; `443, 1514, 1515, 55000` on Wazuh) in the host firewall and persist them.
 
-The design intentionally avoids:
-
-- Elastic IPs
-- NAT gateways
-- RDS
-- Load balancers
-- VPC endpoints
-- Wazuh installation during EC2 launch
-
-Use `infra/stop-lab.sh` to stop running lab instances when they are not needed, and `infra/start-lab.sh` to restart only the expected tagged lab instances.
-
-## Later Execution Command
-
-Do not run this until Phase 3 provisioning is explicitly authorized:
+## Execution Command
 
 ```bash
 set -o pipefail
-AWS_PROFILE=soc-project \
-AWS_REGION=ap-southeast-1 \
-EXPECTED_AWS_ACCOUNT_ID=908157891283 \
+OCI_CLI_PROFILE=soc-project \
+OCI_REGION=ap-singapore-1 \
+EXPECTED_OCI_TENANCY_OCID="ocid1.tenancy.oc1..your_tenancy" \
+OCI_COMPARTMENT_OCID="ocid1.compartment.oc1..your_compartment" \
 bash infra/instances.sh \
-2>&1 | tee evidence/aws-phase3-compute/instances.log
+2>&1 | tee evidence/oci-phase3-compute/instances.log
 ```
-
-Before this command is run, attach [infra/deployer-compute-policy.json](/Users/user/soc-automation/infra/deployer-compute-policy.json) to `soc-project-developer` as `SOCAutomationComputeDeployerPolicy`. If the admin public IP changes before compute launch, attach [infra/deployer-sg-rule-policy.json](/Users/user/soc-automation/infra/deployer-sg-rule-policy.json) as `SOCAutomationSecurityGroupRulePolicy` and rotate `ADMIN_IP_CIDR` before running `infra/instances.sh`.

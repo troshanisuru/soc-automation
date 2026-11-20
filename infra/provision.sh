@@ -2,59 +2,62 @@
 #
 # infra/provision.sh
 #
-# Idempotent provisioning script for the PDF-aligned dual-VPC network topology.
-# Creates: VPCs, subnets, internet gateways, route tables, and VPC peering.
-# Does NOT create: Security Groups, IAM Roles, NAT Gateways, or EC2 instances.
+# Idempotent Oracle Cloud Infrastructure (OCI) provisioning script for the
+# Dual-VCN network topology.
+# Creates:
+#   1. Two VCNs: soc-automation-prod-vcn (10.0.0.0/16) & soc-automation-security-vcn (172.16.0.0/16)
+#   2. Two Internet Gateways: prod-igw & security-igw
+#   3. Two Local Peering Gateways (LPGs) and establishes active cross-VCN peering
+#   4. Three Route Tables with Internet Gateway & LPG peering routes
+#   5. Three Regional Subnets: prod-public (10.0.1.0/24), prod-private (10.0.2.0/24), security-mgmt (172.16.1.0/24)
 #
 # Usage:
 #   chmod +x infra/provision.sh
-#   AWS_PROFILE=soc-project AWS_REGION=ap-southeast-1 ./infra/provision.sh
-#
-# Prerequisites:
-#   - AWS CLI v2 available
-#   - AWS credentials configured outside this repository
-#   - AWS profile: soc-project
-#   - Region: ap-southeast-1
+#   OCI_CLI_PROFILE=soc-project \
+#   OCI_REGION=ap-singapore-1 \
+#   EXPECTED_OCI_TENANCY_OCID="ocid1.tenancy.oc1..xxx" \
+#   OCI_COMPARTMENT_OCID="ocid1.compartment.oc1..xxx" \
+#   ./infra/provision.sh
 
 set -euo pipefail
 
-# -------------------------------------------------------------------
-# Mandatory deployment guard configuration
-# -------------------------------------------------------------------
-AWS_PROFILE="${AWS_PROFILE:-soc-project}"
-AWS_REGION="${AWS_REGION:-ap-southeast-1}"
-EXPECTED_AWS_ACCOUNT_ID="${EXPECTED_AWS_ACCOUNT_ID:-908157891283}"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PATH="${REPO_ROOT}/.venv/bin:${HOME}/.local/bin:${PATH}"
+
+OCI_CLI_PROFILE="${OCI_CLI_PROFILE:-soc-project}"
+OCI_REGION="${OCI_REGION:-ap-mumbai-1}"
+EXPECTED_OCI_TENANCY_OCID="${EXPECTED_OCI_TENANCY_OCID:-ocid1.tenancy.oc1..aaaaaaaaczd46q2x7vvqwb35wnuvetzlervmdfiv36wvlfhwgk34xx3ztz7q}"
+OCI_COMPARTMENT_OCID="${OCI_COMPARTMENT_OCID:-ocid1.tenancy.oc1..aaaaaaaaczd46q2x7vvqwb35wnuvetzlervmdfiv36wvlfhwgk34xx3ztz7q}"
 
 PROJECT="soc-automation"
-AZ_A="${AWS_REGION}a"
+FREEFORM_TAGS="{\"Project\":\"${PROJECT}\",\"Environment\":\"lab\"}"
 
-# Production VPC
-PROD_VPC_CIDR="10.0.0.0/16"
-PROD_PUBLIC_1A_CIDR="10.0.1.0/24"
-PROD_PRIVATE_1A_CIDR="10.0.2.0/24"
+PROD_VCN_CIDR="10.0.0.0/16"
+PROD_PUBLIC_CIDR="10.0.1.0/24"
+PROD_PRIVATE_CIDR="10.0.2.0/24"
 
-# Security VPC
-SECURITY_VPC_CIDR="172.16.0.0/16"
-SECURITY_MGMT_1A_CIDR="172.16.1.0/24"
+SECURITY_VCN_CIDR="172.16.0.0/16"
+SECURITY_MGMT_CIDR="172.16.1.0/24"
 
-PROD_VPC_NAME="${PROJECT}-prod-vpc"
-SECURITY_VPC_NAME="${PROJECT}-security-vpc"
+PROD_VCN_NAME="${PROJECT}-prod-vcn"
+SECURITY_VCN_NAME="${PROJECT}-security-vcn"
+
 PROD_IGW_NAME="${PROJECT}-prod-igw"
 SECURITY_IGW_NAME="${PROJECT}-security-igw"
+
+PROD_LPG_NAME="${PROJECT}-prod-lpg"
+SECURITY_LPG_NAME="${PROJECT}-security-lpg"
+
 PROD_PUB_RT_NAME="${PROJECT}-prod-public-rt"
 PROD_PRIV_RT_NAME="${PROJECT}-prod-private-rt"
 SECURITY_MGMT_RT_NAME="${PROJECT}-security-mgmt-rt"
-PEERING_NAME="${PROJECT}-prod-to-security-peering"
 
-# -------------------------------------------------------------------
-# AWS wrappers: all AWS CLI calls use the required profile and region.
-# -------------------------------------------------------------------
-aws_ec2() {
-    command aws --profile "$AWS_PROFILE" --region "$AWS_REGION" ec2 "$@"
-}
+PROD_PUB_SUBNET_NAME="${PROJECT}-prod-public"
+PROD_PRIV_SUBNET_NAME="${PROJECT}-prod-private"
+SECURITY_MGMT_SUBNET_NAME="${PROJECT}-security-mgmt"
 
-aws_sts() {
-    command aws --profile "$AWS_PROFILE" --region "$AWS_REGION" sts "$@"
+oci_cmd() {
+    command oci --profile "$OCI_CLI_PROFILE" --region "$OCI_REGION" "$@"
 }
 
 fatal() {
@@ -62,522 +65,274 @@ fatal() {
     exit 1
 }
 
-single_id_or_empty() {
-    local label="$1"
-    local raw="${2:-}"
-    local -a ids=()
+require_oci_context() {
+    echo "=== Pre-flight: verifying OCI identity and compartment guard ==="
 
-    if [[ -n "$raw" ]]; then
-        read -r -a ids <<< "$raw"
+    command -v oci >/dev/null 2>&1 || fatal "OCI CLI ('oci') is not installed. Run 'bash infra/bind-local-pc.sh' first."
+    [[ -n "$EXPECTED_OCI_TENANCY_OCID" ]] || fatal "Set EXPECTED_OCI_TENANCY_OCID before running provision.sh."
+    [[ -n "$OCI_COMPARTMENT_OCID" ]] || fatal "Set OCI_COMPARTMENT_OCID before running provision.sh."
+
+    local tenancy_json
+    tenancy_json=$(oci_cmd iam tenancy get --tenancy-id "$EXPECTED_OCI_TENANCY_OCID" --output json)
+    local tenancy_id
+    local tenancy_name
+    tenancy_id=$(printf '%s' "$tenancy_json" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['id'])")
+    tenancy_name=$(printf '%s' "$tenancy_json" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['name'])")
+
+    if [[ "$tenancy_id" != "$EXPECTED_OCI_TENANCY_OCID" ]]; then
+        fatal "Authenticated tenancy ${tenancy_id} does not match EXPECTED_OCI_TENANCY_OCID ${EXPECTED_OCI_TENANCY_OCID}."
     fi
 
-    if [[ "${#ids[@]}" -gt 1 ]]; then
-        fatal "Multiple matches found for ${label}: ${raw}. Refusing to select the first resource."
-    fi
-
-    if [[ "${#ids[@]}" -eq 1 ]]; then
-        printf '%s\n' "${ids[0]}"
-    fi
-}
-
-require_expected_account() {
-    echo "=== Pre-flight: verifying AWS identity ==="
-
-    local caller_identity
-    caller_identity=$(aws_sts get-caller-identity --output json)
-
-    ACCOUNT_ID=$(printf '%s' "$caller_identity" | python3 -c "import sys,json; print(json.load(sys.stdin)['Account'])")
-    CALLER_ARN=$(printf '%s' "$caller_identity" | python3 -c "import sys,json; print(json.load(sys.stdin)['Arn'])")
-
-    echo "Caller ARN: $CALLER_ARN"
-    echo "Account ID: $ACCOUNT_ID"
-    echo "Profile:    $AWS_PROFILE"
-    echo "Region:     $AWS_REGION"
-
-    if [[ "$ACCOUNT_ID" != "$EXPECTED_AWS_ACCOUNT_ID" ]]; then
-        fatal "Expected AWS account ${EXPECTED_AWS_ACCOUNT_ID}, got ${ACCOUNT_ID}. Stopping before any write operation."
-    fi
-
+    echo "Tenancy Name:     $tenancy_name"
+    echo "Tenancy OCID:     $tenancy_id"
+    echo "Compartment OCID: $OCI_COMPARTMENT_OCID"
+    echo "Profile:          $OCI_CLI_PROFILE"
+    echo "Region:           $OCI_REGION"
     echo ""
 }
 
-validate_required_az() {
-    echo "=== Pre-flight: validating required AZ ==="
-
-    local az_json
-    local az_ok
-    az_json=$(aws_ec2 describe-availability-zones \
-        --all-availability-zones \
-        --filters "Name=zone-name,Values=${AZ_A}" \
-        --output json)
-
-    az_ok=$(printf '%s' "$az_json" | python3 -c "
+find_resource_by_name() {
+    local json_input="$1"
+    local display_name="$2"
+    printf '%s' "$json_input" | python3 -c "
 import sys, json
 target = sys.argv[1]
-data = json.load(sys.stdin)
-for az in data.get('AvailabilityZones', []):
-    opt_in = az.get('OptInStatus') or 'opt-in-not-required'
-    if az.get('ZoneName') == target and az.get('State') == 'available' and opt_in in ('opt-in-not-required', 'opted-in'):
-        print('yes')
-        sys.exit(0)
-print('no')
-" "$AZ_A")
-
-    if [[ "$az_ok" != "yes" ]]; then
-        fatal "Required availability zone ${AZ_A} is not available to this account. Stopping safely."
-    fi
-
-    echo "AZ available: $AZ_A"
-    echo ""
-}
-
-# -------------------------------------------------------------------
-# Lookup helpers
-# -------------------------------------------------------------------
-find_vpc() {
-    local name="$1"
-    local cidr="$2"
-    local raw
-    raw=$(aws_ec2 describe-vpcs \
-        --filters "Name=tag:Project,Values=${PROJECT}" \
-                  "Name=tag:Name,Values=${name}" \
-                  "Name=cidr-block,Values=${cidr}" \
-        --query "Vpcs[].VpcId" \
-        --output text)
-    single_id_or_empty "VPC ${name} (${cidr})" "$raw"
-}
-
-find_subnet() {
-    local name="$1"
-    local vpc_id="$2"
-    local cidr="$3"
-    local az="$4"
-    local raw
-    raw=$(aws_ec2 describe-subnets \
-        --filters "Name=tag:Project,Values=${PROJECT}" \
-                  "Name=tag:Name,Values=${name}" \
-                  "Name=vpc-id,Values=${vpc_id}" \
-                  "Name=cidr-block,Values=${cidr}" \
-                  "Name=availability-zone,Values=${az}" \
-        --query "Subnets[].SubnetId" \
-        --output text)
-    single_id_or_empty "Subnet ${name} (${cidr}, ${az})" "$raw"
-}
-
-find_igw() {
-    local name="$1"
-    local raw
-    raw=$(aws_ec2 describe-internet-gateways \
-        --filters "Name=tag:Project,Values=${PROJECT}" \
-                  "Name=tag:Name,Values=${name}" \
-        --query "InternetGateways[].InternetGatewayId" \
-        --output text)
-    single_id_or_empty "Internet Gateway ${name}" "$raw"
-}
-
-find_rtb() {
-    local name="$1"
-    local vpc_id="$2"
-    local raw
-    raw=$(aws_ec2 describe-route-tables \
-        --filters "Name=tag:Project,Values=${PROJECT}" \
-                  "Name=tag:Name,Values=${name}" \
-                  "Name=vpc-id,Values=${vpc_id}" \
-        --query "RouteTables[].RouteTableId" \
-        --output text)
-    single_id_or_empty "Route Table ${name} in ${vpc_id}" "$raw"
-}
-
-find_peering() {
-    local prod_vpc_id="$1"
-    local security_vpc_id="$2"
-    local peering_json
-
-    peering_json=$(aws_ec2 describe-vpc-peering-connections \
-        --filters "Name=tag:Project,Values=${PROJECT}" \
-                  "Name=tag:Name,Values=${PEERING_NAME}" \
-                  "Name=status-code,Values=active,pending-acceptance,provisioning" \
-        --output json)
-
-    printf '%s' "$peering_json" | python3 -c "
-import sys, json
-prod = sys.argv[1]
-security = sys.argv[2]
-data = json.load(sys.stdin)
-matches = []
-conflicts = []
-for pcx in data.get('VpcPeeringConnections', []):
-    requester = pcx.get('RequesterVpcInfo', {}).get('VpcId')
-    accepter = pcx.get('AccepterVpcInfo', {}).get('VpcId')
-    pcx_id = pcx.get('VpcPeeringConnectionId')
-    if {requester, accepter} == {prod, security}:
-        matches.append(pcx_id)
-    else:
-        conflicts.append(pcx_id)
-if conflicts:
-    print('ERROR: Peering name/tag matches unexpected VPCs: ' + ' '.join(conflicts), file=sys.stderr)
-    sys.exit(2)
+doc = json.load(sys.stdin)
+items = doc.get('data', [])
+matches = [
+    item['id'] for item in items
+    if item.get('display-name') == target
+    and item.get('lifecycle-state') not in ('TERMINATED', 'TERMINATING')
+]
 if len(matches) > 1:
-    print('ERROR: Multiple matching peering connections: ' + ' '.join(matches), file=sys.stderr)
+    print('ERROR: Multiple resources match ' + target, file=sys.stderr)
     sys.exit(2)
 if matches:
     print(matches[0])
-" "$prod_vpc_id" "$security_vpc_id"
+" "$display_name"
 }
 
-route_target_for_destination() {
-    local rtb_id="$1"
-    local dest_cidr="$2"
-    local route_json
-
-    route_json=$(aws_ec2 describe-route-tables \
-        --route-table-ids "$rtb_id" \
-        --query "RouteTables[0].Routes[?DestinationCidrBlock=='${dest_cidr}']" \
-        --output json)
-
-    printf '%s' "$route_json" | python3 -c "
-import sys, json
-routes = json.load(sys.stdin)
-if not routes:
-    sys.exit(0)
-if len(routes) > 1:
-    print('ERROR: Multiple routes found for destination ' + sys.argv[1], file=sys.stderr)
-    sys.exit(2)
-route = routes[0]
-for field in (
-    'GatewayId',
-    'VpcPeeringConnectionId',
-    'NatGatewayId',
-    'TransitGatewayId',
-    'NetworkInterfaceId',
-    'InstanceId',
-    'EgressOnlyInternetGatewayId',
-    'LocalGatewayId',
-    'CarrierGatewayId',
-    'CoreNetworkArn'
-):
-    if route.get(field):
-        print(route[field])
-        sys.exit(0)
-print('UNKNOWN')
-" "$dest_cidr"
-}
-
-subnet_association_for() {
-    local subnet_id="$1"
-    local assoc_json
-
-    assoc_json=$(aws_ec2 describe-route-tables \
-        --filters "Name=association.subnet-id,Values=${subnet_id}" \
-        --output json)
-
-    printf '%s' "$assoc_json" | python3 -c "
-import sys, json
-subnet_id = sys.argv[1]
-data = json.load(sys.stdin)
-matches = []
-for table in data.get('RouteTables', []):
-    for assoc in table.get('Associations', []):
-        if assoc.get('SubnetId') == subnet_id:
-            matches.append((table.get('RouteTableId'), assoc.get('RouteTableAssociationId')))
-if len(matches) > 1:
-    print('ERROR: Multiple route table associations for subnet ' + subnet_id, file=sys.stderr)
-    sys.exit(2)
-if matches:
-    print(matches[0][0] + ' ' + matches[0][1])
-" "$subnet_id"
-}
-
-# -------------------------------------------------------------------
-# Create/update helpers
-# -------------------------------------------------------------------
-ensure_vpc() {
+ensure_vcn() {
     local name="$1"
     local cidr="$2"
-    local result_var="$3"
-    local vpc_id
+    local dns_label="$3"
+    local result_var="$4"
+    local list_json
+    local vcn_id
 
-    vpc_id=$(find_vpc "$name" "$cidr")
-    if [[ -z "$vpc_id" ]]; then
-        vpc_id=$(aws_ec2 create-vpc \
-            --cidr-block "$cidr" \
-            --tag-specifications "ResourceType=vpc,Tags=[{Key=Name,Value=${name}},{Key=Project,Value=${PROJECT}}]" \
-            --query "Vpc.VpcId" \
-            --output text)
-        echo "CREATED  ${name}: ${vpc_id}"
+    list_json=$(oci_cmd network vcn list --compartment-id "$OCI_COMPARTMENT_OCID" --display-name "$name" --output json 2>/dev/null || echo '{"data":[]}')
+    vcn_id=$(find_resource_by_name "$list_json" "$name")
+
+    if [[ -z "$vcn_id" ]]; then
+        vcn_id=$(oci_cmd network vcn create \
+            --compartment-id "$OCI_COMPARTMENT_OCID" \
+            --display-name "$name" \
+            --cidr-blocks "[\"${cidr}\"]" \
+            --dns-label "$dns_label" \
+            --freeform-tags "$FREEFORM_TAGS" \
+            --wait-for-state AVAILABLE \
+            --query "data.id" \
+            --raw-output)
+        echo "CREATED  VCN ${name}: ${vcn_id} (${cidr})"
     else
-        echo "EXISTS   ${name}: ${vpc_id}"
+        echo "EXISTS   VCN ${name}: ${vcn_id} (${cidr})"
     fi
 
-    aws_ec2 modify-vpc-attribute --vpc-id "$vpc_id" --enable-dns-support '{"Value":true}'
-    aws_ec2 modify-vpc-attribute --vpc-id "$vpc_id" --enable-dns-hostnames '{"Value":true}'
-
-    printf -v "$result_var" '%s' "$vpc_id"
-}
-
-ensure_subnet() {
-    local name="$1"
-    local vpc_id="$2"
-    local cidr="$3"
-    local az="$4"
-    local map_public_ip="$5"
-    local result_var="$6"
-    local subnet_id
-
-    subnet_id=$(find_subnet "$name" "$vpc_id" "$cidr" "$az")
-    if [[ -z "$subnet_id" ]]; then
-        # Tags are supplied at create time so IAM request-tag enforcement can authorize subnet creation.
-        subnet_id=$(aws_ec2 create-subnet \
-            --vpc-id "$vpc_id" \
-            --cidr-block "$cidr" \
-            --availability-zone "$az" \
-            --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=${name}},{Key=Project,Value=${PROJECT}}]" \
-            --query "Subnet.SubnetId" \
-            --output text)
-        echo "CREATED  ${name}: ${subnet_id}"
-    else
-        echo "EXISTS   ${name}: ${subnet_id}"
-    fi
-
-    if [[ "$map_public_ip" == "true" ]]; then
-        aws_ec2 modify-subnet-attribute --subnet-id "$subnet_id" --map-public-ip-on-launch
-    else
-        aws_ec2 modify-subnet-attribute --subnet-id "$subnet_id" --no-map-public-ip-on-launch
-    fi
-
-    printf -v "$result_var" '%s' "$subnet_id"
+    printf -v "$result_var" '%s' "$vcn_id"
 }
 
 ensure_igw() {
     local name="$1"
-    local vpc_id="$2"
+    local vcn_id="$2"
     local result_var="$3"
+    local list_json
     local igw_id
-    local attached_vpcs
 
-    igw_id=$(find_igw "$name")
+    list_json=$(oci_cmd network internet-gateway list --compartment-id "$OCI_COMPARTMENT_OCID" --vcn-id "$vcn_id" --display-name "$name" --output json 2>/dev/null || echo '{"data":[]}')
+    igw_id=$(find_resource_by_name "$list_json" "$name")
+
     if [[ -z "$igw_id" ]]; then
-        igw_id=$(aws_ec2 create-internet-gateway \
-            --tag-specifications "ResourceType=internet-gateway,Tags=[{Key=Name,Value=${name}},{Key=Project,Value=${PROJECT}}]" \
-            --query "InternetGateway.InternetGatewayId" \
-            --output text)
-        echo "CREATED  ${name}: ${igw_id}"
+        igw_id=$(oci_cmd network internet-gateway create \
+            --compartment-id "$OCI_COMPARTMENT_OCID" \
+            --vcn-id "$vcn_id" \
+            --display-name "$name" \
+            --is-enabled true \
+            --freeform-tags "$FREEFORM_TAGS" \
+            --wait-for-state AVAILABLE \
+            --query "data.id" \
+            --raw-output)
+        echo "CREATED  IGW ${name}: ${igw_id}"
     else
-        echo "EXISTS   ${name}: ${igw_id}"
-    fi
-
-    attached_vpcs=$(aws_ec2 describe-internet-gateways \
-        --internet-gateway-ids "$igw_id" \
-        --query "InternetGateways[0].Attachments[].VpcId" \
-        --output text | tr '\t' ' ')
-
-    if [[ -z "$attached_vpcs" ]]; then
-        aws_ec2 attach-internet-gateway --internet-gateway-id "$igw_id" --vpc-id "$vpc_id"
-        echo "ATTACHED ${name} to ${vpc_id}"
-    elif [[ "$attached_vpcs" == "$vpc_id" ]]; then
-        echo "EXISTS   ${name} attached to ${vpc_id}"
-    else
-        fatal "${name} is attached to ${attached_vpcs}, expected ${vpc_id}"
+        echo "EXISTS   IGW ${name}: ${igw_id}"
     fi
 
     printf -v "$result_var" '%s' "$igw_id"
 }
 
-ensure_rtb() {
+ensure_lpg() {
     local name="$1"
-    local vpc_id="$2"
+    local vcn_id="$2"
     local result_var="$3"
+    local list_json
+    local lpg_id
+
+    list_json=$(oci_cmd network local-peering-gateway list --compartment-id "$OCI_COMPARTMENT_OCID" --vcn-id "$vcn_id" --output json 2>/dev/null || echo '{"data":[]}')
+    lpg_id=$(find_resource_by_name "$list_json" "$name")
+
+    if [[ -z "$lpg_id" ]]; then
+        lpg_id=$(oci_cmd network local-peering-gateway create \
+            --compartment-id "$OCI_COMPARTMENT_OCID" \
+            --vcn-id "$vcn_id" \
+            --display-name "$name" \
+            --freeform-tags "$FREEFORM_TAGS" \
+            --wait-for-state AVAILABLE \
+            --query "data.id" \
+            --raw-output)
+        echo "CREATED  LPG ${name}: ${lpg_id}"
+    else
+        echo "EXISTS   LPG ${name}: ${lpg_id}"
+    fi
+
+    printf -v "$result_var" '%s' "$lpg_id"
+}
+
+ensure_lpg_peering() {
+    local prod_lpg_id="$1"
+    local sec_lpg_id="$2"
+    local peering_status
+
+    peering_status=$(oci_cmd network local-peering-gateway get --local-peering-gateway-id "$prod_lpg_id" --query "data.\"peering-status\"" --raw-output)
+
+    if [[ "$peering_status" == "PEERED" ]]; then
+        echo "EXISTS   LPG Peering is active (PEERED): ${prod_lpg_id} <-> ${sec_lpg_id}"
+    else
+        oci_cmd network local-peering-gateway connect \
+            --local-peering-gateway-id "$prod_lpg_id" \
+            --peer-id "$sec_lpg_id" >/dev/null
+        echo "CONNECTED LPG Peering: ${prod_lpg_id} <-> ${sec_lpg_id}"
+    fi
+}
+
+ensure_route_table() {
+    local name="$1"
+    local vcn_id="$2"
+    local route_rules_json="$3"
+    local result_var="$4"
+    local list_json
     local rtb_id
 
-    rtb_id=$(find_rtb "$name" "$vpc_id")
+    list_json=$(oci_cmd network route-table list --compartment-id "$OCI_COMPARTMENT_OCID" --vcn-id "$vcn_id" --display-name "$name" --output json 2>/dev/null || echo '{"data":[]}')
+    rtb_id=$(find_resource_by_name "$list_json" "$name")
+
     if [[ -z "$rtb_id" ]]; then
-        rtb_id=$(aws_ec2 create-route-table \
-            --vpc-id "$vpc_id" \
-            --tag-specifications "ResourceType=route-table,Tags=[{Key=Name,Value=${name}},{Key=Project,Value=${PROJECT}}]" \
-            --query "RouteTable.RouteTableId" \
-            --output text)
-        echo "CREATED  ${name}: ${rtb_id}"
+        rtb_id=$(oci_cmd network route-table create \
+            --compartment-id "$OCI_COMPARTMENT_OCID" \
+            --vcn-id "$vcn_id" \
+            --display-name "$name" \
+            --route-rules "$route_rules_json" \
+            --freeform-tags "$FREEFORM_TAGS" \
+            --wait-for-state AVAILABLE \
+            --query "data.id" \
+            --raw-output)
+        echo "CREATED  Route Table ${name}: ${rtb_id}"
     else
-        echo "EXISTS   ${name}: ${rtb_id}"
+        oci_cmd network route-table update \
+            --rt-id "$rtb_id" \
+            --route-rules "$route_rules_json" \
+            --force >/dev/null
+        echo "EXISTS   Route Table ${name}: ${rtb_id} (routes verified)"
     fi
 
     printf -v "$result_var" '%s' "$rtb_id"
 }
 
-ensure_subnet_association() {
-    local rtb_id="$1"
-    local subnet_id="$2"
-    local label="$3"
-    local current
-    local current_rtb
+ensure_subnet() {
+    local name="$1"
+    local vcn_id="$2"
+    local cidr="$3"
+    local dns_label="$4"
+    local rtb_id="$5"
+    local prohibit_public_ip="$6"
+    local result_var="$7"
+    local list_json
+    local subnet_id
 
-    current=$(subnet_association_for "$subnet_id")
-    if [[ -z "$current" ]]; then
-        aws_ec2 associate-route-table \
+    list_json=$(oci_cmd network subnet list --compartment-id "$OCI_COMPARTMENT_OCID" --vcn-id "$vcn_id" --display-name "$name" --output json 2>/dev/null || echo '{"data":[]}')
+    subnet_id=$(find_resource_by_name "$list_json" "$name")
+
+    if [[ -z "$subnet_id" ]]; then
+        subnet_id=$(oci_cmd network subnet create \
+            --compartment-id "$OCI_COMPARTMENT_OCID" \
+            --vcn-id "$vcn_id" \
+            --display-name "$name" \
+            --cidr-block "$cidr" \
+            --dns-label "$dns_label" \
             --route-table-id "$rtb_id" \
+            --prohibit-public-ip-on-vnic "$prohibit_public_ip" \
+            --freeform-tags "$FREEFORM_TAGS" \
+            --wait-for-state AVAILABLE \
+            --query "data.id" \
+            --raw-output)
+        echo "CREATED  Subnet ${name}: ${subnet_id} (${cidr})"
+    else
+        oci_cmd network subnet update \
             --subnet-id "$subnet_id" \
-            --output text > /dev/null
-        echo "ASSOCIATED ${label} to ${rtb_id}"
-        return
+            --route-table-id "$rtb_id" >/dev/null
+        echo "EXISTS   Subnet ${name}: ${subnet_id} (${cidr})"
     fi
 
-    current_rtb=${current%% *}
-    if [[ "$current_rtb" == "$rtb_id" ]]; then
-        echo "EXISTS     ${label} associated to ${rtb_id}"
-    else
-        fatal "${label} is already associated to ${current_rtb}, expected ${rtb_id}. Refusing to replace automatically."
-    fi
+    printf -v "$result_var" '%s' "$subnet_id"
 }
 
-ensure_route() {
-    local rtb_id="$1"
-    local dest_cidr="$2"
-    local expected_target="$3"
-    local target_type="$4"
-    local label="$5"
-    local current_target
+require_oci_context
 
-    current_target=$(route_target_for_destination "$rtb_id" "$dest_cidr")
-
-    if [[ -z "$current_target" ]]; then
-        if [[ "$target_type" == "igw" ]]; then
-            aws_ec2 create-route \
-                --route-table-id "$rtb_id" \
-                --destination-cidr-block "$dest_cidr" \
-                --gateway-id "$expected_target" > /dev/null
-        elif [[ "$target_type" == "peering" ]]; then
-            aws_ec2 create-route \
-                --route-table-id "$rtb_id" \
-                --destination-cidr-block "$dest_cidr" \
-                --vpc-peering-connection-id "$expected_target" > /dev/null
-        else
-            fatal "Unknown route target type ${target_type}"
-        fi
-        echo "CREATED  route ${dest_cidr} -> ${expected_target} in ${label}"
-    elif [[ "$current_target" == "$expected_target" ]]; then
-        echo "EXISTS   route ${dest_cidr} -> ${expected_target} in ${label}"
-    else
-        fatal "Route conflict in ${label}: ${dest_cidr} points to ${current_target}, expected ${expected_target}"
-    fi
-}
-
-# -------------------------------------------------------------------
-# Pre-flight
-# -------------------------------------------------------------------
-require_expected_account
-validate_required_az
-
-# ===================================================================
-# 1. VPCs
-# ===================================================================
-echo "=== 1. Creating VPCs ==="
-ensure_vpc "$PROD_VPC_NAME" "$PROD_VPC_CIDR" PROD_VPC_ID
-ensure_vpc "$SECURITY_VPC_NAME" "$SECURITY_VPC_CIDR" SECURITY_VPC_ID
+echo "=== 1. Creating OCI Virtual Cloud Networks (VCNs) ==="
+ensure_vcn "$PROD_VCN_NAME" "$PROD_VCN_CIDR" "socprod" PROD_VCN_ID
+ensure_vcn "$SECURITY_VCN_NAME" "$SECURITY_VCN_CIDR" "socsec" SECURITY_VCN_ID
 echo ""
 
-# ===================================================================
-# 2. Subnets
-# ===================================================================
-echo "=== 2. Creating Subnets ==="
-ensure_subnet "${PROJECT}-prod-public-1a" "$PROD_VPC_ID" "$PROD_PUBLIC_1A_CIDR" "$AZ_A" "true" PROD_PUB_1A_ID
-ensure_subnet "${PROJECT}-prod-private-1a" "$PROD_VPC_ID" "$PROD_PRIVATE_1A_CIDR" "$AZ_A" "false" PROD_PRIV_1A_ID
-ensure_subnet "${PROJECT}-security-mgmt-1a" "$SECURITY_VPC_ID" "$SECURITY_MGMT_1A_CIDR" "$AZ_A" "true" SECURITY_MGMT_1A_ID
+echo "=== 2. Creating Internet Gateways ==="
+ensure_igw "$PROD_IGW_NAME" "$PROD_VCN_ID" PROD_IGW_ID
+ensure_igw "$SECURITY_IGW_NAME" "$SECURITY_VCN_ID" SECURITY_IGW_ID
 echo ""
 
-# ===================================================================
-# 3. Internet Gateways
-# ===================================================================
-echo "=== 3. Creating Internet Gateways ==="
-ensure_igw "$PROD_IGW_NAME" "$PROD_VPC_ID" PROD_IGW_ID
-ensure_igw "$SECURITY_IGW_NAME" "$SECURITY_VPC_ID" SECURITY_IGW_ID
+echo "=== 3. Creating & Connecting Local Peering Gateways (LPGs) ==="
+ensure_lpg "$PROD_LPG_NAME" "$PROD_VCN_ID" PROD_LPG_ID
+ensure_lpg "$SECURITY_LPG_NAME" "$SECURITY_VCN_ID" SECURITY_LPG_ID
+ensure_lpg_peering "$PROD_LPG_ID" "$SECURITY_LPG_ID"
 echo ""
 
-# ===================================================================
-# 4. Route Tables and Associations
-# ===================================================================
 echo "=== 4. Creating Route Tables ==="
-ensure_rtb "$PROD_PUB_RT_NAME" "$PROD_VPC_ID" PROD_PUB_RTB_ID
-ensure_rtb "$PROD_PRIV_RT_NAME" "$PROD_VPC_ID" PROD_PRIV_RTB_ID
-ensure_rtb "$SECURITY_MGMT_RT_NAME" "$SECURITY_VPC_ID" SECURITY_MGMT_RTB_ID
+PROD_PUB_ROUTES="[{\"destination\":\"0.0.0.0/0\",\"destinationType\":\"CIDR_BLOCK\",\"networkEntityId\":\"${PROD_IGW_ID}\"},{\"destination\":\"${SECURITY_VCN_CIDR}\",\"destinationType\":\"CIDR_BLOCK\",\"networkEntityId\":\"${PROD_LPG_ID}\"}]"
+PROD_PRIV_ROUTES="[{\"destination\":\"${SECURITY_VCN_CIDR}\",\"destinationType\":\"CIDR_BLOCK\",\"networkEntityId\":\"${PROD_LPG_ID}\"}]"
+SEC_MGMT_ROUTES="[{\"destination\":\"0.0.0.0/0\",\"destinationType\":\"CIDR_BLOCK\",\"networkEntityId\":\"${SECURITY_IGW_ID}\"},{\"destination\":\"${PROD_VCN_CIDR}\",\"destinationType\":\"CIDR_BLOCK\",\"networkEntityId\":\"${SECURITY_LPG_ID}\"}]"
+
+ensure_route_table "$PROD_PUB_RT_NAME" "$PROD_VCN_ID" "$PROD_PUB_ROUTES" PROD_PUB_RTB_ID
+ensure_route_table "$PROD_PRIV_RT_NAME" "$PROD_VCN_ID" "$PROD_PRIV_ROUTES" PROD_PRIV_RTB_ID
+ensure_route_table "$SECURITY_MGMT_RT_NAME" "$SECURITY_VCN_ID" "$SEC_MGMT_ROUTES" SECURITY_MGMT_RTB_ID
 echo ""
 
-echo "=== 4a. Associating subnets with route tables ==="
-ensure_subnet_association "$PROD_PUB_RTB_ID" "$PROD_PUB_1A_ID" "prod-public-1a"
-ensure_subnet_association "$PROD_PRIV_RTB_ID" "$PROD_PRIV_1A_ID" "prod-private-1a"
-ensure_subnet_association "$SECURITY_MGMT_RTB_ID" "$SECURITY_MGMT_1A_ID" "security-mgmt-1a"
+echo "=== 5. Creating Regional Subnets ==="
+ensure_subnet "$PROD_PUB_SUBNET_NAME" "$PROD_VCN_ID" "$PROD_PUBLIC_CIDR" "prodpub" "$PROD_PUB_RTB_ID" "false" PROD_PUB_SUBNET_ID
+ensure_subnet "$PROD_PRIV_SUBNET_NAME" "$PROD_VCN_ID" "$PROD_PRIVATE_CIDR" "prodpriv" "$PROD_PRIV_RTB_ID" "true" PROD_PRIV_SUBNET_ID
+ensure_subnet "$SECURITY_MGMT_SUBNET_NAME" "$SECURITY_VCN_ID" "$SECURITY_MGMT_CIDR" "secmgmt" "$SECURITY_MGMT_RTB_ID" "false" SECURITY_MGMT_SUBNET_ID
 echo ""
 
-echo "=== 4b. Adding internet gateway routes ==="
-ensure_route "$PROD_PUB_RTB_ID" "0.0.0.0/0" "$PROD_IGW_ID" "igw" "$PROD_PUB_RT_NAME"
-ensure_route "$SECURITY_MGMT_RTB_ID" "0.0.0.0/0" "$SECURITY_IGW_ID" "igw" "$SECURITY_MGMT_RT_NAME"
+echo "================================================="
+echo "  OCI Dual-VCN Network Provisioning Complete"
+echo "================================================="
+echo "  Tenancy OCID:     $EXPECTED_OCI_TENANCY_OCID"
+echo "  Compartment OCID: $OCI_COMPARTMENT_OCID"
+echo "  Region:           $OCI_REGION"
 echo ""
-
-# ===================================================================
-# 5. VPC Peering
-# ===================================================================
-echo "=== 5. Creating VPC Peering Connection ==="
-PEERING_ID=$(find_peering "$PROD_VPC_ID" "$SECURITY_VPC_ID")
-
-if [[ -z "$PEERING_ID" ]]; then
-    PEERING_ID=$(aws_ec2 create-vpc-peering-connection \
-        --vpc-id "$PROD_VPC_ID" \
-        --peer-vpc-id "$SECURITY_VPC_ID" \
-        --peer-region "$AWS_REGION" \
-        --tag-specifications "ResourceType=vpc-peering-connection,Tags=[{Key=Name,Value=${PEERING_NAME}},{Key=Project,Value=${PROJECT}}]" \
-        --query "VpcPeeringConnection.VpcPeeringConnectionId" \
-        --output text)
-    echo "CREATED  peering: $PEERING_ID"
-else
-    echo "EXISTS   peering: $PEERING_ID"
-fi
-
-PEERING_STATUS=$(aws_ec2 describe-vpc-peering-connections \
-    --vpc-peering-connection-ids "$PEERING_ID" \
-    --query "VpcPeeringConnections[0].Status.Code" \
-    --output text)
-
-if [[ "$PEERING_STATUS" == "pending-acceptance" ]]; then
-    aws_ec2 accept-vpc-peering-connection --vpc-peering-connection-id "$PEERING_ID" > /dev/null
-    echo "ACCEPTED peering: $PEERING_ID"
-elif [[ "$PEERING_STATUS" == "active" ]]; then
-    echo "STATUS   peering: $PEERING_ID (active)"
-else
-    fatal "Peering ${PEERING_ID} is in unexpected status ${PEERING_STATUS}"
-fi
+echo "  Production VCN:   $PROD_VCN_ID ($PROD_VCN_CIDR)"
+echo "    Public Subnet:  $PROD_PUB_SUBNET_ID ($PROD_PUBLIC_CIDR)"
+echo "    Private Subnet: $PROD_PRIV_SUBNET_ID ($PROD_PRIVATE_CIDR)"
+echo "    IGW:            $PROD_IGW_ID"
+echo "    LPG:            $PROD_LPG_ID"
 echo ""
-
-echo "=== 5a. Adding peering routes ==="
-ensure_route "$PROD_PUB_RTB_ID" "$SECURITY_VPC_CIDR" "$PEERING_ID" "peering" "$PROD_PUB_RT_NAME"
-ensure_route "$PROD_PRIV_RTB_ID" "$SECURITY_VPC_CIDR" "$PEERING_ID" "peering" "$PROD_PRIV_RT_NAME"
-ensure_route "$SECURITY_MGMT_RTB_ID" "$PROD_VPC_CIDR" "$PEERING_ID" "peering" "$SECURITY_MGMT_RT_NAME"
-echo ""
-
-# ===================================================================
-# Summary
-# ===================================================================
-echo "==========================================="
-echo "  SOC Infrastructure Provisioning Complete"
-echo "==========================================="
-echo ""
-echo "  Account:            $ACCOUNT_ID"
-echo "  Profile:            $AWS_PROFILE"
-echo "  Region/AZ:          $AWS_REGION / $AZ_A"
-echo ""
-echo "  Production VPC:     $PROD_VPC_ID ($PROD_VPC_CIDR)"
-echo "    prod-public-1a:   $PROD_PUB_1A_ID ($PROD_PUBLIC_1A_CIDR)"
-echo "    prod-private-1a:  $PROD_PRIV_1A_ID ($PROD_PRIVATE_1A_CIDR)"
-echo "    IGW:              $PROD_IGW_ID"
-echo "    Public RT:        $PROD_PUB_RTB_ID"
-echo "    Private RT:       $PROD_PRIV_RTB_ID"
-echo ""
-echo "  Security VPC:       $SECURITY_VPC_ID ($SECURITY_VPC_CIDR)"
-echo "    security-mgmt-1a: $SECURITY_MGMT_1A_ID ($SECURITY_MGMT_1A_CIDR)"
-echo "    IGW:              $SECURITY_IGW_ID"
-echo "    Security RT:      $SECURITY_MGMT_RTB_ID"
-echo ""
-echo "  Peering:            $PEERING_ID"
-echo ""
-echo "  Next steps:"
-echo "    - Create security groups and IAM role with infra/security.sh"
-echo "    - Launch EC2 instances after validating least-privilege permissions"
-echo "==========================================="
+echo "  Security VCN:     $SECURITY_VCN_ID ($SECURITY_VCN_CIDR)"
+echo "    Mgmt Subnet:    $SECURITY_MGMT_SUBNET_ID ($SECURITY_MGMT_CIDR)"
+echo "    IGW:            $SECURITY_IGW_ID"
+echo "    LPG:            $SECURITY_LPG_ID"
+echo "================================================="

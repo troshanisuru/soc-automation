@@ -2,63 +2,53 @@
 #
 # infra/security.sh
 #
-# Idempotent script that creates:
-#   1. Three Security Groups: prod-web, prod-db, and security-mgmt.
-#   2. IAM Role SOC-Middleware-Role.
-#   3. IAM managed policy SOC-Middleware-WebSG-Policy scoped to prod-web-sg.
+# Idempotent Oracle Cloud Infrastructure (OCI) security provisioning script:
+#   1. Four Network Security Groups (NSGs):
+#      - soc-automation-prod-web-nsg
+#      - soc-automation-prod-db-nsg
+#      - soc-automation-security-mgmt-nsg
+#      - soc-automation-quarantine-nsg
+#   2. OCI Dynamic Group: soc-automation-middleware-dg (for Instance Principals)
+#   3. OCI IAM Policy: soc-automation-middleware-policy (compartment-scoped least privilege)
 #
-# Must be run AFTER provision.sh.
+# Must be run AFTER infra/provision.sh.
 #
 # Usage:
-#   chmod +x infra/security.sh
-#   ADMIN_IP_CIDR="203.0.113.10/32" ./infra/security.sh
-#
-# Prerequisites:
-#   - AWS CLI v2 available
-#   - AWS credentials configured outside this repository
-#   - AWS profile: soc-project
-#   - Region: ap-southeast-1
+#   ADMIN_IP_CIDR="203.0.113.10/32" \
+#   EXPECTED_OCI_TENANCY_OCID="ocid1.tenancy.oc1..xxx" \
+#   OCI_COMPARTMENT_OCID="ocid1.compartment.oc1..xxx" \
+#   ./infra/security.sh
 
 set -euo pipefail
 
-# -------------------------------------------------------------------
-# Mandatory deployment guard configuration
-# -------------------------------------------------------------------
-AWS_PROFILE="${AWS_PROFILE:-soc-project}"
-AWS_REGION="${AWS_REGION:-ap-southeast-1}"
-EXPECTED_AWS_ACCOUNT_ID="${EXPECTED_AWS_ACCOUNT_ID:-908157891283}"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PATH="${REPO_ROOT}/.venv/bin:${HOME}/.local/bin:${PATH}"
 
-PROJECT="soc-automation"
+OCI_CLI_PROFILE="${OCI_CLI_PROFILE:-soc-project}"
+OCI_REGION="${OCI_REGION:-ap-mumbai-1}"
+EXPECTED_OCI_TENANCY_OCID="${EXPECTED_OCI_TENANCY_OCID:-ocid1.tenancy.oc1..aaaaaaaaczd46q2x7vvqwb35wnuvetzlervmdfiv36wvlfhwgk34xx3ztz7q}"
+OCI_COMPARTMENT_OCID="${OCI_COMPARTMENT_OCID:-ocid1.tenancy.oc1..aaaaaaaaczd46q2x7vvqwb35wnuvetzlervmdfiv36wvlfhwgk34xx3ztz7q}"
 ADMIN_IP_CIDR="${ADMIN_IP_CIDR:-}"
 
-PROD_VPC_CIDR="10.0.0.0/16"
-SECURITY_VPC_CIDR="172.16.0.0/16"
-SECURITY_MGMT_1A_CIDR="172.16.1.0/24"
+PROJECT="soc-automation"
+FREEFORM_TAGS="{\"Project\":\"${PROJECT}\",\"Environment\":\"lab\"}"
 
-PROD_VPC_NAME="${PROJECT}-prod-vpc"
-SECURITY_VPC_NAME="${PROJECT}-security-vpc"
+PROD_VCN_CIDR="10.0.0.0/16"
+SECURITY_MGMT_CIDR="172.16.1.0/24"
 
-WEB_SG_NAME="${PROJECT}-prod-web-sg"
-DB_SG_NAME="${PROJECT}-prod-db-sg"
-MGMT_SG_NAME="${PROJECT}-security-mgmt-sg"
+PROD_VCN_NAME="${PROJECT}-prod-vcn"
+SECURITY_VCN_NAME="${PROJECT}-security-vcn"
 
-IAM_ROLE_NAME="SOC-Middleware-Role"
-IAM_POLICY_NAME="SOC-Middleware-WebSG-Policy"
-INSTANCE_PROFILE_NAME="$IAM_ROLE_NAME"
+WEB_NSG_NAME="${PROJECT}-prod-web-nsg"
+DB_NSG_NAME="${PROJECT}-prod-db-nsg"
+MGMT_NSG_NAME="${PROJECT}-security-mgmt-nsg"
+QUARANTINE_NSG_NAME="${PROJECT}-quarantine-nsg"
 
-# -------------------------------------------------------------------
-# AWS wrappers: all AWS CLI calls use the required profile and region.
-# -------------------------------------------------------------------
-aws_ec2() {
-    command aws --profile "$AWS_PROFILE" --region "$AWS_REGION" ec2 "$@"
-}
+DYNAMIC_GROUP_NAME="${PROJECT}-middleware-dg"
+IAM_POLICY_NAME="${PROJECT}-middleware-policy"
 
-aws_iam() {
-    command aws --profile "$AWS_PROFILE" --region "$AWS_REGION" iam "$@"
-}
-
-aws_sts() {
-    command aws --profile "$AWS_PROFILE" --region "$AWS_REGION" sts "$@"
+oci_cmd() {
+    command oci --profile "$OCI_CLI_PROFILE" --region "$OCI_REGION" "$@"
 }
 
 fatal() {
@@ -66,29 +56,10 @@ fatal() {
     exit 1
 }
 
-single_id_or_empty() {
-    local label="$1"
-    local raw="${2:-}"
-    local -a ids=()
-
-    if [[ -n "$raw" ]]; then
-        read -r -a ids <<< "$raw"
-    fi
-
-    if [[ "${#ids[@]}" -gt 1 ]]; then
-        fatal "Multiple matches found for ${label}: ${raw}. Refusing to select the first resource."
-    fi
-
-    if [[ "${#ids[@]}" -eq 1 ]]; then
-        printf '%s\n' "${ids[0]}"
-    fi
-}
-
 require_admin_cidr() {
     if [[ -z "$ADMIN_IP_CIDR" ]]; then
-        fatal "Set ADMIN_IP_CIDR to your admin IP range, for example 203.0.113.10/32."
+        fatal "Set ADMIN_IP_CIDR to your admin IP range, e.g. 203.0.113.10/32."
     fi
-
     if [[ "$ADMIN_IP_CIDR" == "0.0.0.0/0" ]]; then
         fatal "ADMIN_IP_CIDR must not be 0.0.0.0/0."
     fi
@@ -97,8 +68,8 @@ require_admin_cidr() {
     cidr_ok=$(python3 -c "
 import ipaddress, sys
 try:
-    network = ipaddress.ip_network(sys.argv[1], strict=False)
-    print('yes' if network.version == 4 else 'no')
+    net = ipaddress.ip_network(sys.argv[1], strict=False)
+    print('yes' if net.version == 4 else 'no')
 except ValueError:
     print('no')
 " "$ADMIN_IP_CIDR")
@@ -108,519 +79,217 @@ except ValueError:
     fi
 }
 
-require_expected_account() {
-    echo "=== Pre-flight: verifying AWS identity ==="
+require_oci_context() {
+    echo "=== Pre-flight: verifying OCI identity and compartment guard ==="
+    command -v oci >/dev/null 2>&1 || fatal "OCI CLI ('oci') is not installed."
+    [[ -n "$EXPECTED_OCI_TENANCY_OCID" ]] || fatal "Set EXPECTED_OCI_TENANCY_OCID."
+    [[ -n "$OCI_COMPARTMENT_OCID" ]] || fatal "Set OCI_COMPARTMENT_OCID."
 
-    local caller_identity
-    caller_identity=$(aws_sts get-caller-identity --output json)
-
-    ACCOUNT_ID=$(printf '%s' "$caller_identity" | python3 -c "import sys,json; print(json.load(sys.stdin)['Account'])")
-    CALLER_ARN=$(printf '%s' "$caller_identity" | python3 -c "import sys,json; print(json.load(sys.stdin)['Arn'])")
-
-    echo "Caller ARN: $CALLER_ARN"
-    echo "Account ID: $ACCOUNT_ID"
-    echo "Profile:    $AWS_PROFILE"
-    echo "Region:     $AWS_REGION"
-
-    if [[ "$ACCOUNT_ID" != "$EXPECTED_AWS_ACCOUNT_ID" ]]; then
-        fatal "Expected AWS account ${EXPECTED_AWS_ACCOUNT_ID}, got ${ACCOUNT_ID}. Stopping before any write operation."
-    fi
-
+    local tenancy_id
+    tenancy_id=$(oci_cmd iam tenancy get --tenancy-id "$EXPECTED_OCI_TENANCY_OCID" --query "data.id" --raw-output)
+    [[ "$tenancy_id" == "$EXPECTED_OCI_TENANCY_OCID" ]] || fatal "Tenancy OCID mismatch."
+    echo "Tenancy OCID:     $tenancy_id"
+    echo "Compartment OCID: $OCI_COMPARTMENT_OCID"
+    echo "Admin CIDR:       $ADMIN_IP_CIDR"
     echo ""
 }
 
-# -------------------------------------------------------------------
-# EC2 lookup helpers
-# -------------------------------------------------------------------
-find_vpc() {
-    local name="$1"
-    local cidr="$2"
-    local raw
-    raw=$(aws_ec2 describe-vpcs \
-        --filters "Name=tag:Project,Values=${PROJECT}" \
-                  "Name=tag:Name,Values=${name}" \
-                  "Name=cidr-block,Values=${cidr}" \
-        --query "Vpcs[].VpcId" \
-        --output text)
-    single_id_or_empty "VPC ${name} (${cidr})" "$raw"
+find_resource_by_name() {
+    local json_input="$1"
+    local display_name="$2"
+    printf '%s' "$json_input" | python3 -c "
+import sys, json
+target = sys.argv[1]
+doc = json.load(sys.stdin)
+items = doc.get('data', [])
+matches = [
+    item['id'] for item in items
+    if (item.get('display-name') == target or item.get('name') == target)
+    and item.get('lifecycle-state') not in ('TERMINATED', 'TERMINATING', 'DELETED')
+]
+if len(matches) > 1:
+    print('ERROR: Multiple resources match ' + target, file=sys.stderr)
+    sys.exit(2)
+if matches:
+    print(matches[0])
+" "$display_name"
 }
 
-find_sg() {
+ensure_nsg() {
     local name="$1"
-    local vpc_id="$2"
-    local by_tags
-    local by_group_name
+    local vcn_id="$2"
+    local result_var="$3"
+    local list_json
+    local nsg_id
 
-    by_tags=$(aws_ec2 describe-security-groups \
-        --filters "Name=tag:Project,Values=${PROJECT}" \
-                  "Name=tag:Name,Values=${name}" \
-                  "Name=vpc-id,Values=${vpc_id}" \
-        --query "SecurityGroups[].GroupId" \
-        --output text)
+    list_json=$(oci_cmd network nsg list --compartment-id "$OCI_COMPARTMENT_OCID" --vcn-id "$vcn_id" --display-name "$name" --output json 2>/dev/null || echo '{"data":[]}')
+    nsg_id=$(find_resource_by_name "$list_json" "$name")
 
-    by_group_name=$(aws_ec2 describe-security-groups \
-        --filters "Name=group-name,Values=${name}" \
-                  "Name=vpc-id,Values=${vpc_id}" \
-        --query "SecurityGroups[].GroupId" \
-        --output text)
-
-    if [[ -n "$by_group_name" && -z "$by_tags" ]]; then
-        fatal "Security group named ${name} exists in ${vpc_id} without required Project and Name tags."
+    if [[ -z "$nsg_id" ]]; then
+        nsg_id=$(oci_cmd network nsg create \
+            --compartment-id "$OCI_COMPARTMENT_OCID" \
+            --vcn-id "$vcn_id" \
+            --display-name "$name" \
+            --freeform-tags "$FREEFORM_TAGS" \
+            --wait-for-state AVAILABLE \
+            --query "data.id" \
+            --raw-output)
+        echo "CREATED  NSG ${name}: ${nsg_id}"
+    else
+        echo "EXISTS   NSG ${name}: ${nsg_id}"
     fi
 
-    single_id_or_empty "Security Group ${name} in ${vpc_id}" "$by_tags"
+    printf -v "$result_var" '%s' "$nsg_id"
 }
 
-ingress_rule_exists() {
-    local sg_id="$1"
-    local protocol="$2"
-    local port="$3"
-    local source="$4"
-    local rules
-
-    rules=$(aws_ec2 describe-security-groups \
-        --group-ids "$sg_id" \
-        --query "SecurityGroups[0].IpPermissions" \
-        --output json)
-
-    printf '%s' "$rules" | python3 -c "
-import sys, json
-protocol, port, source = sys.argv[1], int(sys.argv[2]), sys.argv[3]
-rules = json.load(sys.stdin)
-for rule in rules:
-    if rule.get('IpProtocol') != protocol:
-        continue
-    if rule.get('FromPort') != port or rule.get('ToPort') != port:
-        continue
-    if '/' in source:
-        for cidr in rule.get('IpRanges', []):
-            if cidr.get('CidrIp') == source:
-                print('yes')
-                sys.exit(0)
-    else:
-        for pair in rule.get('UserIdGroupPairs', []):
-            if pair.get('GroupId') == source:
-                print('yes')
-                sys.exit(0)
-print('no')
-" "$protocol" "$port" "$source"
-}
-
-add_ingress() {
-    local sg_id="$1"
-    local protocol="$2"
-    local port="$3"
-    local source="$4"
-    local label="$5"
+ensure_nsg_tcp_ingress() {
+    local nsg_id="$1"
+    local source="$2"
+    local source_type="$3"
+    local port="$4"
+    local description="$5"
+    local existing_rules
     local exists
 
-    exists=$(ingress_rule_exists "$sg_id" "$protocol" "$port" "$source")
+    existing_rules=$(oci_cmd network nsg rules list --nsg-id "$nsg_id" --all --output json 2>/dev/null || echo '{"data":[]}')
+    exists=$(printf '%s' "$existing_rules" | python3 -c "
+import sys, json
+source, source_type, port = sys.argv[1], sys.argv[2], int(sys.argv[3])
+doc = json.load(sys.stdin)
+for rule in doc.get('data', []):
+    if rule.get('direction') != 'INGRESS' or str(rule.get('protocol')) != '6':
+        continue
+    if rule.get('source') != source or rule.get('source-type') != source_type:
+        continue
+    tcp_opts = (rule.get('tcp-options') or {}).get('destination-port-range') or {}
+    if tcp_opts.get('min') == port and tcp_opts.get('max') == port:
+        print('yes')
+        sys.exit(0)
+print('no')
+" "$source" "$source_type" "$port")
+
     if [[ "$exists" == "yes" ]]; then
-        echo "EXISTS   rule ${label}"
+        echo "EXISTS   rule ${description}"
         return
     fi
 
-    if [[ "$source" == *"/"* ]]; then
-        aws_ec2 authorize-security-group-ingress \
-            --group-id "$sg_id" \
-            --protocol "$protocol" \
-            --port "$port" \
-            --cidr "$source" > /dev/null
-    else
-        aws_ec2 authorize-security-group-ingress \
-            --group-id "$sg_id" \
-            --protocol "$protocol" \
-            --port "$port" \
-            --source-group "$source" > /dev/null
-    fi
-
-    echo "CREATED  rule ${label}"
+    local rule_json
+    rule_json="[{\"direction\":\"INGRESS\",\"protocol\":\"6\",\"source\":\"${source}\",\"sourceType\":\"${source_type}\",\"isStateless\":false,\"description\":\"${description}\",\"tcpOptions\":{\"destinationPortRange\":{\"min\":${port},\"max\":${port}}}}]"
+    oci_cmd network nsg rules add --nsg-id "$nsg_id" --security-rules "$rule_json" >/dev/null
+    echo "CREATED  rule ${description}"
 }
 
-ensure_sg() {
-    local name="$1"
-    local vpc_id="$2"
-    local description="$3"
-    local label="$4"
-    local result_var="$5"
-    local sg_id
+ensure_nsg_all_egress() {
+    local nsg_id="$1"
+    local description="$2"
+    local existing_rules
+    local exists
 
-    sg_id=$(find_sg "$name" "$vpc_id")
-    if [[ -z "$sg_id" ]]; then
-        sg_id=$(aws_ec2 create-security-group \
-            --vpc-id "$vpc_id" \
-            --group-name "$name" \
-            --description "$description" \
-            --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=${name}},{Key=Project,Value=${PROJECT}}]" \
-            --query "GroupId" \
-            --output text)
-        echo "CREATED  ${label}: ${sg_id}"
-    else
-        echo "EXISTS   ${label}: ${sg_id}"
-    fi
-
-    printf -v "$result_var" '%s' "$sg_id"
-}
-
-# -------------------------------------------------------------------
-# IAM lookup and policy helpers
-# -------------------------------------------------------------------
-require_project_tag() {
-    local label="$1"
-    local tags_json="$2"
-    local tag_ok
-
-    tag_ok=$(printf '%s' "$tags_json" | python3 -c "
+    existing_rules=$(oci_cmd network nsg rules list --nsg-id "$nsg_id" --all --output json 2>/dev/null || echo '{"data":[]}')
+    exists=$(printf '%s' "$existing_rules" | python3 -c "
 import sys, json
-tags = json.load(sys.stdin)
-print('yes' if any(t.get('Key') == 'Project' and t.get('Value') == 'soc-automation' for t in tags) else 'no')
+doc = json.load(sys.stdin)
+for rule in doc.get('data', []):
+    if rule.get('direction') == 'EGRESS' and rule.get('destination') == '0.0.0.0/0' and rule.get('protocol') == 'all':
+        print('yes')
+        sys.exit(0)
+print('no')
 ")
 
-    if [[ "$tag_ok" != "yes" ]]; then
-        fatal "${label} exists but is not tagged Project=${PROJECT}; refusing to modify it."
-    fi
-}
-
-find_project_role() {
-    local name="$1"
-    local output
-    local status
-    set +e
-    output=$(aws_iam get-role --role-name "$name" --query "Role.RoleName" --output text 2>&1)
-    status=$?
-    set -e
-
-    if [[ "$status" -ne 0 ]]; then
-        if [[ "$output" == *"NoSuchEntity"* ]]; then
-            return 0
-        fi
-        fatal "Unable to read IAM role ${name}: ${output}"
-    fi
-
-    local tags
-    tags=$(aws_iam list-role-tags --role-name "$name" --query "Tags" --output json)
-    require_project_tag "IAM role ${name}" "$tags"
-    printf '%s\n' "$output"
-}
-
-find_project_policy() {
-    local policy_name="$1"
-    local account_id="$2"
-    local arn="arn:aws:iam::${account_id}:policy/${policy_name}"
-    local output
-    local status
-    set +e
-    output=$(aws_iam get-policy --policy-arn "$arn" --query "Policy.Arn" --output text 2>&1)
-    status=$?
-    set -e
-
-    if [[ "$status" -ne 0 ]]; then
-        if [[ "$output" == *"NoSuchEntity"* ]]; then
-            return 0
-        fi
-        fatal "Unable to read IAM policy ${policy_name}: ${output}"
-    fi
-
-    local tags
-    tags=$(aws_iam list-policy-tags --policy-arn "$arn" --query "Tags" --output json)
-    require_project_tag "IAM policy ${policy_name}" "$tags"
-    printf '%s\n' "$output"
-}
-
-find_project_instance_profile() {
-    local name="$1"
-    local output
-    local status
-    set +e
-    output=$(aws_iam get-instance-profile --instance-profile-name "$name" --query "InstanceProfile.InstanceProfileName" --output text 2>&1)
-    status=$?
-    set -e
-
-    if [[ "$status" -ne 0 ]]; then
-        if [[ "$output" == *"NoSuchEntity"* ]]; then
-            return 0
-        fi
-        fatal "Unable to read instance profile ${name}: ${output}"
-    fi
-
-    local tags
-    tags=$(aws_iam list-instance-profile-tags --instance-profile-name "$name" --query "Tags" --output json)
-    require_project_tag "Instance profile ${name}" "$tags"
-    printf '%s\n' "$output"
-}
-
-policy_doc_matches_current() {
-    local policy_arn="$1"
-    local desired_policy="$2"
-    local default_version
-    local current_policy
-
-    default_version=$(aws_iam get-policy \
-        --policy-arn "$policy_arn" \
-        --query "Policy.DefaultVersionId" \
-        --output text)
-
-    current_policy=$(aws_iam get-policy-version \
-        --policy-arn "$policy_arn" \
-        --version-id "$default_version" \
-        --query "PolicyVersion.Document" \
-        --output json)
-
-    printf '%s' "$current_policy" | python3 -c "
-import sys, json
-current = json.load(sys.stdin)
-desired = json.loads(sys.argv[1])
-print('yes' if current == desired else 'no')
-" "$desired_policy"
-}
-
-ensure_policy_version_capacity() {
-    local policy_arn="$1"
-    local versions_json
-    local version_count
-    local oldest_non_default
-
-    versions_json=$(aws_iam list-policy-versions --policy-arn "$policy_arn" --output json)
-    version_count=$(printf '%s' "$versions_json" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('Versions', [])))")
-
-    if [[ "$version_count" -lt 5 ]]; then
+    if [[ "$exists" == "yes" ]]; then
+        echo "EXISTS   egress ${description}"
         return
     fi
 
-    oldest_non_default=$(printf '%s' "$versions_json" | python3 -c "
-import sys, json
-versions = [v for v in json.load(sys.stdin).get('Versions', []) if not v.get('IsDefaultVersion')]
-if not versions:
-    sys.exit(2)
-versions.sort(key=lambda v: v.get('CreateDate', ''))
-print(versions[0]['VersionId'])
-")
-
-    if [[ -z "$oldest_non_default" ]]; then
-        fatal "Policy ${policy_arn} already has five versions and no non-default version can be pruned."
-    fi
-
-    aws_iam delete-policy-version \
-        --policy-arn "$policy_arn" \
-        --version-id "$oldest_non_default"
-    echo "DELETED  oldest non-default policy version: $oldest_non_default"
+    local rule_json
+    rule_json="[{\"direction\":\"EGRESS\",\"protocol\":\"all\",\"destination\":\"0.0.0.0/0\",\"destinationType\":\"CIDR_BLOCK\",\"isStateless\":false,\"description\":\"${description}\"}]"
+    oci_cmd network nsg rules add --nsg-id "$nsg_id" --security-rules "$rule_json" >/dev/null
+    echo "CREATED  egress ${description}"
 }
 
-# -------------------------------------------------------------------
-# Pre-flight
-# -------------------------------------------------------------------
 require_admin_cidr
-require_expected_account
+require_oci_context
 
-echo "=== Pre-flight: resolving VPC IDs ==="
-PROD_VPC_ID=$(find_vpc "$PROD_VPC_NAME" "$PROD_VPC_CIDR")
-if [[ -z "$PROD_VPC_ID" ]]; then
-    fatal "Production VPC '${PROD_VPC_NAME}' not found with CIDR ${PROD_VPC_CIDR}. Run provision.sh first."
-fi
-echo "Production VPC: $PROD_VPC_ID"
+PROD_VCN_LIST=$(oci_cmd network vcn list --compartment-id "$OCI_COMPARTMENT_OCID" --display-name "$PROD_VCN_NAME" --output json)
+PROD_VCN_ID=$(find_resource_by_name "$PROD_VCN_LIST" "$PROD_VCN_NAME")
+[[ -n "$PROD_VCN_ID" ]] || fatal "Production VCN ${PROD_VCN_NAME} not found. Run infra/provision.sh first."
 
-SECURITY_VPC_ID=$(find_vpc "$SECURITY_VPC_NAME" "$SECURITY_VPC_CIDR")
-if [[ -z "$SECURITY_VPC_ID" ]]; then
-    fatal "Security VPC '${SECURITY_VPC_NAME}' not found with CIDR ${SECURITY_VPC_CIDR}. Run provision.sh first."
-fi
-echo "Security VPC:   $SECURITY_VPC_ID"
+SEC_VCN_LIST=$(oci_cmd network vcn list --compartment-id "$OCI_COMPARTMENT_OCID" --display-name "$SECURITY_VCN_NAME" --output json)
+SECURITY_VCN_ID=$(find_resource_by_name "$SEC_VCN_LIST" "$SECURITY_VCN_NAME")
+[[ -n "$SECURITY_VCN_ID" ]] || fatal "Security VCN ${SECURITY_VCN_NAME} not found. Run infra/provision.sh first."
+
+echo "=== 1. Creating OCI Network Security Groups (NSGs) ==="
+ensure_nsg "$WEB_NSG_NAME" "$PROD_VCN_ID" WEB_NSG_ID
+ensure_nsg_tcp_ingress "$WEB_NSG_ID" "$ADMIN_IP_CIDR" "CIDR_BLOCK" 22 "prod-web-nsg: SSH 22 from admin CIDR"
+ensure_nsg_tcp_ingress "$WEB_NSG_ID" "0.0.0.0/0" "CIDR_BLOCK" 80 "prod-web-nsg: HTTP 80 from internet"
+ensure_nsg_tcp_ingress "$WEB_NSG_ID" "0.0.0.0/0" "CIDR_BLOCK" 443 "prod-web-nsg: HTTPS 443 from internet"
+ensure_nsg_all_egress "$WEB_NSG_ID" "prod-web-nsg: Allow all outbound"
 echo ""
 
-# ===================================================================
-# 1. Security Groups
-# ===================================================================
-echo "=== 1. Creating Security Groups ==="
-
-ensure_sg "$WEB_SG_NAME" "$PROD_VPC_ID" \
-    "Production web server and SSH brute-force target" \
-    "prod-web-sg" WEB_SG_ID
-add_ingress "$WEB_SG_ID" "tcp" "22" "$ADMIN_IP_CIDR" "prod-web-sg: SSH 22 from admin CIDR"
-add_ingress "$WEB_SG_ID" "tcp" "80" "0.0.0.0/0" "prod-web-sg: HTTP 80 from internet"
-add_ingress "$WEB_SG_ID" "tcp" "443" "0.0.0.0/0" "prod-web-sg: HTTPS 443 from internet"
+ensure_nsg "$MGMT_NSG_NAME" "$SECURITY_VCN_ID" MGMT_NSG_ID
+ensure_nsg_tcp_ingress "$MGMT_NSG_ID" "$ADMIN_IP_CIDR" "CIDR_BLOCK" 22 "security-mgmt-nsg: SSH 22 from admin CIDR"
+ensure_nsg_tcp_ingress "$MGMT_NSG_ID" "$ADMIN_IP_CIDR" "CIDR_BLOCK" 443 "security-mgmt-nsg: Wazuh Dashboard 443 from admin CIDR"
+ensure_nsg_tcp_ingress "$MGMT_NSG_ID" "$PROD_VCN_CIDR" "CIDR_BLOCK" 1514 "security-mgmt-nsg: Wazuh agent 1514 from Production VCN"
+ensure_nsg_tcp_ingress "$MGMT_NSG_ID" "$PROD_VCN_CIDR" "CIDR_BLOCK" 1515 "security-mgmt-nsg: Wazuh enrollment 1515 from Production VCN"
+ensure_nsg_tcp_ingress "$MGMT_NSG_ID" "$ADMIN_IP_CIDR" "CIDR_BLOCK" 55000 "security-mgmt-nsg: Wazuh API 55000 from admin CIDR"
+ensure_nsg_tcp_ingress "$MGMT_NSG_ID" "$SECURITY_MGMT_CIDR" "CIDR_BLOCK" 55000 "security-mgmt-nsg: Wazuh API 55000 from security subnet"
+ensure_nsg_all_egress "$MGMT_NSG_ID" "security-mgmt-nsg: Allow all outbound"
 echo ""
 
-ensure_sg "$MGMT_SG_NAME" "$SECURITY_VPC_ID" \
-    "Wazuh Manager and Python AI middleware" \
-    "security-mgmt-sg" MGMT_SG_ID
-add_ingress "$MGMT_SG_ID" "tcp" "22" "$ADMIN_IP_CIDR" "security-mgmt-sg: SSH 22 from admin CIDR"
-add_ingress "$MGMT_SG_ID" "tcp" "443" "$ADMIN_IP_CIDR" "security-mgmt-sg: HTTPS 443 from admin CIDR"
-add_ingress "$MGMT_SG_ID" "tcp" "1514" "$PROD_VPC_CIDR" "security-mgmt-sg: Wazuh agent 1514 from Production VPC"
-add_ingress "$MGMT_SG_ID" "tcp" "1515" "$PROD_VPC_CIDR" "security-mgmt-sg: Wazuh registration 1515 from Production VPC"
-add_ingress "$MGMT_SG_ID" "tcp" "55000" "$ADMIN_IP_CIDR" "security-mgmt-sg: Wazuh API 55000 from admin CIDR"
-add_ingress "$MGMT_SG_ID" "tcp" "55000" "$SECURITY_MGMT_1A_CIDR" "security-mgmt-sg: Wazuh API 55000 from security mgmt subnet"
+ensure_nsg "$DB_NSG_NAME" "$PROD_VCN_ID" DB_NSG_ID
+ensure_nsg_tcp_ingress "$DB_NSG_ID" "$WEB_NSG_ID" "NETWORK_SECURITY_GROUP" 5432 "prod-db-nsg: PostgreSQL 5432 from prod-web-nsg"
+ensure_nsg_tcp_ingress "$DB_NSG_ID" "$SECURITY_MGMT_CIDR" "CIDR_BLOCK" 22 "prod-db-nsg: SSH 22 from security-mgmt subnet via LPG"
+ensure_nsg_all_egress "$DB_NSG_ID" "prod-db-nsg: Allow all outbound"
 echo ""
 
-ensure_sg "$DB_SG_NAME" "$PROD_VPC_ID" \
-    "Production private database server" \
-    "prod-db-sg" DB_SG_ID
-add_ingress "$DB_SG_ID" "tcp" "5432" "$WEB_SG_ID" "prod-db-sg: PostgreSQL 5432 from prod-web-sg"
-add_ingress "$DB_SG_ID" "tcp" "22" "$MGMT_SG_ID" "prod-db-sg: SSH 22 from security-mgmt-sg"
-# DB administration is routed through security-mgmt-sg. Do not add a direct
-# public admin CIDR rule to the private database security group.
+ensure_nsg "$QUARANTINE_NSG_NAME" "$PROD_VCN_ID" QUARANTINE_NSG_ID
+ensure_nsg_tcp_ingress "$QUARANTINE_NSG_ID" "$SECURITY_MGMT_CIDR" "CIDR_BLOCK" 22 "quarantine-nsg: SSH 22 from security-mgmt subnet only"
+ensure_nsg_tcp_ingress "$QUARANTINE_NSG_ID" "$SECURITY_MGMT_CIDR" "CIDR_BLOCK" 1514 "quarantine-nsg: Wazuh telemetry 1514 to security-mgmt only"
 echo ""
 
-# ===================================================================
-# 2. IAM Role and Managed Policy
-# ===================================================================
-echo "=== 2. Creating IAM Role and Policy ==="
+echo "=== 2. Creating OCI Dynamic Group & Least-Privilege IAM Policy ==="
+MATCHING_RULE="ANY { instance.compartment.id = '${OCI_COMPARTMENT_OCID}' }"
+DG_LIST=$(oci_cmd iam dynamic-group list --compartment-id "$EXPECTED_OCI_TENANCY_OCID" --name "$DYNAMIC_GROUP_NAME" --output json 2>/dev/null || echo '{"data":[]}')
+DG_ID=$(find_resource_by_name "$DG_LIST" "$DYNAMIC_GROUP_NAME")
 
-WEB_SG_ARN="arn:aws:ec2:${AWS_REGION}:${ACCOUNT_ID}:security-group/${WEB_SG_ID}"
-POLICY_ARN="arn:aws:iam::${ACCOUNT_ID}:policy/${IAM_POLICY_NAME}"
-echo "Production web SG ARN: $WEB_SG_ARN"
-
-TRUST_POLICY=$(cat <<'TRUST_EOF'
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "ec2.amazonaws.com"
-            },
-            "Action": "sts:AssumeRole"
-        }
-    ]
-}
-TRUST_EOF
-)
-
-# TODO(active response): Security Groups are allow-only. They cannot deny one
-# malicious IP if a broader allow rule still permits that IP. The active-response
-# mechanism will be redesigned separately, and this IAM permission must not be
-# claimed as a working per-IP blocking solution.
-PERMISSIONS_POLICY=$(cat <<POLICY_EOF
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "AllowDescribeSecurityGroups",
-            "Effect": "Allow",
-            "Action": [
-                "ec2:DescribeSecurityGroups",
-                "ec2:DescribeSecurityGroupRules"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Sid": "AllowModifyProdWebSGIngressOnly",
-            "Effect": "Allow",
-            "Action": [
-                "ec2:AuthorizeSecurityGroupIngress",
-                "ec2:RevokeSecurityGroupIngress"
-            ],
-            "Resource": "${WEB_SG_ARN}"
-        }
-    ]
-}
-POLICY_EOF
-)
-
-EXISTING_ROLE=$(find_project_role "$IAM_ROLE_NAME")
-if [[ -z "$EXISTING_ROLE" ]]; then
-    aws_iam create-role \
-        --role-name "$IAM_ROLE_NAME" \
-        --assume-role-policy-document "$TRUST_POLICY" \
-        --description "Role for SOC middleware lab automation" \
-        --tags Key=Project,Value="$PROJECT" \
-        --output text \
-        --query "Role.Arn" > /dev/null
-    echo "CREATED  IAM role: $IAM_ROLE_NAME"
+if [[ -z "$DG_ID" ]]; then
+    DG_ID=$(oci_cmd iam dynamic-group create \
+        --compartment-id "$EXPECTED_OCI_TENANCY_OCID" \
+        --name "$DYNAMIC_GROUP_NAME" \
+        --description "Dynamic group for SOC automation Wazuh and AI middleware instance principals" \
+        --matching-rule "$MATCHING_RULE" \
+        --query "data.id" \
+        --raw-output)
+    echo "CREATED  Dynamic Group ${DYNAMIC_GROUP_NAME}: ${DG_ID}"
 else
-    aws_iam update-assume-role-policy \
-        --role-name "$IAM_ROLE_NAME" \
-        --policy-document "$TRUST_POLICY"
-    echo "EXISTS   IAM role: $IAM_ROLE_NAME"
+    echo "EXISTS   Dynamic Group ${DYNAMIC_GROUP_NAME}: ${DG_ID}"
 fi
 
-EXISTING_POLICY=$(find_project_policy "$IAM_POLICY_NAME" "$ACCOUNT_ID")
-if [[ -z "$EXISTING_POLICY" ]]; then
-    POLICY_ARN=$(aws_iam create-policy \
-        --policy-name "$IAM_POLICY_NAME" \
-        --policy-document "$PERMISSIONS_POLICY" \
-        --description "Allows SOC middleware lab role to manage prod-web-sg ingress only" \
-        --tags Key=Project,Value="$PROJECT" \
-        --query "Policy.Arn" \
-        --output text)
-    echo "CREATED  IAM policy: $IAM_POLICY_NAME ($POLICY_ARN)"
+POLICY_STATEMENTS="[\"Allow dynamic-group ${DYNAMIC_GROUP_NAME} to use virtual-network-family in compartment id ${OCI_COMPARTMENT_OCID}\",\"Allow dynamic-group ${DYNAMIC_GROUP_NAME} to manage waf-family in compartment id ${OCI_COMPARTMENT_OCID}\",\"Allow dynamic-group ${DYNAMIC_GROUP_NAME} to read object-family in compartment id ${OCI_COMPARTMENT_OCID}\"]"
+POL_LIST=$(oci_cmd iam policy list --compartment-id "$OCI_COMPARTMENT_OCID" --name "$IAM_POLICY_NAME" --output json 2>/dev/null || echo '{"data":[]}')
+POL_ID=$(find_resource_by_name "$POL_LIST" "$IAM_POLICY_NAME")
+
+if [[ -z "$POL_ID" ]]; then
+    POL_ID=$(oci_cmd iam policy create \
+        --compartment-id "$OCI_COMPARTMENT_OCID" \
+        --name "$IAM_POLICY_NAME" \
+        --description "Least-privilege OCI policy for SOC middleware active response" \
+        --statements "$POLICY_STATEMENTS" \
+        --query "data.id" \
+        --raw-output)
+    echo "CREATED  IAM Policy ${IAM_POLICY_NAME}: ${POL_ID}"
 else
-    POLICY_ARN="$EXISTING_POLICY"
-    echo "EXISTS   IAM policy: $IAM_POLICY_NAME ($POLICY_ARN)"
-
-    if [[ "$(policy_doc_matches_current "$POLICY_ARN" "$PERMISSIONS_POLICY")" == "yes" ]]; then
-        echo "EXISTS   IAM policy document is unchanged; no new version created"
-    else
-        ensure_policy_version_capacity "$POLICY_ARN"
-        aws_iam create-policy-version \
-            --policy-arn "$POLICY_ARN" \
-            --policy-document "$PERMISSIONS_POLICY" \
-            --set-as-default > /dev/null
-        echo "UPDATED  IAM policy default version"
-    fi
-fi
-
-ATTACHED_POLICY_ARN=$(aws_iam list-attached-role-policies \
-    --role-name "$IAM_ROLE_NAME" \
-    --query "AttachedPolicies[?PolicyName=='${IAM_POLICY_NAME}'].PolicyArn | [0]" \
-    --output text 2>/dev/null | grep -v "^None$" || true)
-
-if [[ -z "$ATTACHED_POLICY_ARN" ]]; then
-    aws_iam attach-role-policy --role-name "$IAM_ROLE_NAME" --policy-arn "$POLICY_ARN"
-    echo "ATTACHED policy ${IAM_POLICY_NAME} to role ${IAM_ROLE_NAME}"
-else
-    echo "EXISTS   policy ${IAM_POLICY_NAME} attached to role ${IAM_ROLE_NAME}"
-fi
-
-EXISTING_PROFILE=$(find_project_instance_profile "$INSTANCE_PROFILE_NAME")
-if [[ -z "$EXISTING_PROFILE" ]]; then
-    aws_iam create-instance-profile \
-        --instance-profile-name "$INSTANCE_PROFILE_NAME" \
-        --tags Key=Project,Value="$PROJECT" > /dev/null
-    echo "CREATED  instance profile: $INSTANCE_PROFILE_NAME"
-else
-    echo "EXISTS   instance profile: $INSTANCE_PROFILE_NAME"
-fi
-
-PROFILE_ROLES=$(aws_iam get-instance-profile \
-    --instance-profile-name "$INSTANCE_PROFILE_NAME" \
-    --query "InstanceProfile.Roles[].RoleName" \
-    --output text)
-
-if [[ -z "$PROFILE_ROLES" ]]; then
-    aws_iam add-role-to-instance-profile \
-        --instance-profile-name "$INSTANCE_PROFILE_NAME" \
-        --role-name "$IAM_ROLE_NAME"
-    echo "BOUND    role ${IAM_ROLE_NAME} to instance profile ${INSTANCE_PROFILE_NAME}"
-elif [[ "$PROFILE_ROLES" == "$IAM_ROLE_NAME" ]]; then
-    echo "EXISTS   role ${IAM_ROLE_NAME} bound to instance profile ${INSTANCE_PROFILE_NAME}"
-else
-    fatal "Instance profile ${INSTANCE_PROFILE_NAME} contains unexpected role(s): ${PROFILE_ROLES}"
+    echo "EXISTS   IAM Policy ${IAM_POLICY_NAME}: ${POL_ID}"
 fi
 
 echo ""
-
-# ===================================================================
-# Summary
-# ===================================================================
-echo "==========================================="
-echo "  Security and IAM Provisioning Complete"
-echo "==========================================="
-echo ""
-echo "  Account:            $ACCOUNT_ID"
-echo "  Profile:            $AWS_PROFILE"
-echo "  Region:             $AWS_REGION"
-echo ""
-echo "  Security Groups:"
-echo "    prod-web-sg (Production VPC):        $WEB_SG_ID"
-echo "    prod-db-sg (Production VPC):         $DB_SG_ID"
-echo "    security-mgmt-sg (Security VPC):     $MGMT_SG_ID"
-echo ""
-echo "  IAM:"
-echo "    Role:             $IAM_ROLE_NAME"
-echo "    Policy:           $IAM_POLICY_NAME"
-echo "    Instance Profile: $INSTANCE_PROFILE_NAME"
-echo "    Policy Resource:  $WEB_SG_ARN"
-echo ""
-echo "  Next steps:"
-echo "    - Launch EC2 instances after validating instance parameters"
-echo "    - Deploy Wazuh and middleware"
-echo "==========================================="
+echo "================================================="
+echo "  OCI Security & IAM Provisioning Complete"
+echo "================================================="
+echo "  prod-web-nsg:         $WEB_NSG_ID"
+echo "  prod-db-nsg:          $DB_NSG_ID"
+echo "  security-mgmt-nsg:    $MGMT_NSG_ID"
+echo "  quarantine-nsg:       $QUARANTINE_NSG_ID"
+echo "  Dynamic Group:        $DYNAMIC_GROUP_NAME ($DG_ID)"
+echo "  IAM Policy:           $IAM_POLICY_NAME ($POL_ID)"
+echo "================================================="

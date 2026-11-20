@@ -8,9 +8,19 @@ from pathlib import Path
 from logging.handlers import RotatingFileHandler
 from typing import Any, Dict, Literal, Optional
 
-import boto3
 from pydantic import BaseModel, ConfigDict
-from botocore.exceptions import BotoCoreError, ClientError
+
+try:
+    import oci
+    from oci.exceptions import ServiceError, ClientError as OciClientError
+except ImportError:  # pragma: no cover - allows simulation/tests when oci SDK is not yet installed
+    oci = None  # type: ignore
+
+    class ServiceError(Exception):  # type: ignore
+        pass
+
+    class OciClientError(Exception):  # type: ignore
+        pass
 
 from ai_engine.schemas.models import IncidentState
 
@@ -73,7 +83,7 @@ def _is_protected_ip(ip: str) -> bool:
         "10.0.0.0/8",
         "172.16.0.0/12",
         "192.168.0.0/16",
-        "127.0.0.0/8"
+        "127.0.0.0/8",
     ]
     env_cidrs = os.environ.get("PROTECTED_CIDRS", "")
     if env_cidrs:
@@ -100,7 +110,7 @@ def _check_authorization(state: IncidentState, requested_action: str) -> Optiona
             "incident_id": state.incident_id,
             "action": requested_action,
             "status": "refused",
-            "reason": err_msg
+            "reason": err_msg,
         })
         return ExecutionResult(action=requested_action, status="refused", details={"error": err_msg})
 
@@ -113,10 +123,10 @@ def _check_authorization(state: IncidentState, requested_action: str) -> Optiona
             "incident_id": state.incident_id,
             "action": requested_action,
             "status": "refused",
-            "reason": err_msg
+            "reason": err_msg,
         })
         return ExecutionResult(action=requested_action, status="refused", details={"error": err_msg})
-    
+
     if fd == "soft_contain" and requested_action not in ["soft_rate_limit", "no_action"]:
         err_msg = f"soft_contain decision refuses action {requested_action}"
         logger.error(err_msg)
@@ -125,55 +135,80 @@ def _check_authorization(state: IncidentState, requested_action: str) -> Optiona
             "incident_id": state.incident_id,
             "action": requested_action,
             "status": "refused",
-            "reason": err_msg
+            "reason": err_msg,
         })
         return ExecutionResult(action=requested_action, status="refused", details={"error": err_msg})
-        
+
     if fd not in ["autonomous", "soft_contain"]:
         err_msg = f"invalid or missing final_decision: {fd}"
         logger.error(err_msg)
         return ExecutionResult(action=requested_action, status="refused", details={"error": err_msg})
-        
+
     return None
 
 
+def get_oci_client(client_type: str, region_name: str) -> Any:
+    """Create an OCI service client using either Dynamic Group Instance Principals or ~/.oci/config."""
+    if oci is None:
+        raise RuntimeError("OCI Python SDK ('oci') is not installed.")
+
+    auth_mode = os.environ.get("OCI_AUTH_MODE", "config_file")
+    if auth_mode == "instance_principal":
+        signer = oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
+        config = {"region": region_name}
+        if client_type == "waf":
+            return oci.waf.WafClient(config, signer=signer)
+        if client_type == "network":
+            return oci.core.VirtualNetworkClient(config, signer=signer)
+    else:
+        profile = os.environ.get("OCI_CLI_PROFILE", "soc-project")
+        config_path = os.environ.get("OCI_CONFIG_FILE", os.path.expanduser("~/.oci/config"))
+        config = oci.config.from_file(file_location=config_path, profile_name=profile)
+        config["region"] = region_name
+        if client_type == "waf":
+            return oci.waf.WafClient(config)
+        if client_type == "network":
+            return oci.core.VirtualNetworkClient(config)
+
+    raise ValueError(f"Unsupported OCI client_type: {client_type}")
+
+
 def _execute_or_simulate(
-    state: IncidentState, 
-    action_name: str, 
-    client_name: str, 
-    method_name: str, 
+    state: IncidentState,
+    action_name: str,
+    client_name: str,
+    method_name: str,
     kwargs: Dict[str, Any],
-    region_name: str
+    region_name: str,
 ) -> ExecutionResult:
     call_record = {
         "ts": time.time(),
         "incident_id": state.incident_id,
         "action": action_name,
-        "boto3_client": client_name,
-        "boto3_method": method_name,
+        "oci_client": client_name,
+        "oci_method": method_name,
         "kwargs": kwargs,
-        "shadow_mode": _is_shadow_mode()
+        "shadow_mode": _is_shadow_mode(),
     }
-    
+
     if _is_shadow_mode():
         call_record["status"] = "simulated"
         _audit(call_record)
         return ExecutionResult(action=action_name, status="simulated", details={"simulated_call": kwargs})
-        
+
     try:
-        client = boto3.client(client_name, region_name=region_name)
+        client = get_oci_client(client_name, region_name=region_name)
         method = getattr(client, method_name)
         response = method(**kwargs)
-        
-        # Responses can include datetime objects which are not JSON serializable by default
+
         call_record["status"] = "executed"
-        call_record["response"] = str(response)
+        call_record["response"] = str(getattr(response, "data", response))
         _audit(call_record)
-        return ExecutionResult(action=action_name, status="executed", details={"response": str(response)})
-    except (BotoCoreError, ClientError) as exc:
+        return ExecutionResult(action=action_name, status="executed", details={"response": call_record["response"]})
+    except (ServiceError, OciClientError, Exception) as exc:
         call_record["status"] = "error"
         call_record["error"] = str(exc)
-        logger.error("boto3 execution failed for %s: %s", action_name, exc)
+        logger.error("OCI SDK execution failed for %s: %s", action_name, exc)
         _audit(call_record)
         return ExecutionResult(action=action_name, status="error", details={"error": str(exc)})
 
@@ -183,36 +218,20 @@ def execute_block_ip_waf(state: IncidentState) -> ExecutionResult:
     refusal = _check_authorization(state, action)
     if refusal:
         return refusal
-    
+
     ip = state.correlation_key[0]
-    ip_set_name = os.environ.get("WAF_BLOCK_IP_SET_NAME", "SOC-Block-Set")
-    ip_set_id = os.environ.get("WAF_BLOCK_IP_SET_ID", "dummy-id")
-    scope = os.environ.get("WAF_SCOPE", "REGIONAL")
-    region = os.environ.get("AWS_REGION", "ap-southeast-1")
-    
-    if not _is_shadow_mode():
-        try:
-            client = boto3.client("wafv2", region_name=region)
-            get_resp = client.get_ip_set(Name=ip_set_name, Scope=scope, Id=ip_set_id)
-            lock_token = get_resp["LockToken"]
-            addresses = get_resp["IPSet"]["Addresses"]
-            if f"{ip}/32" not in addresses:
-                addresses.append(f"{ip}/32")
-        except Exception as exc:
-            return ExecutionResult(action=action, status="error", details={"error": f"get_ip_set failed: {exc}"})
-    else:
-        lock_token = "shadow-lock-token"
-        addresses = [f"{ip}/32"]
-        
+    address_list_name = os.environ.get("OCI_WAF_BLOCK_LIST_NAME", "SOC-OCI-Block-List")
+    address_list_id = os.environ.get("OCI_WAF_BLOCK_LIST_OCID", "ocid1.wafnetworkaddresslist.oc1..dummy-block")
+    region = os.environ.get("OCI_REGION", "ap-singapore-1")
+
+    addresses = [f"{ip}/32"]
     kwargs = {
-        "Name": ip_set_name,
-        "Scope": scope,
-        "Id": ip_set_id,
-        "Addresses": addresses,
-        "LockToken": lock_token
+        "network_address_list_id": address_list_id,
+        "display_name": address_list_name,
+        "addresses": addresses,
     }
-    
-    return _execute_or_simulate(state, action, "wafv2", "update_ip_set", kwargs, region_name=region)
+
+    return _execute_or_simulate(state, action, "waf", "update_network_address_list", kwargs, region_name=region)
 
 
 def execute_soft_rate_limit(state: IncidentState) -> ExecutionResult:
@@ -220,36 +239,20 @@ def execute_soft_rate_limit(state: IncidentState) -> ExecutionResult:
     refusal = _check_authorization(state, action)
     if refusal:
         return refusal
-    
+
     ip = state.correlation_key[0]
-    ip_set_name = os.environ.get("WAF_RATELIMIT_IP_SET_NAME", "SOC-RateLimit-Set")
-    ip_set_id = os.environ.get("WAF_RATELIMIT_IP_SET_ID", "dummy-id")
-    scope = os.environ.get("WAF_SCOPE", "REGIONAL")
-    region = os.environ.get("AWS_REGION", "ap-southeast-1")
-    
-    if not _is_shadow_mode():
-        try:
-            client = boto3.client("wafv2", region_name=region)
-            get_resp = client.get_ip_set(Name=ip_set_name, Scope=scope, Id=ip_set_id)
-            lock_token = get_resp["LockToken"]
-            addresses = get_resp["IPSet"]["Addresses"]
-            if f"{ip}/32" not in addresses:
-                addresses.append(f"{ip}/32")
-        except Exception as exc:
-            return ExecutionResult(action=action, status="error", details={"error": f"get_ip_set failed: {exc}"})
-    else:
-        lock_token = "shadow-lock-token"
-        addresses = [f"{ip}/32"]
-        
+    address_list_name = os.environ.get("OCI_WAF_RATELIMIT_LIST_NAME", "SOC-OCI-RateLimit-List")
+    address_list_id = os.environ.get("OCI_WAF_RATELIMIT_LIST_OCID", "ocid1.wafnetworkaddresslist.oc1..dummy-ratelimit")
+    region = os.environ.get("OCI_REGION", "ap-singapore-1")
+
+    addresses = [f"{ip}/32"]
     kwargs = {
-        "Name": ip_set_name,
-        "Scope": scope,
-        "Id": ip_set_id,
-        "Addresses": addresses,
-        "LockToken": lock_token
+        "network_address_list_id": address_list_id,
+        "display_name": address_list_name,
+        "addresses": addresses,
     }
-    
-    return _execute_or_simulate(state, action, "wafv2", "update_ip_set", kwargs, region_name=region)
+
+    return _execute_or_simulate(state, action, "waf", "update_network_address_list", kwargs, region_name=region)
 
 
 def execute_isolate_sg(state: IncidentState) -> ExecutionResult:
@@ -257,18 +260,17 @@ def execute_isolate_sg(state: IncidentState) -> ExecutionResult:
     refusal = _check_authorization(state, action)
     if refusal:
         return refusal
-    
-    # isolation requires a human-approval path that does not exist yet.
-    # The audit record describes what a quarantine would do (replace the instance's 
-    # security groups with a quarantine SG that allows only the Wazuh manager and admin IP) 
-    # but never calls it.
+
+    # Isolation requires a human-approval path that does not exist yet.
+    # The audit record describes what an OCI NSG quarantine would do (replace the instance VNIC's
+    # NSGs with soc-automation-quarantine-nsg allowing only the Wazuh manager and admin IP).
     call_record = {
         "ts": time.time(),
         "incident_id": state.incident_id,
         "action": action,
         "status": "simulated",
         "shadow_mode": True,
-        "details": "simulated quarantine: replace instance SG with quarantine SG (allowing only Wazuh mgr and admin IP)"
+        "details": "simulated quarantine: replace instance VNIC NSG with quarantine NSG (allowing only Wazuh mgr and admin IP)",
     }
     _audit(call_record)
     return ExecutionResult(action=action, status="simulated", details={"simulated_call": call_record["details"]})
@@ -279,13 +281,13 @@ def execute_no_action(state: IncidentState) -> ExecutionResult:
     refusal = _check_authorization(state, action)
     if refusal:
         return refusal
-    
+
     call_record = {
         "ts": time.time(),
         "incident_id": state.incident_id,
         "action": action,
         "status": "executed",
-        "details": "no action required"
+        "details": "no action required",
     }
     _audit(call_record)
     return ExecutionResult(action=action, status="executed", details={"message": "no action taken"})

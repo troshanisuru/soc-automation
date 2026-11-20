@@ -1,0 +1,29 @@
+<!--
+  wazuh/rules/custom_oci_rules.xml
+  Custom Wazuh Rules for Oracle Cloud Infrastructure (OCI) WAF and VCN Flow Log Detection
+  Place in /var/ossec/etc/rules/local_rules.xml on Wazuh Manager.
+-->
+
+<group name="oci,waf,vcnflow,">
+
+  <!-- Rule for OCI WAF Block Events -->
+  <rule id="100201" level="10">
+    <field name="oci.action">BLOCK</field>
+    <description>OCI WAF blocked web request: Threat pattern detected by rule $(oci.ruleKey)</description>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+    <group>web_attack,pci_dss_11.4,</group>
+  </rule>
+
+  <!-- Rule for OCI VCN Flow Log Rejections -->
+  <rule id="100202" level="7">
+    <field name="oci.action">REJECT</field>
+    <description>OCI VCN Flow Log rejected inbound connection from $(oci.sourceAddress) to $(oci.destinationAddress)</description>
+    <mitre>
+      <id>T1046</id>
+    </mitre>
+    <group>network_anomaly,reconnaissance,</group>
+  </rule>
+
+</group>

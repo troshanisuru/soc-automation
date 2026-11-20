@@ -1,35 +1,52 @@
-# AI-Assisted SOC Automation System
+# AI-Assisted SOC Automation System (Oracle Cloud Infrastructure)
 
-This project is a cybersecurity final year project for building an AI-assisted Security Operations Center automation workflow. The system is planned to ingest security alerts, classify events using machine learning, and support automated response decisions.
+This project is a cybersecurity final year project for building an AI-assisted Security Operations Center (SOC) automation workflow. The system ingests security alerts, classifies and correlates events using a deterministic multi-agent LLM & scoring pipeline, and executes automated cloud response actions on **Oracle Cloud Infrastructure (OCI)**.
 
-The system uses AWS API/Boto3 for cloud response actions, Wazuh for security monitoring and alert ingestion, Python middleware for orchestration and decision logic, and ML classification for identifying benign or malicious activity.
+The system uses the **OCI Python SDK (`oci`) / OCI CLI** for cloud infrastructure and active response actions, **Wazuh** for security monitoring and alert ingestion, Python middleware (`ai_engine/`) for orchestration and deterministic gate decisions, and LLM/ML classification for identifying benign or malicious activity.
 
-## AWS Deployment Guard
+> **Migration Note**: This project was migrated from AWS to Oracle Cloud Infrastructure (OCI) to leverage OCI's Always Free Tier (`VM.Standard.A1.Flex` with 4 OCPUs and 24 GB RAM for Wazuh + AI Middleware, plus two `VM.Standard.E2.1.Micro` nodes for Web and DB). For the full migration rationale, past AWS inventory record, and side-by-side AWS vs. OCI architectural comparables, see [docs/AWS_TO_OCI_MIGRATION.md](docs/AWS_TO_OCI_MIGRATION.md).
 
-Infrastructure scripts must be run only against the new project account:
+## Local PC Binding to Oracle Cloud (OCI)
 
-- AWS CLI profile: `soc-project`
-- AWS region: `ap-southeast-1`
-- Expected account ID: `908157891283`
-- Expected caller: `arn:aws:iam::908157891283:user/soc-project-developer`
+To bind your local workstation to Oracle Cloud for provisioning and management:
 
-Each infrastructure script calls STS with the named profile before any write operation, prints the caller ARN/account/profile/region, and exits if the account ID does not match. Do not store AWS credentials in this repository or in `.env`.
+1. **Run the local binding helper**:
+   ```bash
+   bash infra/bind-local-pc.sh
+   ```
+   This script ensures:
+   - OCI CLI (`oci`) and Python SDK are installed.
+   - A 2048-bit RSA API signing key pair is generated at `~/.oci/oci_api_key.pem` (private) and `~/.oci/oci_api_key_public.pem` (public).
+   - An Ed25519 SSH key pair for compute instances is generated at `~/.ssh/soc-automation-ed25519` and `~/.ssh/soc-automation-ed25519.pub`.
+   - `~/.oci/config` is created with the `[soc-project]` profile template and your key fingerprint.
 
-The previous all-in-one policy draft [infra/deployer-policy.json](/Users/user/soc-automation/infra/deployer-policy.json) is superseded for AWS Console attachment. Use the split customer-managed policy files instead:
+2. **Upload the Public API Key in OCI Console**:
+   - Sign in to the Oracle Cloud Console -> **Profile Icon (top-right)** -> **My profile** -> **API keys** -> **Add API key**.
+   - Select **Paste a public key** and paste the contents of `~/.oci/oci_api_key_public.pem`.
+   - Copy the **Tenancy OCID**, **User OCID**, and **Region** shown in the OCI Console configuration preview and update `~/.oci/config` (or run `bash infra/bind-local-pc.sh --configure`).
 
-- [infra/deployer-network-policy.json](/Users/user/soc-automation/infra/deployer-network-policy.json) as `SOCAutomationDeployerPolicy` for VPC, subnet, internet gateway, route table, VPC peering, and project Security Group setup operations.
-- [infra/deployer-iam-policy.json](/Users/user/soc-automation/infra/deployer-iam-policy.json) as `SOCAutomationIAMDeployerPolicy` for the exact `SOC-Middleware-Role`, instance profile, and `SOC-Middleware-WebSG-Policy` IAM operations.
-- [infra/deployer-compute-policy.json](/Users/user/soc-automation/infra/deployer-compute-policy.json) as `SOCAutomationComputeDeployerPolicy` for the planned EC2 key-pair import, instance launch, and lab start/stop operations.
-- [infra/deployer-sg-rule-policy.json](/Users/user/soc-automation/infra/deployer-sg-rule-policy.json) as `SOCAutomationSecurityGroupRulePolicy` for admin CIDR rotation on only the three exact project Security Groups.
+3. **Verify Local PC -> OCI Connectivity**:
+   ```bash
+   bash infra/bind-local-pc.sh --verify
+   ```
 
-The Security Group rule policy is separate because the larger deployer policy reached AWS managed-policy size constraints. It has one narrow responsibility: allow rule additions/removals only on the exact project Security Groups already created for this lab.
+## OCI Deployment Guard
 
-IAM policy JSON cannot contain comments, so policy notes are documented here and in [infra/spec.md](/Users/user/soc-automation/infra/spec.md).
+All infrastructure scripts under `infra/` enforce strict tenancy and compartment guards before performing any write operation:
+
+- OCI CLI profile: `soc-project`
+- OCI region: `ap-singapore-1` (or your subscribed home region via `OCI_REGION`)
+- Expected tenancy OCID: `EXPECTED_OCI_TENANCY_OCID`
+- Target compartment OCID: `OCI_COMPARTMENT_OCID`
+
+Do not store OCI API private keys or SSH private keys in this repository or in `.env`.
 
 ## Folder Purpose
 
-- `ai_engine/` - AI-driven multi-agent SOC reasoning and decision pipeline.
+- `ai_engine/` - AI-driven multi-agent SOC reasoning, deterministic gate, dashboard, and OCI active-response executor (`ai_engine/executor/oci_executor.py`).
 - `archive/` - Archived prototype v1 code.
-- `evidence/` - Project evidence and artifacts.
-- `infra/` - Infrastructure configuration and automation scripts.
-- `wazuh/` - Wazuh configuration, alert examples, and ingestion resources.
+- `docs/` - Architectural migration documentation and AWS-to-OCI comparison ([docs/AWS_TO_OCI_MIGRATION.md](docs/AWS_TO_OCI_MIGRATION.md)).
+- `evidence/` - Project verification evidence and sanitized OCI inventory outputs.
+- `infra/` - OCI VCN, Local Peering Gateway, Network Security Group, Dynamic Group IAM, and Always Free Compute provisioning scripts.
+- `scripts/` - Helper scripts for OCI Object Storage / VCN Flow Log setup (`scripts/01_setup_oci_logging.sh`).
+- `wazuh/` - Wazuh configuration (`wazuh_ossec_oci.xml`), custom OCI detection rules (`custom_oci_rules.xml`), and sample alert payloads.

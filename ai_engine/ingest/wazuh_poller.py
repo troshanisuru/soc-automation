@@ -9,7 +9,7 @@ from typing import Optional
 from ai_engine.schemas.models import IncidentState, NormalizedEvent
 from ai_engine.main import run_incident
 from ai_engine.baseline.store import BaselineStore
-from ai_engine.executor.boto3_executor import (
+from ai_engine.executor.oci_executor import (
     ExecutionResult,
     execute_block_ip_waf,
     execute_isolate_sg,
@@ -39,8 +39,12 @@ def parse_wazuh_alert(alert_dict: dict) -> NormalizedEvent:
     data = alert_dict.get("data", {})
     src_ip = data.get("srcip")
     if not src_ip:
-        # Check AWS WAF format
-        src_ip = data.get("aws", {}).get("httpRequest", {}).get("clientIp")
+        # Check OCI WAF / VCN Flow Log format or S3-compatible WAF format
+        src_ip = (
+            data.get("oci", {}).get("httpRequest", {}).get("clientIp")
+            or data.get("oci", {}).get("sourceAddress")
+            or data.get("aws", {}).get("httpRequest", {}).get("clientIp")
+        )
     if not src_ip:
         src_ip = "0.0.0.0"
         
