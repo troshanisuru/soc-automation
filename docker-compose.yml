@@ -1,0 +1,72 @@
+# Production Hybrid Deployment for OCI wazuh-manager VM
+# Keeps Web/WAF, Wazuh Manager/Indexer, and Ollama on their dedicated OCI VMs.
+#
+# Run on wazuh-manager:
+#   docker compose up -d --build
+
+services:
+  soc-poller:
+    build: .
+    image: soc-automation-ai-engine:latest
+    command: ["python", "-m", "ai_engine.ingest.wazuh_poller"]
+    restart: unless-stopped
+    # Uncomment and set to the host `wazuh` group GID (`getent group wazuh | cut -d: -f3`)
+    # so non-root `socuser` can read 0640 wazuh:wazuh alert logs without running as root:
+    # group_add:
+    #   - "999"
+    environment:
+      OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://172.16.1.20:11434}"
+      OLLAMA_ALLOWED_HOSTS: "${OLLAMA_ALLOWED_HOSTS:-}"
+      WAZUH_ALERTS_FILE: "${WAZUH_ALERTS_FILE:-/var/ossec/logs/alerts/alerts.json}"
+      WAZUH_POLL_INTERVAL: "${WAZUH_POLL_INTERVAL:-5}"
+      WAZUH_MIN_ALERT_LEVEL: "${WAZUH_MIN_ALERT_LEVEL:-7}"
+      WAZUH_REQUIRE_SRCIP: "${WAZUH_REQUIRE_SRCIP:-true}"
+      WAZUH_START_FROM_END: "${WAZUH_START_FROM_END:-true}"
+      SHADOW_MODE: "${SHADOW_MODE:-true}"
+      OCI_REGION: "${OCI_REGION:-ap-mumbai-1}"
+      OCI_CLI_PROFILE: "${OCI_CLI_PROFILE:-soc-project}"
+      OCI_AUTH_MODE: "${OCI_AUTH_MODE:-config_file}"
+      OCI_WAF_BLOCK_LIST_NAME: "${OCI_WAF_BLOCK_LIST_NAME:-SOC-OCI-Block-List}"
+      OCI_WAF_BLOCK_LIST_OCID: "${OCI_WAF_BLOCK_LIST_OCID:-}"
+      OCI_WAF_RATELIMIT_LIST_NAME: "${OCI_WAF_RATELIMIT_LIST_NAME:-SOC-OCI-RateLimit-List}"
+      OCI_WAF_RATELIMIT_LIST_OCID: "${OCI_WAF_RATELIMIT_LIST_OCID:-}"
+    volumes:
+      # Mount the alerts directory (not alerts.json directly) so daily Wazuh log rotation
+      # does not leave the container tailing a stale unlinked inode.
+      - "${WAZUH_ALERTS_DIR:-/var/ossec/logs/alerts}:/var/ossec/logs/alerts:ro"
+      - soc_ai_logs:/app/ai_engine/logs
+      - soc_exec_logs:/app/logs
+      - soc_ai_data:/app/ai_engine/data
+      # For live OCI execution (SHADOW_MODE=false) using config_file auth, mount ~/.oci:
+      # - "${HOME}/.oci:/home/socuser/.oci:ro"
+
+  soc-dashboard:
+    build: .
+    image: soc-automation-ai-engine:latest
+    command: ["python", "-m", "ai_engine.dashboard.server"]
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      DASHBOARD_HOST: "0.0.0.0"
+      DASHBOARD_PORT: "8080"
+      OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://172.16.1.20:11434}"
+      OLLAMA_ALLOWED_HOSTS: "${OLLAMA_ALLOWED_HOSTS:-}"
+      SHADOW_MODE: "${SHADOW_MODE:-true}"
+      OCI_REGION: "${OCI_REGION:-ap-mumbai-1}"
+    volumes:
+      - soc_ai_logs:/app/ai_engine/logs
+      - soc_exec_logs:/app/logs
+      - soc_ai_data:/app/ai_engine/data
+      - "${DASHBOARD_TARGETS_HOST_PATH:-./ai_engine/dashboard/targets.yaml}:/app/ai_engine/dashboard/targets.yaml:ro"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/', timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  soc_ai_logs:
+  soc_exec_logs:
+  soc_ai_data:

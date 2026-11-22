@@ -128,3 +128,17 @@ def test_reference_covers_both_plan_scenarios():
     ref = load_mitre_reference()
     for needed in ("T1190", "T1071", "T1021", "T1210"):  # web exploit -> C2, lateral movement
         assert needed in ref
+
+
+def test_ollama_allowed_hosts_env_extension_and_validation(monkeypatch):
+    monkeypatch.setenv("OLLAMA_BASE_URL", "http://soc-llm-mock:11434")
+    with pytest.raises(ConfigError, match="not in allowed_hosts"):
+        load_models()
+
+    monkeypatch.setenv("OLLAMA_ALLOWED_HOSTS", "soc-llm-mock")
+    cfg = load_models()
+    assert cfg["triage_agent"].base_url == "http://soc-llm-mock:11434"
+
+    monkeypatch.setenv("OLLAMA_ALLOWED_HOSTS", "http://bad/host")
+    with pytest.raises(ConfigError, match="Invalid host"):
+        load_models()

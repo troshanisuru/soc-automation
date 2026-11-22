@@ -1,0 +1,79 @@
+# Offline Viva Backup Demo Stack (Zero Cloud / Internet Dependency)
+#
+# Seed local demo alerts (single-line JSONL) before starting:
+#   mkdir -p demo_alerts
+#   python3 -c 'import json; print(json.dumps(json.load(open("wazuh/alerts/sample_wazuh_modsecurity_sqli.json"))))' > demo_alerts/alerts.json
+#
+# Run locally:
+#   docker compose -f docker-compose.demo.yml up -d --build
+
+services:
+  soc-llm-mock:
+    build: .
+    image: soc-automation-ai-engine:latest
+    command: ["python", "scripts/soc_llm_server.py", "--host", "0.0.0.0", "--port", "11434"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:11434/api/tags', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  soc-poller:
+    build: .
+    image: soc-automation-ai-engine:latest
+    command: ["python", "-m", "ai_engine.ingest.wazuh_poller"]
+    restart: unless-stopped
+    depends_on:
+      soc-llm-mock:
+        condition: service_healthy
+    environment:
+      OLLAMA_BASE_URL: "http://soc-llm-mock:11434"
+      OLLAMA_ALLOWED_HOSTS: "soc-llm-mock"
+      WAZUH_ALERTS_FILE: "/var/ossec/logs/alerts/alerts.json"
+      WAZUH_POLL_INTERVAL: "3"
+      WAZUH_MIN_ALERT_LEVEL: "7"
+      WAZUH_REQUIRE_SRCIP: "true"
+      WAZUH_START_FROM_END: "false"
+      SHADOW_MODE: "true"
+      OCI_REGION: "ap-mumbai-1"
+    volumes:
+      - ./demo_alerts:/var/ossec/logs/alerts:ro
+      - demo_ai_logs:/app/ai_engine/logs
+      - demo_exec_logs:/app/logs
+      - demo_ai_data:/app/ai_engine/data
+
+  soc-dashboard:
+    build: .
+    image: soc-automation-ai-engine:latest
+    command: ["python", "-m", "ai_engine.dashboard.server"]
+    restart: unless-stopped
+    depends_on:
+      soc-llm-mock:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      DASHBOARD_HOST: "0.0.0.0"
+      DASHBOARD_PORT: "8080"
+      OLLAMA_BASE_URL: "http://soc-llm-mock:11434"
+      OLLAMA_ALLOWED_HOSTS: "soc-llm-mock"
+      SHADOW_MODE: "true"
+      OCI_REGION: "ap-mumbai-1"
+    volumes:
+      - demo_ai_logs:/app/ai_engine/logs
+      - demo_exec_logs:/app/logs
+      - demo_ai_data:/app/ai_engine/data
+      - ./ai_engine/dashboard/targets.yaml.example:/app/ai_engine/dashboard/targets.yaml:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/', timeout=2)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  demo_ai_logs:
+  demo_exec_logs:
+  demo_ai_data:

@@ -174,7 +174,17 @@ def load_models(path: Optional[Path] = None) -> Mapping[str, AgentConfig]:
     allowed = data.get("allowed_hosts")
     if not isinstance(allowed, list) or not allowed or not all(isinstance(h, str) for h in allowed):
         raise ConfigError("allowed_hosts must be a non-empty list of host names")
-    if parsed.hostname.lower() not in {h.lower() for h in allowed}:
+    allowed_set = {h.lower() for h in allowed}
+    extra_hosts = os.environ.get("OLLAMA_ALLOWED_HOSTS", "").strip()
+    if extra_hosts:
+        for raw_host in extra_hosts.split(","):
+            host = raw_host.strip().lower()
+            if not host:
+                continue
+            if not re.fullmatch(r"[a-z0-9._\-]+", host):
+                raise ConfigError(f"Invalid host {raw_host!r} in OLLAMA_ALLOWED_HOSTS")
+            allowed_set.add(host)
+    if parsed.hostname.lower() not in allowed_set:
         raise ConfigError(f"Ollama host {parsed.hostname!r} is not in allowed_hosts")
     base_url = f"{parsed.scheme}://{parsed.netloc}"  # drop any path/query/fragment
 
