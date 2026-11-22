@@ -147,3 +147,54 @@ def test_env_protected_cidrs(mock_audit, monkeypatch):
     state2 = make_incident("autonomous", ip="8.8.8.8")
     res2 = execute_block_ip_waf(state2)
     assert res2.status == "simulated"
+
+
+@patch("ai_engine.executor.oci_executor.oci")
+@patch("ai_engine.executor.oci_executor.get_oci_client")
+@patch("ai_engine.executor.oci_executor._audit")
+def test_live_mode_waf_merges_addresses_with_etag_and_is_idempotent(mock_audit, mock_get_client, mock_oci, monkeypatch):
+    """Bug 3: Live mode reads existing list + etag, merges IP/32 without overwriting, and skips update if already present."""
+    monkeypatch.setenv("SHADOW_MODE", "false")
+    mock_oci.waf.models.UpdateNetworkAddressListAddressesDetails.side_effect = lambda **kw: kw
+
+    mock_client = MagicMock()
+    mock_get_client.return_value = mock_client
+
+    # Case 1: Existing addresses do not yet include 1.2.3.4/32
+    existing_resp = MagicMock()
+    existing_resp.data.addresses = ["203.0.113.99/32"]
+    existing_resp.headers = {"etag": "etag-v1"}
+    mock_client.get_network_address_list.return_value = existing_resp
+
+    update_resp = MagicMock()
+    update_resp.data = {"id": "updated"}
+    mock_client.update_network_address_list.return_value = update_resp
+
+    state = make_incident("autonomous", ip="1.2.3.4")
+    res = execute_block_ip_waf(state)
+
+    assert res.status == "executed"
+    assert res.details["addresses"] == ["203.0.113.99/32", "1.2.3.4/32"]
+    mock_client.get_network_address_list.assert_called_once_with("ocid1.wafnetworkaddresslist.oc1..test-block")
+    mock_client.update_network_address_list.assert_called_once_with(
+        network_address_list_id="ocid1.wafnetworkaddresslist.oc1..test-block",
+        update_network_address_list_details={
+            "display_name": "TestOCIBlockList",
+            "addresses": ["203.0.113.99/32", "1.2.3.4/32"],
+        },
+        if_match="etag-v1",
+    )
+
+    # Case 2: IP already present -> idempotent skip without overwriting
+    mock_client.reset_mock()
+    existing_resp2 = MagicMock()
+    existing_resp2.data.addresses = ["203.0.113.99/32", "1.2.3.4/32"]
+    existing_resp2.headers = {"etag": "etag-v2"}
+    mock_client.get_network_address_list.return_value = existing_resp2
+
+    state_rate = make_incident("soft_contain", ip="1.2.3.4")
+    res_rate = execute_soft_rate_limit(state_rate)
+    assert res_rate.status == "executed"
+    assert res_rate.details["already_present"] is True
+    assert res_rate.details["addresses"] == ["203.0.113.99/32", "1.2.3.4/32"]
+    mock_client.update_network_address_list.assert_not_called()

@@ -213,6 +213,79 @@ def _execute_or_simulate(
         return ExecutionResult(action=action_name, status="error", details={"error": str(exc)})
 
 
+def _execute_waf_address_list_add(
+    state: IncidentState,
+    action_name: str,
+    address_list_id: str,
+    address_list_name: str,
+    ip: str,
+    region_name: str,
+) -> ExecutionResult:
+    """Add ``ip/32`` to an OCI WAF network address list idempotently, preserving existing entries."""
+    target_cidr = f"{ip}/32"
+    if _is_shadow_mode():
+        kwargs = {
+            "network_address_list_id": address_list_id,
+            "display_name": address_list_name,
+            "addresses": [target_cidr],
+        }
+        return _execute_or_simulate(state, action_name, "waf", "update_network_address_list", kwargs, region_name=region_name)
+
+    call_record: Dict[str, Any] = {
+        "ts": time.time(),
+        "incident_id": state.incident_id,
+        "action": action_name,
+        "oci_client": "waf",
+        "oci_method": "update_network_address_list",
+        "network_address_list_id": address_list_id,
+        "target_cidr": target_cidr,
+        "shadow_mode": False,
+    }
+    try:
+        client = get_oci_client("waf", region_name=region_name)
+        existing = client.get_network_address_list(address_list_id)
+        existing_addresses = list(getattr(getattr(existing, "data", None), "addresses", None) or [])
+        headers = getattr(existing, "headers", None) or {}
+        etag = headers.get("etag") or headers.get("ETag") or getattr(existing, "etag", None)
+
+        if target_cidr in existing_addresses:
+            call_record["status"] = "executed"
+            call_record["already_present"] = True
+            call_record["addresses"] = existing_addresses
+            _audit(call_record)
+            return ExecutionResult(
+                action=action_name,
+                status="executed",
+                details={"already_present": True, "addresses": existing_addresses},
+            )
+
+        merged = existing_addresses + [target_cidr]
+        details = oci.waf.models.UpdateNetworkAddressListAddressesDetails(
+            display_name=address_list_name,
+            addresses=merged,
+        )
+        response = client.update_network_address_list(
+            network_address_list_id=address_list_id,
+            update_network_address_list_details=details,
+            if_match=etag,
+        )
+        call_record["status"] = "executed"
+        call_record["addresses"] = merged
+        call_record["response"] = str(getattr(response, "data", response))
+        _audit(call_record)
+        return ExecutionResult(
+            action=action_name,
+            status="executed",
+            details={"response": call_record["response"], "addresses": merged},
+        )
+    except (ServiceError, OciClientError, Exception) as exc:
+        call_record["status"] = "error"
+        call_record["error"] = str(exc)
+        logger.error("OCI SDK execution failed for %s: %s", action_name, exc)
+        _audit(call_record)
+        return ExecutionResult(action=action_name, status="error", details={"error": str(exc)})
+
+
 def execute_block_ip_waf(state: IncidentState) -> ExecutionResult:
     action = "block_ip_waf"
     refusal = _check_authorization(state, action)
@@ -224,14 +297,7 @@ def execute_block_ip_waf(state: IncidentState) -> ExecutionResult:
     address_list_id = os.environ.get("OCI_WAF_BLOCK_LIST_OCID", "ocid1.wafnetworkaddresslist.oc1..dummy-block")
     region = os.environ.get("OCI_REGION", "ap-singapore-1")
 
-    addresses = [f"{ip}/32"]
-    kwargs = {
-        "network_address_list_id": address_list_id,
-        "display_name": address_list_name,
-        "addresses": addresses,
-    }
-
-    return _execute_or_simulate(state, action, "waf", "update_network_address_list", kwargs, region_name=region)
+    return _execute_waf_address_list_add(state, action, address_list_id, address_list_name, ip, region)
 
 
 def execute_soft_rate_limit(state: IncidentState) -> ExecutionResult:
@@ -245,14 +311,7 @@ def execute_soft_rate_limit(state: IncidentState) -> ExecutionResult:
     address_list_id = os.environ.get("OCI_WAF_RATELIMIT_LIST_OCID", "ocid1.wafnetworkaddresslist.oc1..dummy-ratelimit")
     region = os.environ.get("OCI_REGION", "ap-singapore-1")
 
-    addresses = [f"{ip}/32"]
-    kwargs = {
-        "network_address_list_id": address_list_id,
-        "display_name": address_list_name,
-        "addresses": addresses,
-    }
-
-    return _execute_or_simulate(state, action, "waf", "update_network_address_list", kwargs, region_name=region)
+    return _execute_waf_address_list_add(state, action, address_list_id, address_list_name, ip, region)
 
 
 def execute_isolate_sg(state: IncidentState) -> ExecutionResult:

@@ -96,13 +96,13 @@ def _run_stage(state: IncidentState, name: str, fn: Callable[[], object], starte
     return True
 
 
-def run_pipeline(
-    events: List[NormalizedEvent],
+def _run_state(
+    state: IncidentState,
     baseline: Any = None,
     now: Optional[datetime] = None,
+    started: Optional[float] = None,
 ) -> IncidentState:
-    started = time.perf_counter()
-    state = _correlate(events)
+    started = started if started is not None else time.perf_counter()
 
     if not _run_stage(state, "triage", lambda: run_triage_agent(state.events), started):
         return state
@@ -123,3 +123,22 @@ def run_pipeline(
 
     _audit_final(state, "gate", started)
     return state
+
+
+def run_incident_state(
+    state: IncidentState,
+    baseline: Any = None,
+    now: Optional[datetime] = None,
+) -> IncidentState:
+    """Run the triage -> mitre -> decision -> gate -> policy chain on an already-correlated IncidentState."""
+    return _run_state(state, baseline=baseline, now=now, started=time.perf_counter())
+
+
+def run_pipeline(
+    events: List[NormalizedEvent],
+    baseline: Any = None,
+    now: Optional[datetime] = None,
+) -> IncidentState:
+    started = time.perf_counter()
+    state = _correlate(events)
+    return _run_state(state, baseline=baseline, now=now, started=started)

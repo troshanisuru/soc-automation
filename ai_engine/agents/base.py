@@ -56,16 +56,30 @@ def neutralize(text: str) -> str:
 
 
 def format_events_for_prompt(events: Sequence[NormalizedEvent], limit: int = MAX_EVENTS_IN_PROMPT) -> str:
-    """One line per event. Free text goes through json.dumps (quoted + escaped); the other
-    fields are already pattern-constrained by the schema."""
-    lines = [
-        f"{i}. event_id={e.event_id} source={e.source} time={e.timestamp.isoformat()} "
-        f"src_ip={e.source_ip} asset={e.asset_tag} severity={e.severity} "
-        f"indicator={json.dumps(e.raw_indicator)}"
-        for i, e in enumerate(events[:limit], 1)
-    ]
-    if len(events) > limit:
-        lines.append(f"... {len(events) - limit} further events omitted")
+    """One line per unique event signature, collapsing repeated scanner bursts with repeat_count=N.
+    Free text goes through json.dumps (quoted + escaped); the other fields are pattern-constrained."""
+    grouped: Dict[tuple, list] = {}
+    for e in events:
+        sig = (e.source, e.source_ip, e.asset_tag, e.severity, e.raw_indicator)
+        if sig in grouped:
+            grouped[sig][1] += 1
+        else:
+            grouped[sig] = [e, 1]
+
+    entries = list(grouped.values())
+    lines = []
+    for i, (e, count) in enumerate(entries[:limit], 1):
+        line = (
+            f"{i}. event_id={e.event_id} source={e.source} time={e.timestamp.isoformat()} "
+            f"src_ip={e.source_ip} asset={e.asset_tag} severity={e.severity} "
+            f"indicator={json.dumps(e.raw_indicator)}"
+        )
+        if count > 1:
+            line += f" repeat_count={count}"
+        lines.append(line)
+
+    if len(entries) > limit:
+        lines.append(f"... {len(entries) - limit} further events omitted")
     return "\n".join(lines)
 
 

@@ -30,7 +30,7 @@
   <!-- SQL Injection (literal + URL-encoded UNION SELECT, SLEEP, boolean OR tautology, CRS 942xxx) -->
   <rule id="100402" level="10">
     <if_sid>100401</if_sid>
-    <regex type="pcre2">(?i)(attack-sqli|\[id "942\d+"\]|UNION(\+|%20|\s)+SELECT|SLEEP(\(|%28)|(\+|%20|\s)OR(\+|%20|\s)+('|%27)1('|%27)(=|%3D)('|%27)1|POST / HTTP)</regex>
+    <regex type="pcre2">(?i)(attack-sqli|\[id "942\d+"\]|UNION(\+|%20|\s)+SELECT|SLEEP(\(|%28)|(\+|%20|\s)OR(\+|%20|\s)+('|%27)1('|%27)(=|%3D)('|%27)1)</regex>
     <description>ModSecurity WAF: SQL Injection attack blocked from $(srcip)</description>
     <mitre>
       <id>T1190</id>

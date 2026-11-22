@@ -99,7 +99,7 @@ def test_payload_exactly_at_the_cap_is_accepted():
 
 
 def test_agent_with_oversized_evidence_returns_none_so_the_caller_escalates():
-    big = [make_event(f"evt-{i}", i, indicator="x" * 400) for i in range(30)]  # ~13k chars once formatted
+    big = [make_event(f"evt-{i}", i, indicator=f"evt-{i}-" + "x" * 400) for i in range(30)]  # ~13k chars once formatted
     assert len(format_events_for_prompt(big)) > MAX_PAYLOAD_CHARS
     with patch.object(base, "_post_json", return_value=chat(VALID_TRIAGE)) as post:
         assert run_triage_agent(big) is None
@@ -203,10 +203,26 @@ def test_every_attempt_is_audited_as_one_json_line(isolated_audit):
 
 # ------------------------------------------------------------------ prompt construction
 def test_event_formatting_quotes_free_text_and_caps_count():
-    events = [make_event(f"e{i}", i, indicator='quote " and \\ backslash') for i in range(45)]
+    events = [make_event(f"e{i}", i, indicator=f'#{i} quote " and \\ backslash') for i in range(45)]
     text = format_events_for_prompt(events)
-    assert '"quote \\" and \\\\ backslash"' in text
+    assert 'quote \\" and \\\\ backslash"' in text
     assert text.endswith("5 further events omitted") and text.count("event_id=") == 40
+
+
+def test_scanner_burst_collapses_identical_events_under_payload_cap():
+    """Bug 5: Repeated identical events collapse into one line with first real event_id + repeat_count=N."""
+    burst = [
+        make_event(f"evt-scan-{i}", i, source="waf", severity=7, asset="prod-web", indicator="Scanner blocked: " + "A" * 280)
+        for i in range(200)
+    ]
+    text = format_events_for_prompt(burst)
+    assert text.count("event_id=") == 1
+    assert "event_id=evt-scan-0" in text
+    assert "repeat_count=200" in text
+    assert len(text) < MAX_PAYLOAD_CHARS
+    with patch.object(base, "_post_json", return_value=chat({**VALID_TRIAGE, "cited_event_ids": ["evt-scan-0"]})) as post:
+        res = run_triage_agent(burst)
+    assert res is not None and post.call_count == 1
 
 
 def test_triage_agent_passes_formatted_events():

@@ -219,3 +219,132 @@ def test_custom_wazuh_rules_and_decoders_valid_xml():
         assert path.exists(), f"Missing Wazuh XML file: {path}"
         wrapped = f"<root>\n{path.read_text(encoding='utf-8')}\n</root>"
         ET.fromstring(wrapped)
+
+
+def test_auth_allowlist_bypasses_min_level_and_suppresses_benign_success_only(monkeypatch):
+    """Bug 1: Rules 5710/5715/5716 bypass WAZUH_MIN_ALERT_LEVEL=7; 5715 learns baseline without calling run_incident."""
+    from datetime import timezone
+    from ai_engine.baseline.store import BaselineStore
+
+    monkeypatch.setenv("WAZUH_MIN_ALERT_LEVEL", "7")
+    store = BaselineStore(db_path=":memory:", min_age_seconds=0)
+
+    benign_5715 = json.dumps({
+        "id": "1727320522.100",
+        "timestamp": "2026-09-26T03:15:22.123Z",
+        "rule": {"id": "5715", "level": 3, "description": "sshd: authentication succeeded"},
+        "agent": {"name": "web-01"},
+        "data": {"srcip": "198.51.100.10", "dstuser": "deploy"},
+    })
+    low_non_auth = json.dumps({
+        "id": "1727320522.101",
+        "timestamp": "2026-09-26T03:15:25.123Z",
+        "rule": {"id": "9999", "level": 5, "description": "low noise event"},
+        "agent": {"name": "web-01"},
+        "data": {"srcip": "198.51.100.10"},
+    })
+    fail_5710 = json.dumps({
+        "id": "1727320522.102",
+        "timestamp": "2026-09-26T03:15:30.123Z",
+        "rule": {"id": "5710", "level": 5, "description": "sshd: invalid user"},
+        "agent": {"name": "web-01"},
+        "data": {"srcip": "198.51.100.20", "dstuser": "baduser"},
+    })
+    fail_5716 = json.dumps({
+        "id": "1727320522.103",
+        "timestamp": "2026-09-26T03:15:35.123Z",
+        "rule": {"id": "5716", "level": 5, "description": "sshd: authentication failed"},
+        "agent": {"name": "web-01"},
+        "data": {"srcip": "198.51.100.30", "dstuser": "alice"},
+    })
+    succ_after_fail = json.dumps({
+        "id": "1727320522.104",
+        "timestamp": "2026-09-26T03:15:40.123Z",
+        "rule": {"id": "5715", "level": 3, "description": "sshd: authentication succeeded"},
+        "agent": {"name": "web-01"},
+        "data": {"srcip": "198.51.100.30", "dstuser": "alice"},
+    })
+
+    calls = []
+    with patch("ai_engine.ingest.wazuh_poller.run_incident", side_effect=lambda evs, **kw: calls.append(evs) or None):
+        process_lines([benign_5715, low_non_auth, fail_5710, fail_5716, succ_after_fail], store=store)
+
+    now = datetime.now(timezone.utc)
+    # 198.51.100.10 only had 5715 -> baseline learned, run_incident NOT called; 9999 lvl 5 was filtered out
+    assert store.is_known_pair("deploy", "198.51.100.10", now) is True
+    # 198.51.100.30 had 5716 failure + 5715 success -> baseline NOT learned, run_incident called
+    assert store.is_known_pair("alice", "198.51.100.30", now) is False
+
+    called_ips = {evs[0].source_ip for evs in calls}
+    assert called_ips == {"198.51.100.20", "198.51.100.30"}
+    store.close()
+
+
+def test_deterministic_event_id_and_stateful_correlator_polling(monkeypatch):
+    """Bug 2: parse_wazuh_alert uses Wazuh alert id deterministically and EventCorrelator deduplicates & merges across polls."""
+    from datetime import timedelta, timezone
+    from ai_engine.baseline.store import BaselineStore
+    from ai_engine.correlation.correlate import EventCorrelator
+
+    alert1 = {
+        "id": "1727320522.99999",
+        "timestamp": "2026-09-26T03:15:22.000Z",
+        "rule": {"id": "100402", "level": 10, "description": "SQLi blocked"},
+        "agent": {"name": "web-01"},
+        "data": {"srcip": "198.51.100.77"},
+    }
+    alert2 = {
+        "id": "1727320522.100000",
+        "timestamp": "2026-09-26T03:16:00.000Z",
+        "rule": {"id": "100403", "level": 10, "description": "XSS blocked"},
+        "agent": {"name": "web-01"},
+        "data": {"srcip": "198.51.100.77"},
+    }
+    ev1 = parse_wazuh_alert(alert1)
+    assert ev1.event_id == "1727320522.99999"
+
+    ev_sanitized = parse_wazuh_alert({**alert1, "id": "id with spaces/slashes"})
+    assert ev_sanitized.event_id == "id_with_spaces_slashes"
+
+    ev_fallback = parse_wazuh_alert({k: v for k, v in alert1.items() if k != "id"})
+    assert ev_fallback.event_id.startswith("evt-")
+
+    store = BaselineStore(db_path=":memory:")
+    correlator = EventCorrelator(window_seconds=60)
+    t0 = datetime(2026, 9, 26, 3, 15, 25, tzinfo=timezone.utc)
+
+    dispatched_states = []
+    with patch("ai_engine.ingest.wazuh_poller.run_incident_state", side_effect=lambda st, **kw: dispatched_states.append(st) or None):
+        # Poll 1: alert1 arrives (and duplicate alert1 should be ignored)
+        process_lines([json.dumps(alert1), json.dumps(alert1)], store=store, correlator=correlator, now=t0)
+        assert len(dispatched_states) == 0
+
+        # Poll 2 (35s later, still inside 60s window): alert2 merges into the open incident
+        process_lines([json.dumps(alert2)], store=store, correlator=correlator, now=t0 + timedelta(seconds=35))
+        assert len(dispatched_states) == 0
+
+        # Poll 3 (window expired): finalized single incident with 2 deduplicated events
+        process_lines([], store=store, correlator=correlator, now=t0 + timedelta(seconds=120))
+        assert len(dispatched_states) == 1
+        assert [e.event_id for e in dispatched_states[0].events] == ["1727320522.99999", "1727320522.100000"]
+    store.close()
+
+
+def test_modsecurity_sqli_rule_100402_does_not_false_match_generic_post():
+    """Bug 4: Rule 100402 must not classify arbitrary blocked POST / HTTP requests as SQL Injection."""
+    import re
+    import xml.etree.ElementTree as ET
+    from pathlib import Path
+
+    rule_path = Path(__file__).resolve().parent.parent.parent / "wazuh" / "rules" / "custom_modsecurity_rules.xml"
+    root = ET.fromstring(f"<root>\n{rule_path.read_text(encoding='utf-8')}\n</root>")
+    rule_100402 = root.find(".//rule[@id='100402']")
+    assert rule_100402 is not None
+    regex_pattern = rule_100402.findtext("regex")
+    assert regex_pattern is not None
+    assert "POST / HTTP" not in regex_pattern
+
+    # Strip PCRE2 inline (?i) for Python re with re.IGNORECASE
+    py_pattern = regex_pattern.removeprefix("(?i)")
+    assert re.search(py_pattern, 'ModSecurity: Access denied with code 403 ... [request "POST / HTTP/1.1"]', re.IGNORECASE) is None
+    assert re.search(py_pattern, 'ModSecurity: Access denied with code 403 [id "942100"] [data "Matched Data: UNION SELECT"]', re.IGNORECASE) is not None

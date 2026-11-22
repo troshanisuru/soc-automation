@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import time
 import uuid
@@ -6,7 +7,9 @@ import logging
 from datetime import datetime, timezone
 from collections import defaultdict
 from typing import Optional
-from ai_engine.schemas.models import IncidentState, NormalizedEvent
+from ai_engine.schemas.models import EVENT_ID_PATTERN, IncidentState, NormalizedEvent
+from ai_engine.correlation.correlate import EventCorrelator
+from ai_engine.graph.pipeline import run_incident_state
 from ai_engine.main import run_incident
 from ai_engine.baseline.store import BaselineStore
 from ai_engine.executor.oci_executor import (
@@ -20,13 +23,32 @@ from ai_engine.executor.oci_executor import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+AUTH_ALLOWLIST_RULES = {"5710", "5715", "5716", "100301"}
+_EVENT_ID_RE = re.compile(EVENT_ID_PATTERN)
+_INVALID_EVENT_ID_CHARS = re.compile(r"[^A-Za-z0-9._:\-]")
+
 _baseline_store: Optional[BaselineStore] = None
+_correlator: Optional[EventCorrelator] = None
 
 def get_baseline_store() -> BaselineStore:
     global _baseline_store
     if _baseline_store is None:
         _baseline_store = BaselineStore()
     return _baseline_store
+
+def get_correlator() -> EventCorrelator:
+    global _correlator
+    if _correlator is None:
+        _correlator = EventCorrelator()
+    return _correlator
+
+def _derive_event_id(alert_dict: dict) -> str:
+    raw_id = alert_dict.get("id")
+    if raw_id is not None:
+        cleaned = _INVALID_EVENT_ID_CHARS.sub("_", str(raw_id).strip())[:128]
+        if _EVENT_ID_RE.fullmatch(cleaned):
+            return cleaned
+    return f"evt-{uuid.uuid4().hex[:8]}"
 
 def parse_wazuh_alert(alert_dict: dict) -> NormalizedEvent:
     """Convert a Wazuh alert JSON dict into a NormalizedEvent."""
@@ -95,7 +117,7 @@ def parse_wazuh_alert(alert_dict: dict) -> NormalizedEvent:
             user_valid = None
 
     return NormalizedEvent(
-        event_id=f"evt-{uuid.uuid4().hex[:8]}",
+        event_id=_derive_event_id(alert_dict),
         source=event_source,
         timestamp=datetime.fromisoformat(raw_ts),
         source_ip=src_ip,
@@ -117,14 +139,17 @@ def poll_alerts(log_path: str, interval: int = 30):
     if start_from_end:
         logger.info(f"Starting from EOF offset {last_pos} bytes")
 
+    store = get_baseline_store()
+    correlator = get_correlator()
+
     while True:
+        complete_lines = []
         if os.path.exists(log_path):
             file_size = os.path.getsize(log_path)
             if file_size < last_pos:
                 last_pos = 0  # handle log rotation
             with open(log_path, 'r', encoding='utf-8', errors='replace') as f:
                 f.seek(last_pos)
-                complete_lines = []
                 while True:
                     pos_before = f.tell()
                     line = f.readline()
@@ -137,9 +162,7 @@ def poll_alerts(log_path: str, interval: int = 30):
                     complete_lines.append(line)
                 last_pos = f.tell()
 
-                if complete_lines:
-                    process_lines(complete_lines)
-
+        process_lines(complete_lines, store=store, correlator=correlator)
         time.sleep(interval)
 
 def dispatch_execution(incident_state: IncidentState) -> Optional[ExecutionResult]:
@@ -170,7 +193,26 @@ def dispatch_execution(incident_state: IncidentState) -> Optional[ExecutionResul
     return None
 
 
-def process_lines(lines: list, store: Optional[BaselineStore] = None):
+def _is_only_benign_auth_success(events: list) -> bool:
+    return bool(events) and all(e.auth_outcome == "success" for e in events)
+
+
+def _handle_incident_result(incident_state: Optional[IncidentState]) -> None:
+    if incident_state:
+        execution_result = dispatch_execution(incident_state)
+        logger.info(
+            f"Final Decision for incident {incident_state.incident_id}: {incident_state.final_decision} | Execution: {execution_result}"
+        )
+    else:
+        logger.warning("run_incident returned None")
+
+
+def process_lines(
+    lines: list,
+    store: Optional[BaselineStore] = None,
+    correlator: Optional[EventCorrelator] = None,
+    now: Optional[datetime] = None,
+):
     if store is None:
         store = get_baseline_store()
 
@@ -186,7 +228,10 @@ def process_lines(lines: list, store: Optional[BaselineStore] = None):
             continue
         try:
             alert = json.loads(line)
-            if min_level > 0 and int(alert.get("rule", {}).get("level", 0)) < min_level:
+            rule = alert.get("rule", {})
+            rule_id = str(rule.get("id", ""))
+            rule_level = int(rule.get("level", 0))
+            if min_level > 0 and rule_level < min_level and rule_id not in AUTH_ALLOWLIST_RULES:
                 continue
             event = parse_wazuh_alert(alert)
             if require_srcip and event.source_ip in ("0.0.0.0", "::"):
@@ -207,17 +252,36 @@ def process_lines(lines: list, store: Optional[BaselineStore] = None):
             if event.username:
                 store.record_success(event.username, event.source_ip, event.timestamp)
 
+    if correlator is not None:
+        for event in all_events:
+            correlator.process_event(event, now=now)
+        for incident in correlator.finalize_expired_incidents(current_time=now):
+            if _is_only_benign_auth_success(incident.events):
+                logger.info(
+                    f"Skipping incident {incident.incident_id} for key {incident.correlation_key}: benign auth successes only"
+                )
+                continue
+            logger.info(
+                f"Running correlated incident {incident.incident_id} for key {incident.correlation_key} with {len(incident.events)} events"
+            )
+            try:
+                with correlator.processing_lock(incident) as acquired:
+                    if not acquired:
+                        continue
+                    incident_state = run_incident_state(incident, baseline=store, now=now)
+                    _handle_incident_result(incident_state)
+            except Exception as e:
+                logger.error(f"Error running incident: {e}")
+        return
+
     for key, events in events_by_key.items():
+        if _is_only_benign_auth_success(events):
+            logger.info(f"Skipping incident for key {key}: benign auth successes only")
+            continue
         logger.info(f"Running incident for key: {key} with {len(events)} events")
         try:
             incident_state = run_incident(events, baseline=store)
-            if incident_state:
-                execution_result = dispatch_execution(incident_state)
-                logger.info(
-                    f"Final Decision for incident {incident_state.incident_id}: {incident_state.final_decision} | Execution: {execution_result}"
-                )
-            else:
-                logger.warning("run_incident returned None")
+            _handle_incident_result(incident_state)
         except Exception as e:
             logger.error(f"Error running incident: {e}")
 
