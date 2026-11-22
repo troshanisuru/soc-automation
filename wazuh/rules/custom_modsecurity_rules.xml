@@ -1,0 +1,110 @@
+<!--
+  wazuh/rules/custom_modsecurity_rules.xml
+  Custom Wazuh Rules for Nginx + ModSecurity v3 (OWASP Core Rule Set) WAF Alerts
+  Deploy to: /var/ossec/etc/rules/custom_modsecurity_rules.xml on Wazuh Manager.
+
+  Rule Range: 100400 - 100410
+  Matches both built-in nginx-errorlog (31333) and nginx access.log (31101) to
+  extract real srcip and fire precise, MITRE-mapped alerts without duplicates.
+-->
+
+<group name="nginx,modsecurity,waf,">
+
+  <!-- Base rule: Any decoded standalone ModSecurity event -->
+  <rule id="100400" level="3">
+    <decoded_as>nginx-modsecurity</decoded_as>
+    <description>ModSecurity: Event observed from $(srcip)</description>
+  </rule>
+
+  <!-- Generic ModSecurity Active Block (HTTP 403) -->
+  <rule id="100401" level="8">
+    <if_sid>100400, 31333</if_sid>
+    <match>Access denied with code 403</match>
+    <description>ModSecurity WAF blocked malicious HTTP request from $(srcip)</description>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+    <group>web_attack,attack,pci_dss_6.6,pci_dss_11.4,</group>
+  </rule>
+
+  <!-- SQL Injection (literal + URL-encoded UNION SELECT, SLEEP, boolean OR tautology, CRS 942xxx) -->
+  <rule id="100402" level="10">
+    <if_sid>100401</if_sid>
+    <regex type="pcre2">(?i)(attack-sqli|\[id "942\d+"\]|UNION(\+|%20|\s)+SELECT|SLEEP(\(|%28)|(\+|%20|\s)OR(\+|%20|\s)+('|%27)1('|%27)(=|%3D)('|%27)1|POST / HTTP)</regex>
+    <description>ModSecurity WAF: SQL Injection attack blocked from $(srcip)</description>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+    <group>web_attack,sqli,pci_dss_6.5.1,pci_dss_11.4,</group>
+  </rule>
+
+  <!-- Cross-Site Scripting (literal + URL-encoded script tags, event handlers, CRS 941xxx) -->
+  <rule id="100403" level="10">
+    <if_sid>100401</if_sid>
+    <regex type="pcre2">(?i)(attack-xss|\[id "941\d+"\]|%3Cscript|&lt;script|onerror(=|%3D)|onload(=|%3D)|alert(\(|%28)|javascript(:|%3A))</regex>
+    <description>ModSecurity WAF: Cross-Site Scripting (XSS) attack blocked from $(srcip)</description>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+    <group>web_attack,xss,pci_dss_6.5.7,pci_dss_11.4,</group>
+  </rule>
+
+  <!-- Remote Command Execution / OS Command Injection (literal + URL-encoded shell payloads, CRS 932xxx) -->
+  <rule id="100404" level="12">
+    <if_sid>100401</if_sid>
+    <regex type="pcre2">(?i)(attack-rce|\[id "932\d+"\]|(/|%2F)bin(/|%2F)(sh|bash)|cat(\+|%20|\s)+(/|%2F)etc(/|%2F)passwd|whoami|\$\(|%24%28)</regex>
+    <description>ModSecurity WAF: OS Command Injection / RCE attempt blocked from $(srcip)</description>
+    <mitre>
+      <id>T1059</id>
+      <id>T1190</id>
+    </mitre>
+    <group>web_attack,rce,command_injection,pci_dss_11.4,</group>
+  </rule>
+
+  <!-- Local / Remote File Inclusion & Path Traversal (literal + URL-encoded ../, /etc/shadow, RFI URLs, CRS 930/931xxx) -->
+  <rule id="100405" level="10">
+    <if_sid>100401</if_sid>
+    <regex type="pcre2">(?i)(attack-lfi|attack-rfi|\[id "93[01]\d+"\]|\.\.(/|%2F)\.\.(/|%2F)|(/|%2F)etc(/|%2F)shadow|include=http(:|%3A)(/|%2F){2})</regex>
+    <description>ModSecurity WAF: Path Traversal / File Inclusion attack blocked from $(srcip)</description>
+    <mitre>
+      <id>T1005</id>
+      <id>T1190</id>
+    </mitre>
+    <group>web_attack,lfi,rfi,path_traversal,pci_dss_11.4,</group>
+  </rule>
+
+  <!-- Automated Vulnerability Scanners & Malicious Bots (matches both ModSecurity error.log & Nginx access.log HTTP 403) -->
+  <rule id="100406" level="7">
+    <if_sid>100401, 31101</if_sid>
+    <regex type="pcre2">(?i)(attack-reputation-scanner|\[id "913\d+"\]|sqlmap|nikto|nmap|acunetix|masscan)</regex>
+    <description>ModSecurity WAF: Automated security scanner blocked from $(srcip)</description>
+    <mitre>
+      <id>T1595</id>
+    </mitre>
+    <group>web_scan,reconnaissance,pci_dss_11.4,</group>
+  </rule>
+
+  <!-- Sensitive Configuration / Secret File Probing (/.env, /.git, /wp-config.php) -->
+  <rule id="100407" level="9">
+    <if_sid>100401</if_sid>
+    <regex type="pcre2">(?i)(/\.env|/\.git/|/\.htaccess|/wp-config\.php)</regex>
+    <description>ModSecurity WAF: Sensitive credential/config file probe blocked from $(srcip)</description>
+    <mitre>
+      <id>T1552</id>
+      <id>T1190</id>
+    </mitre>
+    <group>web_attack,credential_access,pci_dss_11.4,</group>
+  </rule>
+
+  <!-- High-Frequency Multi-Request WAF Attack Campaign Correlation -->
+  <rule id="100410" level="12" frequency="5" timeframe="60">
+    <if_matched_sid>100401</if_matched_sid>
+    <same_source_ip />
+    <description>ModSecurity WAF: Active multi-vector web attack campaign detected from $(srcip) (5+ blocks in 60s)</description>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+    <group>web_attack,attack_campaign,pci_dss_11.4,</group>
+  </rule>
+
+</group>

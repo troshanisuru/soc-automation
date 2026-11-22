@@ -52,12 +52,17 @@ nginx -t
 echo "[*] Restarting Nginx service..."
 systemctl restart nginx
 
-echo "[*] Adding ModSecurity audit log to Wazuh agent..."
+echo "[*] Ensuring Wazuh agent monitors clean Nginx error.log + access.log (avoiding duplicate modsec_audit.log noise)..."
 if [ -f /var/ossec/etc/ossec.conf ]; then
-    if ! grep -q "/var/log/nginx/modsec_audit.log" /var/ossec/etc/ossec.conf; then
-        sed -i '/<\/ossec_config>/i \  <localfile>\n    <log_format>apache<\/log_format>\n    <location>\/var\/log\/nginx\/modsec_audit.log<\/location>\n  <\/localfile>' /var/ossec/etc/ossec.conf
-        systemctl restart wazuh-agent
-    fi
+    python3 -c '
+import re
+p = "/var/ossec/etc/ossec.conf"
+txt = open(p).read()
+new_txt = re.sub(r"\s*<localfile>\s*<log_format>apache</log_format>\s*<location>/var/log/nginx/modsec_audit\.log</location>\s*</localfile>", "", txt)
+if new_txt != txt:
+    open(p, "w").write(new_txt)
+'
+    systemctl restart wazuh-agent
 fi
 
 echo "[+] ModSecurity WAF + OWASP CRS is active and protecting Nginx!"

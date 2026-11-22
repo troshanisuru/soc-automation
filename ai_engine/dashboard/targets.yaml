@@ -1,8 +1,9 @@
-# Target infrastructure endpoints for SOC Observability Dashboard
-# 100% Always Free Tier OCI Instances:
-#   - web-server (VM.Standard.E2.1.Micro in prod-vcn 10.0.1.0/24): Public 130.210.70.6 / Private 10.0.1.224 (RUNNING)
-#   - wazuh-manager (VM.Standard.A1.Flex 2 OCPU / 12 GB in security-vcn 172.16.1.0/24): Private 172.16.1.10
-#   - ollama-server (VM.Standard.A1.Flex 2 OCPU / 12 GB in security-vcn 172.16.1.0/24): Private 172.16.1.20
+# Target infrastructure endpoints for Autonomous SOC Operations Platform
+# Live Distributed OCI ap-mumbai-1 Instances:
+#   - web-server (VM.Standard.E2.1.Micro, Always Free): Public 130.210.70.6 / Private 10.0.1.224
+#   - wazuh-manager (VM.Standard.E3.Flex Burstable 50%, 1 OCPU / 4 GB): Public 129.154.227.212 / Private 172.16.1.10
+#   - wazuh-indexer (VM.Standard.E3.Flex Burstable 50%, 1 OCPU / 8 GB): Public 130.210.115.155 / Private 172.16.1.11
+#   - ollama-server (VM.Standard.E3.Flex Burstable 12.5%, 1 OCPU / 8 GB): Public 132.226.188.209 / Private 172.16.1.20
 
 targets:
   - name: web_server_22
@@ -15,18 +16,17 @@ targets:
     host: 130.210.70.6
     port: 80
 
-  - name: wazuh_manager_1514
+  - name: wazuh_dashboard_443
     type: tcp_port
-    host: 172.16.1.10
-    port: 1514
+    host: 130.210.115.155
+    port: 443
 
-  - name: wazuh_manager_55000
+  - name: wazuh_api_55000
     type: tcp_port
-    host: 172.16.1.10
+    host: 129.154.227.212
     port: 55000
 
-  - name: ollama
-    type: http
-    host: 172.16.1.20
-    port: 11434
-    path: /api/tags
+  - name: ollama_ssh_22
+    type: tcp_port
+    host: 132.226.188.209
+    port: 22

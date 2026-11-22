@@ -25,6 +25,8 @@ if [[ "${1:-}" == "--remote" ]]; then
         "$0" \
         "${REPO_ROOT}/wazuh/rules/custom_oci_rules.xml" \
         "${REPO_ROOT}/wazuh/rules/custom_ssh_rules.xml" \
+        "${REPO_ROOT}/wazuh/rules/custom_modsecurity_rules.xml" \
+        "${REPO_ROOT}/wazuh/decoders/custom_modsecurity_decoders.xml" \
         "${REPO_ROOT}/wazuh/config/wazuh_ossec_oci.xml" \
         "ubuntu@${REMOTE_IP}:/tmp/"
 
@@ -37,13 +39,13 @@ fi
 exec > >(tee -a /var/log/wazuh-soc-setup.log) 2>&1
 
 echo "=================================================================="
-echo "  WAZUH INDEXER + MANAGER + DASHBOARD SETUP (A1.Flex 2 OCPU / 12GB)"
+echo "  WAZUH INDEXER + MANAGER + DASHBOARD SETUP (8GB+ RAM Host)"
 echo "=================================================================="
 
 MEM_MB=$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)
 echo "Detected physical RAM: ${MEM_MB} MB"
-if [[ "$MEM_MB" -lt 8000 ]]; then
-    echo "ERROR: Expected a 12 GB RAM VM.Standard.A1.Flex instance, but detected only ${MEM_MB} MB RAM. Refusing to install on undersized host." >&2
+if [[ "$MEM_MB" -lt 7000 ]]; then
+    echo "ERROR: Expected at least an 8 GB RAM host, but detected only ${MEM_MB} MB RAM. Refusing to install on undersized host." >&2
     exit 1
 fi
 
@@ -79,26 +81,33 @@ chmod +x /tmp/wazuh-install.sh
 echo "=== 3. Installing Wazuh Indexer, Wazuh Server (Manager + Filebeat), and Wazuh Dashboard ==="
 bash /tmp/wazuh-install.sh -a -i -o
 
-echo "=== 4. Tuning Wazuh Indexer JVM Heap (-Xms4g -Xmx4g) for 12 GB A1 Host ==="
+HEAP_GB="3g"
+if [[ "$MEM_MB" -ge 10000 ]]; then
+    HEAP_GB="4g"
+fi
+echo "=== 4. Tuning Wazuh Indexer JVM Heap (-Xms${HEAP_GB} -Xmx${HEAP_GB}) ==="
 if [[ -f /etc/wazuh-indexer/jvm.options ]]; then
-    sed -i 's/^-Xms.*/-Xms4g/' /etc/wazuh-indexer/jvm.options
-    sed -i 's/^-Xmx.*/-Xmx4g/' /etc/wazuh-indexer/jvm.options
+    sed -i "s/^-Xms.*/-Xms${HEAP_GB}/" /etc/wazuh-indexer/jvm.options
+    sed -i "s/^-Xmx.*/-Xmx${HEAP_GB}/" /etc/wazuh-indexer/jvm.options
     systemctl restart wazuh-indexer
 fi
 
-echo "=== 5. Deploying Custom OCI & SSH Detection Rules ==="
-if [[ -f /tmp/custom_oci_rules.xml ]]; then
-    cp /tmp/custom_oci_rules.xml /var/ossec/etc/rules/custom_oci_rules.xml
-    chown root:wazuh /var/ossec/etc/rules/custom_oci_rules.xml
-    chmod 640 /var/ossec/etc/rules/custom_oci_rules.xml
+echo "=== 5. Deploying Custom OCI, SSH & ModSecurity WAF Decoders and Rules ==="
+for rule_file in custom_oci_rules.xml custom_ssh_rules.xml custom_modsecurity_rules.xml; do
+    if [[ -f "/tmp/${rule_file}" ]]; then
+        cp "/tmp/${rule_file}" "/var/ossec/etc/rules/${rule_file}"
+        chown root:wazuh "/var/ossec/etc/rules/${rule_file}"
+        chmod 640 "/var/ossec/etc/rules/${rule_file}"
+    fi
+done
+
+if [[ -f /tmp/custom_modsecurity_decoders.xml ]]; then
+    cp /tmp/custom_modsecurity_decoders.xml /var/ossec/etc/decoders/custom_modsecurity_decoders.xml
+    chown root:wazuh /var/ossec/etc/decoders/custom_modsecurity_decoders.xml
+    chmod 640 /var/ossec/etc/decoders/custom_modsecurity_decoders.xml
 fi
 
-if [[ -f /tmp/custom_ssh_rules.xml ]]; then
-    cp /tmp/custom_ssh_rules.xml /var/ossec/etc/rules/custom_ssh_rules.xml
-    chown root:wazuh /var/ossec/etc/rules/custom_ssh_rules.xml
-    chmod 640 /var/ossec/etc/rules/custom_ssh_rules.xml
-fi
-
+/var/ossec/bin/wazuh-analysisd -t
 systemctl restart wazuh-manager
 
 echo "=== 6. Verifying Wazuh Indexer, Manager & Dashboard Services ==="

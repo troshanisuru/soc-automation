@@ -186,3 +186,36 @@ def test_poller_executor_dispatch_for_decisions(final_decision, proposed_action,
                     assert mock_fn.call_args[0][0] == mock_state
                 else:
                     assert mock_fn.call_count == 0, f"Expected {name} not to be called"
+
+
+def test_parse_wazuh_custom_modsecurity_alert_clamps_severity_and_sets_waf_source():
+    """Verify ModSecurity custom rules (100400-100410) map to source='waf', clamp level 12 -> 10, and enrich indicator."""
+    from pathlib import Path
+    sample_path = Path(__file__).resolve().parent.parent.parent / "wazuh" / "alerts" / "sample_wazuh_modsecurity_sqli.json"
+    alert = json.loads(sample_path.read_text(encoding="utf-8"))
+
+    event = parse_wazuh_alert(alert)
+    assert event.source == "waf"
+    assert event.source_ip == "198.51.100.44"
+    assert event.asset_tag == "prod-web-server"
+    assert event.severity == 10  # Clamped from Wazuh level 12
+    assert "CRS=949110" in event.raw_indicator
+    assert "url=/?cmd=cat%20/etc/passwd" in event.raw_indicator
+
+
+def test_custom_wazuh_rules_and_decoders_valid_xml():
+    """Verify all custom Wazuh decoder and rule XML files parse cleanly with no syntax errors."""
+    import xml.etree.ElementTree as ET
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    xml_files = [
+        repo_root / "wazuh" / "decoders" / "custom_modsecurity_decoders.xml",
+        repo_root / "wazuh" / "rules" / "custom_modsecurity_rules.xml",
+        repo_root / "wazuh" / "rules" / "custom_oci_rules.xml",
+        repo_root / "wazuh" / "rules" / "custom_ssh_rules.xml",
+    ]
+    for path in xml_files:
+        assert path.exists(), f"Missing Wazuh XML file: {path}"
+        wrapped = f"<root>\n{path.read_text(encoding='utf-8')}\n</root>"
+        ET.fromstring(wrapped)

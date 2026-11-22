@@ -1,9 +1,14 @@
-"""SOC Automation Observability Dashboard Server.
+"""Autonomous SOC Automation Platform — Observability & Case Management Server.
 
-Provides:
-1. Background infrastructure health checker polling named targets (TCP port, HTTP).
-2. Pipeline observability panel tailing AI Engine and Executor audit logs.
-3. HTTP server serving local read-only dashboard UI and REST API.
+Industry-grade, vendor-neutral Autonomous SOC / SOAR platform server:
+1. Connector & Monitored Infrastructure Health Checker polling external client
+   networks, SIEM endpoints, and AI reasoning engines (TCP / HTTP).
+2. Real-time AI Triage Pipeline Observability correlating Triage, MITRE ATT&CK,
+   Decision, Deterministic Risk Gate, Auth Policy, and Cloud Executor logs.
+3. Human-in-the-Loop (HITL) Case Management API for escalated incidents
+   (Acknowledge, Approve Containment, Mark False Positive, Analyst Notes).
+4. Threat Intelligence (MITRE ATT&CK + Offending IOC IP Reputation) & Governance
+   Policy introspection loaded directly from live YAML/JSON configuration.
 """
 
 from __future__ import annotations
@@ -15,10 +20,9 @@ import logging
 import os
 from pathlib import Path
 import socket
-import sys
 import threading
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -64,9 +68,102 @@ def get_default_executor_audit_path() -> Path:
     return _get_repo_root() / "logs" / "executor_audit.log"
 
 
+def get_default_case_store_path() -> Path:
+    override = os.environ.get("SOC_CASE_STATE_PATH")
+    if override:
+        return Path(override)
+    return _get_repo_root() / "ai_engine" / "data" / "case_state.json"
+
+
+def _load_html_template() -> str:
+    html_path = Path(__file__).resolve().parent / "static" / "index.html"
+    if html_path.exists():
+        return html_path.read_text(encoding="utf-8")
+    return "<html><body><h1>Infrastructure Health</h1><h2>Pipeline Incidents Observability</h2></body></html>"
+
+
+HTML_PAGE = _load_html_template()
+
+
+# --------------------------------------------------------------------------- Case State Store (HITL)
+class CaseStore:
+    """Thread-safe JSON persistence for SOC Analyst case triage & HITL decisions."""
+
+    def __init__(self, store_path: Optional[str | Path] = None):
+        self.store_path = Path(store_path) if store_path else get_default_case_store_path()
+        self._lock = threading.Lock()
+
+    def _load_all(self) -> Dict[str, Dict[str, Any]]:
+        if not self.store_path.exists():
+            return {}
+        try:
+            data = json.loads(self.store_path.read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else {}
+        except Exception as exc:
+            logger.warning("Unable to read case store %s: %s", self.store_path, exc)
+            return {}
+
+    def _save_all(self, data: Dict[str, Dict[str, Any]]) -> None:
+        self.store_path.parent.mkdir(parents=True, exist_ok=True)
+        self.store_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+    def get_all(self) -> Dict[str, Dict[str, Any]]:
+        with self._lock:
+            return self._load_all()
+
+    def update_case(
+        self,
+        incident_id: str,
+        action: str,
+        note: str = "",
+        analyst: str = "soc-analyst",
+    ) -> Dict[str, Any]:
+        valid_actions = {"acknowledge", "approve_containment", "false_positive", "reopen", "add_note"}
+        if action not in valid_actions:
+            raise ValueError(f"Unsupported case action: {action}")
+
+        status_map = {
+            "acknowledge": "acknowledged",
+            "approve_containment": "contained",
+            "false_positive": "false_positive",
+            "reopen": "open",
+        }
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        with self._lock:
+            all_cases = self._load_all()
+            case = all_cases.get(
+                incident_id,
+                {
+                    "incident_id": incident_id,
+                    "case_status": "open",
+                    "assignee": analyst,
+                    "notes": [],
+                    "updated_at": now_iso,
+                },
+            )
+            if action in status_map:
+                case["case_status"] = status_map[action]
+            case["assignee"] = analyst
+            case["updated_at"] = now_iso
+
+            entry_text = note.strip() or f"Analyst executed action: {action}"
+            case.setdefault("notes", []).append(
+                {
+                    "ts": now_iso,
+                    "analyst": analyst,
+                    "action": action,
+                    "note": entry_text,
+                }
+            )
+            all_cases[incident_id] = case
+            self._save_all(all_cases)
+            return dict(case)
+
+
 # --------------------------------------------------------------------------- Health Checker
 class HealthChecker:
-    """Polls infrastructure targets periodically and caches their status in memory."""
+    """Polls connected infrastructure & SIEM/AI endpoints periodically and caches status."""
 
     def __init__(
         self,
@@ -175,7 +272,6 @@ class HealthChecker:
                     return {**base_res, "status": "up", "latency_ms": latency_ms, "error": None}
             except urllib.error.HTTPError as exc:
                 latency_ms = round((time.perf_counter() - start) * 1000, 2)
-                # HTTP error responses (e.g., 404, 500) indicate target is down or endpoint error
                 return {
                     **base_res,
                     "status": "down",
@@ -234,7 +330,6 @@ class HealthChecker:
             for r in results:
                 self._results[r["name"]] = r
 
-        # Return in original target order
         with self._lock:
             ordered = []
             for t in self._targets:
@@ -272,8 +367,6 @@ class HealthChecker:
             }
 
     def _run_loop(self) -> None:
-        """Background worker loop polling every poll_interval seconds."""
-        # Initial check immediately upon start
         self.check_all()
         while not self._stop_event.is_set():
             if self._stop_event.wait(self.poll_interval):
@@ -281,14 +374,12 @@ class HealthChecker:
             self.check_all()
 
     def start(self) -> None:
-        """Start the background checker thread."""
         if self._worker_thread is None or not self._worker_thread.is_alive():
             self._stop_event.clear()
             self._worker_thread = threading.Thread(target=self._run_loop, name="HealthCheckerThread", daemon=True)
             self._worker_thread.start()
 
     def stop(self) -> None:
-        """Stop the background checker thread."""
         self._stop_event.set()
         if self._worker_thread and self._worker_thread.is_alive():
             self._worker_thread.join(timeout=2.0)
@@ -302,14 +393,15 @@ class AuditLogReader:
         self,
         audit_log_path: Optional[str | Path] = None,
         executor_audit_path: Optional[str | Path] = None,
+        case_store: Optional[CaseStore] = None,
     ):
         self.audit_log_path = Path(audit_log_path) if audit_log_path else get_default_audit_log_path()
         self.executor_audit_path = (
             Path(executor_audit_path) if executor_audit_path else get_default_executor_audit_path()
         )
+        self.case_store = case_store
 
     def _read_lines(self, path: Path) -> List[Dict[str, Any]]:
-        """Read and parse json lines from a file if it exists."""
         if not path.exists():
             return []
         records = []
@@ -329,22 +421,46 @@ class AuditLogReader:
             logger.warning("Unable to read audit log %s: %s", path, exc)
         return records
 
+    @staticmethod
+    def _extract_agent_outputs(
+        matching_calls: List[Dict[str, Any]],
+    ) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+        triage_out = None
+        mitre_out = None
+        decision_out = None
+        for call in matching_calls:
+            raw = call.get("raw_response")
+            if not isinstance(raw, str) or not raw.strip():
+                continue
+            try:
+                parsed = json.loads(raw)
+                if not isinstance(parsed, dict):
+                    continue
+            except json.JSONDecodeError:
+                continue
+            agent = call.get("agent", "")
+            if "triage" in agent:
+                triage_out = parsed
+            elif "mitre" in agent:
+                mitre_out = parsed
+            elif "decision" in agent:
+                decision_out = parsed
+        return triage_out, mitre_out, decision_out
+
     def load_incidents(self) -> List[Dict[str, Any]]:
-        """Parse audit logs, group by incident_id, and format stage timings and statuses."""
         agent_records = self._read_lines(self.audit_log_path)
         executor_records = self._read_lines(self.executor_audit_path)
+        saved_cases = self.case_store.get_all() if self.case_store else {}
 
         if not agent_records and not executor_records:
             return []
 
-        # Index executor records by incident_id
         executor_by_id: Dict[str, List[Dict[str, Any]]] = {}
         for rec in executor_records:
             inc_id = rec.get("incident_id")
             if inc_id:
                 executor_by_id.setdefault(inc_id, []).append(rec)
 
-        # Separate pipeline decisions and agent llm calls
         decisions: List[Dict[str, Any]] = []
         llm_calls: List[Dict[str, Any]] = []
 
@@ -354,7 +470,6 @@ class AuditLogReader:
             elif rec.get("record") == "llm_call" or "agent" in rec:
                 llm_calls.append(rec)
 
-        # Map decisions to incident structures
         incidents: List[Dict[str, Any]] = []
         seen_incident_ids = set()
 
@@ -364,10 +479,8 @@ class AuditLogReader:
 
             dec_ts = dec.get("ts", 0.0)
             duration_ms = dec.get("duration_ms", 0)
-            start_ts = dec_ts - (duration_ms / 1000.0) - 2.0  # allow small 2s clock jitter
+            start_ts = dec_ts - (duration_ms / 1000.0) - 2.0
 
-            # Associate LLM calls belonging to this incident
-            # Either explicit incident_id or timestamp window between prev decision and this decision
             prev_dec_ts = decisions[idx - 1].get("ts", 0.0) if idx > 0 else 0.0
             window_start = max(start_ts, prev_dec_ts)
 
@@ -378,13 +491,24 @@ class AuditLogReader:
                     matching_calls.append(call)
                 elif not call_inc:
                     call_ts = call.get("ts", 0.0)
-                    if window_start <= call_ts <= dec_ts + 1.0:
+                    if (idx == 0 and window_start <= call_ts <= dec_ts) or (
+                        idx > 0 and prev_dec_ts < call_ts <= dec_ts
+                    ):
                         matching_calls.append(call)
 
-            # Build per-stage summary
             stages = self._build_stages(dec, matching_calls, executor_by_id.get(inc_id, []))
+            triage_out, mitre_out, decision_out = self._extract_agent_outputs(matching_calls)
 
             dt_iso = datetime.fromtimestamp(dec_ts, tz=timezone.utc).isoformat() if dec_ts else None
+            default_case_status = (
+                "contained" if dec.get("final_decision") in ("autonomous", "soft_contain") else "open"
+            )
+            case_meta = saved_cases.get(inc_id) or {
+                "case_status": default_case_status,
+                "assignee": "autonomous-engine" if default_case_status == "contained" else "unassigned",
+                "notes": [],
+                "updated_at": dt_iso,
+            }
 
             incident = {
                 "incident_id": inc_id,
@@ -399,11 +523,14 @@ class AuditLogReader:
                 "validation_errors": dec.get("validation_errors", []),
                 "duration_ms": duration_ms,
                 "stages": stages,
+                "triage_output": triage_out,
+                "mitre_output": mitre_out,
+                "decision_output": decision_out,
+                "case": case_meta,
                 "audit_records": matching_calls + [dec] + executor_by_id.get(inc_id, []),
             }
             incidents.append(incident)
 
-        # Also capture any executor-only incidents (e.g. if testing executor in isolation)
         for inc_id, exec_recs in executor_by_id.items():
             if inc_id not in seen_incident_ids:
                 latest_exec = exec_recs[-1]
@@ -423,11 +550,17 @@ class AuditLogReader:
                         "validation_errors": [],
                         "duration_ms": 0,
                         "stages": self._build_stages({}, [], exec_recs),
+                        "triage_output": None,
+                        "mitre_output": None,
+                        "decision_output": None,
+                        "case": saved_cases.get(
+                            inc_id,
+                            {"case_status": "contained", "assignee": "autonomous-engine", "notes": [], "updated_at": dt_iso},
+                        ),
                         "audit_records": exec_recs,
                     }
                 )
 
-        # Sort incidents descending by timestamp (newest first)
         incidents.sort(key=lambda x: x.get("ts", 0.0), reverse=True)
         return incidents
 
@@ -437,17 +570,14 @@ class AuditLogReader:
         llm_calls: List[Dict[str, Any]],
         executor_calls: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
-        """Construct structured stage info for triage, mitre, decision, gate, and executor."""
         halted_at = decision_rec.get("halted_at", "gate")
         final_decision = decision_rec.get("final_decision", "unknown")
         validation_errors = decision_rec.get("validation_errors", [])
 
-        # Find agent calls
         triage_call = next((c for c in llm_calls if "triage" in c.get("agent", "")), None)
         mitre_call = next((c for c in llm_calls if "mitre" in c.get("agent", "")), None)
         decision_call = next((c for c in llm_calls if "decision" in c.get("agent", "")), None)
 
-        # 1. Triage Stage
         if triage_call:
             triage_stage = {
                 "status": "ok" if triage_call.get("outcome") == "ok" else "error",
@@ -476,7 +606,6 @@ class AuditLogReader:
                 "error": None,
             }
 
-        # 2. MITRE ATT&CK Stage
         if mitre_call:
             mitre_ok = mitre_call.get("outcome") == "ok" and halted_at != "mitre"
             mitre_stage = {
@@ -515,7 +644,6 @@ class AuditLogReader:
                 "error": None,
             }
 
-        # 3. Decision Stage
         if decision_call:
             dec_ok = decision_call.get("outcome") == "ok" and halted_at != "decision"
             decision_stage = {
@@ -558,7 +686,6 @@ class AuditLogReader:
                 "error": None,
             }
 
-        # 4. Gate / Policy Stage
         if decision_rec:
             gate_status = "ok"
             if final_decision == "escalate":
@@ -581,7 +708,6 @@ class AuditLogReader:
                 "error": None,
             }
 
-        # 5. Executor Stage
         if executor_calls:
             latest = executor_calls[-1]
             exec_status = latest.get("status", "unknown")
@@ -597,7 +723,7 @@ class AuditLogReader:
                 "status": "refused",
                 "action": None,
                 "shadow_mode": True,
-                "error": "Action refused: incident was escalated for human review",
+                "error": "Action refused: incident was escalated for human analyst review",
                 "details": None,
             }
         else:
@@ -618,652 +744,282 @@ class AuditLogReader:
         }
 
     def get_incident(self, incident_id: str) -> Optional[Dict[str, Any]]:
-        """Look up a single incident by its ID."""
         for inc in self.load_incidents():
             if inc.get("incident_id") == incident_id:
                 return inc
         return None
 
 
-# --------------------------------------------------------------------------- HTML UI Template
-HTML_PAGE = """<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOC Automation &bull; Health &amp; Pipeline Observability</title>
-  <style>
-    :root {
-      --bg: #090d16;
-      --card-bg: #121826;
-      --card-border: #1e293b;
-      --text: #f1f5f9;
-      --text-muted: #94a3b8;
-      --text-dim: #64748b;
-      --accent: #38bdf8;
-      --accent-glow: rgba(56, 189, 248, 0.15);
-      --up: #10b981;
-      --up-bg: rgba(16, 185, 129, 0.15);
-      --down: #ef4444;
-      --down-bg: rgba(239, 68, 68, 0.15);
-      --warn: #f59e0b;
-      --warn-bg: rgba(245, 158, 11, 0.15);
-      --code-bg: #0b0f19;
-      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+# --------------------------------------------------------------------------- Intelligence & Governance Loaders
+def _load_yaml_if_exists(path: Path) -> Dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _load_json_if_exists(path: Path) -> Optional[Dict[str, Any]]:
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else None
+    except Exception:
+        return None
+
+
+def _build_threat_intel(incidents: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Aggregate MITRE ATT&CK techniques AND offending source IP IOC profiles."""
+    repo_root = _get_repo_root()
+    ref_map: Dict[str, Dict[str, Any]] = {}
+    ref_path = repo_root / "ai_engine" / "reference" / "mitre_attack.json"
+    if ref_path.exists():
+        try:
+            ref_data = json.loads(ref_path.read_text(encoding="utf-8"))
+            for item in ref_data.get("techniques", []):
+                if "id" in item:
+                    ref_map[item["id"]] = item
+        except Exception:
+            pass
+
+    thresh_data = _load_yaml_if_exists(repo_root / "ai_engine" / "config" / "thresholds.yaml")
+    tactic_weights = dict(thresh_data.get("tactic_weights", {}))
+
+    mitre_counts: Dict[str, Dict[str, Any]] = {}
+    ioc_map: Dict[str, Dict[str, Any]] = {}
+
+    for inc in incidents:
+        mitre_out = inc.get("mitre_output") or {}
+        techniques = mitre_out.get("techniques") or []
+        justifications = mitre_out.get("justification") or {}
+
+        for tid in techniques:
+            if tid not in mitre_counts:
+                meta = ref_map.get(tid, {})
+                tactic = meta.get("tactic", "Unknown")
+                mitre_counts[tid] = {
+                    "id": tid,
+                    "name": meta.get("name", tid),
+                    "tactic": tactic,
+                    "tactic_weight": tactic_weights.get(tactic),
+                    "hits": 0,
+                    "sample_justification": justifications.get(tid, ""),
+                }
+            mitre_counts[tid]["hits"] += 1
+            if not mitre_counts[tid]["sample_justification"] and justifications.get(tid):
+                mitre_counts[tid]["sample_justification"] = justifications[tid]
+
+        corr = inc.get("correlation_key") or []
+        src_ip = corr[0] if len(corr) >= 1 else None
+        asset = corr[1] if len(corr) >= 2 else "unknown"
+        if src_ip:
+            entry = ioc_map.setdefault(
+                src_ip,
+                {
+                    "ip": src_ip,
+                    "incident_count": 0,
+                    "max_risk_score": 0.0,
+                    "targeted_assets": set(),
+                    "techniques": set(),
+                    "latest_decision": inc.get("final_decision", "unknown"),
+                    "latest_action": inc.get("proposed_action") or "none",
+                    "last_seen": inc.get("timestamp"),
+                },
+            )
+            entry["incident_count"] += 1
+            rs = inc.get("risk_score")
+            if isinstance(rs, (int, float)) and rs > entry["max_risk_score"]:
+                entry["max_risk_score"] = round(float(rs), 4)
+            entry["targeted_assets"].add(asset)
+            for tid in techniques:
+                entry["techniques"].add(tid)
+
+    iocs = []
+    for entry in ioc_map.values():
+        iocs.append(
+            {
+                **entry,
+                "targeted_assets": sorted(entry["targeted_assets"]),
+                "techniques": sorted(entry["techniques"]),
+            }
+        )
+    iocs.sort(key=lambda x: (-x["max_risk_score"], -x["incident_count"], x["ip"]))
+
+    sorted_mitre = sorted(
+        mitre_counts.values(),
+        key=lambda x: (-x["hits"], -(x["tactic_weight"] or 0.0), x["id"]),
+    )
+    return {"techniques": sorted_mitre, "iocs": iocs}
+
+
+def _load_governance_policy() -> Dict[str, Any]:
+    repo_root = _get_repo_root()
+    thresholds = _load_yaml_if_exists(repo_root / "ai_engine" / "config" / "thresholds.yaml")
+    models = _load_yaml_if_exists(repo_root / "ai_engine" / "config" / "models.yaml")
+    return {
+        "status": "ok",
+        "shadow_mode": os.environ.get("SHADOW_MODE", "true").lower() == "true",
+        "protected_cidrs": ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8"],
+        "thresholds": thresholds,
+        "models": models,
+        "auth_policy_rules": [
+            {"id": "R0", "name": "Non-Auth Passthrough", "effect": "Maintain gate verdict when no auth failure telemetry is present"},
+            {"id": "R4", "name": "Compromise Indicator (Success After Failure)", "effect": "High-priority preservation of autonomous/containment verdict"},
+            {"id": "R1", "name": "Multi-Source Corroboration", "effect": "Maintain verdict when corroborated across >1 telemetry source (SIEM + WAF + Flow)"},
+            {"id": "R2", "name": "High-Diversity Credential Spray", "effect": "Maintain containment when >=3 distinct users or >50% invalid accounts"},
+            {"id": "R3", "name": "Known-Pair Stale Credential Guard", "effect": "Downgrade to human escalation for known user/IP slow retries (>=30s gap)"},
+            {"id": "R5", "name": "High-Velocity Burst Guard", "effect": "Maintain containment for unknown pair bursts (<5s median interval)"},
+            {"id": "CAP", "name": "Single-Source Autonomy Cap", "effect": "Single-source auth telemetry is capped at soft_contain (never autonomous block)"},
+        ],
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background-color: var(--bg);
-      color: var(--text);
-      font-family: var(--font);
-      line-height: 1.5;
-      padding: 24px;
-      min-height: 100vh;
+
+def _load_telemetry_feed(incidents: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Build a read-only SIEM & WAF telemetry stream from ingested events & WAF logs."""
+    repo_root = _get_repo_root()
+    waf_json = _load_json_if_exists(repo_root / "evidence" / "waf_attack_test_report.json")
+    waf_logs = (waf_json or {}).get("remote_waf_log_sample") or []
+
+    events: List[Dict[str, Any]] = []
+    for inc in incidents:
+        triage = inc.get("triage_output") or {}
+        timeline = triage.get("timeline") or []
+        corr = inc.get("correlation_key") or ["unknown", "unknown"]
+        for step in timeline:
+            events.append(
+                {
+                    "timestamp": inc.get("timestamp"),
+                    "incident_id": inc.get("incident_id"),
+                    "source_ip": corr[0] if len(corr) > 0 else "unknown",
+                    "asset": corr[1] if len(corr) > 1 else "unknown",
+                    "summary": step,
+                    "verdict": inc.get("final_decision"),
+                }
+            )
+
+    return {
+        "status": "ok",
+        "ingested_events": events[:100],
+        "waf_audit_logs": waf_logs,
+        "waf_summary": {
+            "blocked_total": (waf_json or {}).get("attacks_blocked", 0),
+            "inspected_total": (waf_json or {}).get("total_tests", 0),
+            "last_ingested": (waf_json or {}).get("timestamp_utc"),
+        },
     }
 
-    .container {
-      max-width: 1300px;
-      margin: 0 auto;
-    }
 
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 28px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid var(--card-border);
-      flex-wrap: wrap;
-      gap: 16px;
+def _record_analyst_containment_audit(executor_audit_path: Path, incident: Dict[str, Any], analyst: str, note: str) -> None:
+    """Append an analyst-approved containment audit record to executor_audit.log."""
+    record = {
+        "ts": time.time(),
+        "incident_id": incident.get("incident_id"),
+        "action": incident.get("proposed_action") or "analyst_approved_containment",
+        "status": "simulated" if os.environ.get("SHADOW_MODE", "true").lower() == "true" else "executed",
+        "shadow_mode": os.environ.get("SHADOW_MODE", "true").lower() == "true",
+        "approved_by": analyst,
+        "details": f"HITL analyst approval ({analyst}): {note or 'Approved proposed containment action'}",
     }
+    try:
+        executor_audit_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(executor_audit_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=True) + "\n")
+    except OSError as exc:
+        logger.warning("Failed writing analyst containment audit record: %s", exc)
 
-    .title-group h1 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .title-group h1 span.pulse-dot {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background-color: var(--up);
-      box-shadow: 0 0 10px var(--up);
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
-    }
-    .title-group p {
-      font-size: 0.875rem;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
 
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+def _ingest_siem_payload(payload: Any, case_store: CaseStore) -> Dict[str, Any]:
+    """Ingest raw SIEM JSON alert(s), execute AI analysis, and escalate/contain cases."""
+    from collections import defaultdict
+    from ai_engine.ingest.wazuh_poller import dispatch_execution, get_baseline_store, parse_wazuh_alert
+    from ai_engine.main import run_incident
+
+    if isinstance(payload, dict) and isinstance(payload.get("alerts"), list):
+        raw_alerts = payload["alerts"]
+    elif isinstance(payload, list):
+        raw_alerts = payload
+    elif isinstance(payload, dict):
+        raw_alerts = [payload]
+    else:
+        raise ValueError("SIEM payload must be a JSON alert object, list of alerts, or {'alerts': [...]}")
+
+    if not raw_alerts:
+        raise ValueError("No SIEM alerts supplied")
+
+    store = get_baseline_store()
+    events_by_key: Dict[Tuple[str, str], List[Any]] = defaultdict(list)
+    all_events = []
+    ips_with_failures = set()
+
+    for alert in raw_alerts:
+        if not isinstance(alert, dict):
+            continue
+        event = parse_wazuh_alert(alert)
+        all_events.append(event)
+        if event.auth_outcome == "failure":
+            ips_with_failures.add(event.source_ip)
+        events_by_key[(event.source_ip, event.asset_tag)].append(event)
+
+    if not all_events:
+        raise ValueError("No valid SIEM alert objects found in payload")
+
+    for event in all_events:
+        if event.auth_outcome == "success" and event.source_ip not in ips_with_failures and event.username:
+            store.record_success(event.username, event.source_ip, event.timestamp)
+
+    analyzed = []
+    for key, events in events_by_key.items():
+        state = run_incident(events, baseline=store)
+        exec_res = dispatch_execution(state)
+        escalated = state.final_decision == "escalate"
+        if escalated:
+            reason = "; ".join(state.validation_errors) if state.validation_errors else (
+                f"Escalated by deterministic risk gate (score={state.risk_score})"
+            )
+            case_store.update_case(
+                state.incident_id,
+                action="reopen",
+                note=f"Automated SIEM escalation: {reason}",
+                analyst="siem-ingestion-engine",
+            )
+        analyzed.append(
+            {
+                "incident_id": state.incident_id,
+                "correlation_key": list(state.correlation_key),
+                "event_count": len(events),
+                "risk_score": state.risk_score,
+                "final_decision": state.final_decision,
+                "escalated": escalated,
+                "proposed_action": state.decision.proposed_action if state.decision else None,
+                "validation_errors": list(state.validation_errors),
+                "execution": exec_res.model_dump() if exec_res else None,
+            }
+        )
+
+    return {
+        "status": "ok",
+        "ingested_alerts": len(all_events),
+        "incidents_analyzed": analyzed,
     }
-
-    .btn {
-      background: #1e293b;
-      color: var(--text);
-      border: 1px solid #334155;
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      font-weight: 500;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s;
-    }
-    .btn:hover {
-      background: #334155;
-      border-color: #475569;
-    }
-    .btn-primary {
-      background: #0284c7;
-      border-color: #0369a1;
-    }
-    .btn-primary:hover {
-      background: #0369a1;
-    }
-
-    .last-refreshed {
-      font-size: 0.8rem;
-      color: var(--text-dim);
-      font-family: var(--font-mono);
-    }
-
-    /* Panels */
-    .panel {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 22px;
-      margin-bottom: 30px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    }
-
-    .panel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 18px;
-    }
-    .panel-header h2 {
-      font-size: 1.15rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .panel-header .badge-count {
-      background: #1e293b;
-      color: var(--text-muted);
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-family: var(--font-mono);
-    }
-
-    /* Tables */
-    .table-container {
-      overflow-x: auto;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.875rem;
-      text-align: left;
-    }
-    th {
-      background: rgba(15, 23, 42, 0.6);
-      color: var(--text-muted);
-      font-weight: 600;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--card-border);
-      text-transform: uppercase;
-      font-size: 0.75rem;
-      letter-spacing: 0.05em;
-    }
-    td {
-      padding: 12px 14px;
-      border-bottom: 1px solid rgba(30, 41, 59, 0.5);
-      vertical-align: middle;
-    }
-    tr:last-child td {
-      border-bottom: none;
-    }
-    tr.hover-row:hover td {
-      background: rgba(30, 41, 59, 0.3);
-    }
-
-    /* Status Badges */
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
-    .badge-up { background: var(--up-bg); color: var(--up); border: 1px solid rgba(16, 185, 129, 0.3); }
-    .badge-down { background: var(--down-bg); color: var(--down); border: 1px solid rgba(239, 68, 68, 0.3); }
-    .badge-warn { background: var(--warn-bg); color: var(--warn); border: 1px solid rgba(245, 158, 11, 0.3); }
-    .badge-unknown { background: #1e293b; color: var(--text-dim); border: 1px solid #334155; }
-
-    .badge-autonomous { background: var(--up-bg); color: var(--up); border: 1px solid rgba(16, 185, 129, 0.3); }
-    .badge-soft_contain { background: var(--warn-bg); color: var(--warn); border: 1px solid rgba(245, 158, 11, 0.3); }
-    .badge-escalate { background: var(--down-bg); color: var(--down); border: 1px solid rgba(239, 68, 68, 0.3); }
-
-    .mono {
-      font-family: var(--font-mono);
-      font-size: 0.825rem;
-    }
-
-    .error-text {
-      color: #f87171;
-      font-family: var(--font-mono);
-      font-size: 0.8rem;
-      word-break: break-all;
-    }
-
-    .success-text {
-      color: #34d399;
-      font-family: var(--font-mono);
-      font-size: 0.8rem;
-    }
-
-    /* Incidents specific */
-    .clickable-row {
-      cursor: pointer;
-    }
-    .expand-icon {
-      display: inline-block;
-      transition: transform 0.2s;
-      font-size: 0.75rem;
-      color: var(--text-dim);
-    }
-    tr.expanded .expand-icon {
-      transform: rotate(90deg);
-      color: var(--accent);
-    }
-
-    .detail-row td {
-      padding: 0;
-      background: #0d121f;
-    }
-    .detail-content {
-      padding: 16px 20px;
-      border-top: 1px dashed var(--card-border);
-      border-bottom: 1px dashed var(--card-border);
-    }
-
-    .stage-pipeline {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    .stage-card {
-      background: #141c2e;
-      border: 1px solid #233149;
-      border-radius: 8px;
-      padding: 12px;
-    }
-    .stage-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
-    }
-    .stage-name {
-      font-weight: 600;
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      color: #cbd5e1;
-    }
-    .stage-body {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-    }
-    .stage-body div {
-      margin-top: 3px;
-    }
-
-    /* Empty state */
-    .empty-state {
-      padding: 48px 24px;
-      text-align: center;
-      color: var(--text-dim);
-    }
-    .empty-state svg {
-      width: 48px;
-      height: 48px;
-      margin-bottom: 12px;
-      stroke: var(--text-dim);
-    }
-    .empty-state h3 {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-    }
-    .empty-state p {
-      font-size: 0.85rem;
-    }
-
-    /* Code block */
-    pre.raw-json {
-      background: var(--code-bg);
-      border: 1px solid #1e293b;
-      border-radius: 6px;
-      padding: 12px;
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      max-height: 220px;
-      overflow-y: auto;
-      color: #94a3b8;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-
-    summary.json-summary {
-      font-size: 0.8rem;
-      color: var(--accent);
-      cursor: pointer;
-      margin-top: 10px;
-      font-weight: 500;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <header>
-      <div class="title-group">
-        <h1><span class="pulse-dot"></span> SOC Automation Dashboard</h1>
-        <p>Local Infrastructure Health &bull; AI Engine Observability</p>
-      </div>
-      <div class="header-actions">
-        <span class="last-refreshed" id="last-refreshed-label">Updated: just now</span>
-        <button class="btn" onclick="refreshAll()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-          Refresh
-        </button>
-      </div>
-    </header>
-
-    <!-- PART A: Infrastructure Health Panel -->
-    <section class="panel">
-      <div class="panel-header">
-        <h2>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
-          Infrastructure Health
-        </h2>
-        <span class="badge-count" id="health-summary">Loading...</span>
-      </div>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Target Name</th>
-              <th>Type</th>
-              <th>Endpoint</th>
-              <th>Status</th>
-              <th>Latency</th>
-              <th>Last Checked</th>
-              <th>Diagnosis / Error</th>
-            </tr>
-          </thead>
-          <tbody id="health-tbody">
-            <tr>
-              <td colspan="7" style="text-align:center; padding: 20px; color: var(--text-dim);">
-                Probing configured infrastructure targets...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- PART B: Pipeline Observability Panel -->
-    <section class="panel">
-      <div class="panel-header">
-        <h2>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-          Pipeline Incidents Observability
-        </h2>
-        <span class="badge-count" id="incidents-summary">0 Incidents</span>
-      </div>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 28px;"></th>
-              <th>Incident ID</th>
-              <th>Timestamp</th>
-              <th>Correlation Key</th>
-              <th>Events</th>
-              <th>Final Decision</th>
-              <th>Proposed Action</th>
-              <th>Risk Score</th>
-              <th>Duration</th>
-            </tr>
-          </thead>
-          <tbody id="incidents-tbody">
-            <tr>
-              <td colspan="9" style="text-align:center; padding: 20px; color: var(--text-dim);">
-                Loading audit logs...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </div>
-
-  <script>
-    let expandedIncidents = new Set();
-
-    async function fetchHealth() {
-      try {
-        const resp = await fetch('/api/health');
-        if (!resp.ok) throw new Error('Health API error ' + resp.status);
-        const data = await resp.json();
-        renderHealth(data.targets || []);
-      } catch (err) {
-        console.error('Failed to fetch health:', err);
-      }
-    }
-
-    function renderHealth(targets) {
-      const tbody = document.getElementById('health-tbody');
-      const summary = document.getElementById('health-summary');
-
-      if (!targets || targets.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-dim); padding:24px;">No targets configured.</td></tr>';
-        summary.textContent = '0 Targets';
-        return;
-      }
-
-      let upCount = 0;
-      let downCount = 0;
-      targets.forEach(t => {
-        if (t.status === 'up') upCount++;
-        else if (t.status === 'down') downCount++;
-      });
-      summary.textContent = `${upCount} UP / ${downCount} DOWN (${targets.length} Total)`;
-
-      tbody.innerHTML = targets.map(t => {
-        const statusBadge = t.status === 'up'
-          ? '<span class="badge badge-up">UP</span>'
-          : (t.status === 'down' ? '<span class="badge badge-down">DOWN</span>' : '<span class="badge badge-unknown">UNKNOWN</span>');
-
-        const latencyText = (t.latency_ms !== null && t.latency_ms !== undefined)
-          ? `<span class="mono">${t.latency_ms} ms</span>`
-          : '<span style="color:var(--text-dim);">—</span>';
-
-        const endpoint = t.type === 'http'
-          ? `${t.host}:${t.port || 80}${t.path || '/'}`
-          : `${t.host}:${t.port}`;
-
-        const lastChecked = t.last_checked
-          ? new Date(t.last_checked).toLocaleTimeString()
-          : '—';
-
-        const errorHtml = t.error
-          ? `<span class="error-text">${escapeHtml(t.error)}</span>`
-          : (t.status === 'up' ? '<span class="success-text">Reachable (OK)</span>' : '<span style="color:var(--text-dim);">—</span>');
-
-        return `<tr class="hover-row">
-          <td style="font-weight:600;">${escapeHtml(t.name)}</td>
-          <td><span class="mono" style="color:var(--accent);">${escapeHtml(t.type)}</span></td>
-          <td class="mono">${escapeHtml(endpoint)}</td>
-          <td>${statusBadge}</td>
-          <td>${latencyText}</td>
-          <td class="mono" style="color:var(--text-muted);">${lastChecked}</td>
-          <td>${errorHtml}</td>
-        </tr>`;
-      }).join('');
-    }
-
-    async function fetchIncidents() {
-      try {
-        const resp = await fetch('/api/incidents');
-        if (!resp.ok) throw new Error('Incidents API error ' + resp.status);
-        const data = await resp.json();
-        renderIncidents(data.incidents || []);
-      } catch (err) {
-        console.error('Failed to fetch incidents:', err);
-      }
-    }
-
-    function renderIncidents(incidents) {
-      const tbody = document.getElementById('incidents-tbody');
-      const summary = document.getElementById('incidents-summary');
-
-      if (!incidents || incidents.length === 0) {
-        summary.textContent = '0 Incidents';
-        tbody.innerHTML = `<tr><td colspan="9">
-          <div class="empty-state">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-            <h3>No incidents recorded yet</h3>
-            <p>Audit log files are empty or not created yet in this environment.</p>
-          </div>
-        </td></tr>`;
-        return;
-      }
-
-      summary.textContent = `${incidents.length} Incident${incidents.length > 1 ? 's' : ''}`;
-
-      let rowsHtml = '';
-      incidents.forEach(inc => {
-        const isExp = expandedIncidents.has(inc.incident_id);
-        const decBadgeClass = inc.final_decision === 'autonomous' ? 'badge-autonomous' : (inc.final_decision === 'soft_contain' ? 'badge-soft_contain' : 'badge-escalate');
-
-        const keyStr = (inc.correlation_key && inc.correlation_key.length) ? inc.correlation_key.join(' / ') : '—';
-        const timeStr = inc.timestamp ? new Date(inc.timestamp).toLocaleString() : '—';
-        const riskStr = (inc.risk_score !== null && inc.risk_score !== undefined) ? Number(inc.risk_score).toFixed(2) : '—';
-        const durStr = inc.duration_ms ? `${(inc.duration_ms / 1000).toFixed(2)}s` : '—';
-
-        rowsHtml += `<tr class="hover-row clickable-row ${isExp ? 'expanded' : ''}" onclick="toggleIncident('${inc.incident_id}')">
-          <td><span class="expand-icon">&#9654;</span></td>
-          <td class="mono" style="font-weight:600; color:#38bdf8;">${escapeHtml(inc.incident_id)}</td>
-          <td class="mono" style="font-size:0.8rem; color:var(--text-muted);">${timeStr}</td>
-          <td class="mono">${escapeHtml(keyStr)}</td>
-          <td>${inc.event_count || 0}</td>
-          <td><span class="badge ${decBadgeClass}">${escapeHtml(inc.final_decision || 'unknown')}</span></td>
-          <td class="mono" style="color:#e2e8f0;">${escapeHtml(inc.proposed_action || '—')}</td>
-          <td class="mono">${riskStr}</td>
-          <td class="mono">${durStr}</td>
-        </tr>`;
-
-        if (isExp) {
-          rowsHtml += `<tr class="detail-row">
-            <td colspan="9">
-              <div class="detail-content">
-                <div class="stage-pipeline">
-                  ${renderStageCard('1. Triage', inc.stages ? inc.stages.triage : null)}
-                  ${renderStageCard('2. MITRE ATT&CK', inc.stages ? inc.stages.mitre : null)}
-                  ${renderStageCard('3. Decision Agent', inc.stages ? inc.stages.decision : null)}
-                  ${renderStageCard('4. Gate & Policy', inc.stages ? inc.stages.gate : null)}
-                  ${renderStageCard('5. Executor', inc.stages ? inc.stages.executor : null)}
-                </div>
-                ${inc.validation_errors && inc.validation_errors.length ? `
-                  <div style="margin-top:10px; padding:10px; background:rgba(239,68,68,0.1); border-left:3px solid var(--down); border-radius:4px; font-size:0.8rem;">
-                    <strong>Validation Errors:</strong>
-                    <ul style="margin-left: 20px; margin-top: 4px;">
-                      ${inc.validation_errors.map(e => `<li>${escapeHtml(e)}</li>`).join('')}
-                    </ul>
-                  </div>
-                ` : ''}
-                <details>
-                  <summary class="json-summary">View Raw Audit Records (${(inc.audit_records || []).length} lines)</summary>
-                  <pre class="raw-json">${escapeHtml(JSON.stringify(inc.audit_records || [], null, 2))}</pre>
-                </details>
-              </div>
-            </td>
-          </tr>`;
-        }
-      });
-
-      tbody.innerHTML = rowsHtml;
-    }
-
-    function renderStageCard(title, stage) {
-      if (!stage) {
-        return `<div class="stage-card">
-          <div class="stage-card-header"><span class="stage-name">${title}</span><span class="badge badge-unknown">N/A</span></div>
-          <div class="stage-body">No data recorded</div>
-        </div>`;
-      }
-
-      const st = stage.status || 'unknown';
-      let badgeClass = 'badge-unknown';
-      if (st === 'ok' || st === 'simulated' || st === 'executed') badgeClass = 'badge-up';
-      else if (st === 'error' || st === 'escalated') badgeClass = 'badge-down';
-      else if (st === 'refused' || st === 'skipped') badgeClass = 'badge-warn';
-
-      let bodyHtml = '';
-      if (stage.duration_ms) bodyHtml += `<div>Timing: <span class="mono">${stage.duration_ms} ms</span></div>`;
-      if (stage.model) bodyHtml += `<div>Model: <span class="mono">${escapeHtml(stage.model)}</span></div>`;
-      if (stage.proposed_action) bodyHtml += `<div>Proposed: <span class="mono">${escapeHtml(stage.proposed_action)}</span></div>`;
-      if (stage.final_decision) bodyHtml += `<div>Decision: <span class="mono">${escapeHtml(stage.final_decision)}</span></div>`;
-      if (stage.risk_score !== undefined && stage.risk_score !== null) bodyHtml += `<div>Risk Score: <span class="mono">${stage.risk_score}</span></div>`;
-      if (stage.action) bodyHtml += `<div>Action: <span class="mono">${escapeHtml(stage.action)}</span></div>`;
-      if (stage.error) bodyHtml += `<div class="error-text" style="margin-top:4px;">${escapeHtml(stage.error)}</div>`;
-
-      return `<div class="stage-card">
-        <div class="stage-card-header">
-          <span class="stage-name">${title}</span>
-          <span class="badge ${badgeClass}">${escapeHtml(st)}</span>
-        </div>
-        <div class="stage-body">
-          ${bodyHtml || '<span style="color:var(--text-dim);">Completed</span>'}
-        </div>
-      </div>`;
-    }
-
-    function toggleIncident(id) {
-      if (expandedIncidents.has(id)) {
-        expandedIncidents.delete(id);
-      } else {
-        expandedIncidents.add(id);
-      }
-      fetchIncidents();
-    }
-
-    function escapeHtml(str) {
-      if (str === null || str === undefined) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
-
-    async function refreshAll() {
-      document.getElementById('last-refreshed-label').textContent = 'Updating...';
-      await Promise.all([fetchHealth(), fetchIncidents()]);
-      document.getElementById('last-refreshed-label').textContent = 'Updated: ' + new Date().toLocaleTimeString();
-    }
-
-    // Auto-refresh every 8 seconds
-    refreshAll();
-    setInterval(refreshAll, 8000);
-  </script>
-</body>
-</html>
-"""
 
 
 # --------------------------------------------------------------------------- HTTP Request Handler
 class DashboardHandler(BaseHTTPRequestHandler):
-    """Serves the dashboard HTML and JSON API endpoints."""
+    """Serves the Wazuh-themed Autonomous SOC Platform UI and REST APIs."""
 
     checker: HealthChecker
     log_reader: AuditLogReader
+    case_store: CaseStore
 
     def do_GET(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path.rstrip("/")
 
         if path == "" or path == "/index.html":
-            self._send_html(HTML_PAGE)
+            self._send_html(_load_html_template())
         elif path == "/api/health":
             self._send_json(self.checker.get_status())
         elif path == "/api/incidents":
@@ -1276,8 +1032,85 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self._send_json({"status": "ok", "incident": inc})
             else:
                 self._send_json({"status": "error", "message": f"Incident '{inc_id}' not found"}, status=404)
+        elif path == "/api/mitre":
+            incidents = self.log_reader.load_incidents()
+            intel = _build_threat_intel(incidents)
+            self._send_json({"status": "ok", **intel})
+        elif path == "/api/telemetry":
+            incidents = self.log_reader.load_incidents()
+            self._send_json(_load_telemetry_feed(incidents))
+        elif path == "/api/policy":
+            self._send_json(_load_governance_policy())
+        elif path == "/api/system-info":
+            self._send_json(
+                {
+                    "status": "ok",
+                    "platform": "Autonomous SOC & SOAR Engine",
+                    "deployment_model": "Vendor-Neutral Multi-Network Monitor",
+                    "shadow_mode": os.environ.get("SHADOW_MODE", "true").lower() == "true",
+                    "region": os.environ.get("OCI_REGION", "ap-mumbai-1"),
+                }
+            )
         else:
             self._send_json({"status": "error", "message": "Not Found"}, status=404)
+
+    def do_POST(self) -> None:
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path.rstrip("/")
+
+        if path == "/api/health/refresh":
+            self.checker.check_all()
+            self._send_json(self.checker.get_status())
+            return
+
+        if path == "/api/siem/ingest":
+            content_len = int(self.headers.get("Content-Length", "0"))
+            raw = self.rfile.read(content_len) if content_len > 0 else b"{}"
+            try:
+                body = json.loads(raw.decode("utf-8"))
+            except json.JSONDecodeError:
+                self._send_json({"status": "error", "message": "Invalid JSON body"}, status=400)
+                return
+
+            try:
+                result = _ingest_siem_payload(body, self.case_store)
+                self._send_json(result)
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=400)
+            except Exception as exc:
+                logger.exception("SIEM ingestion failed")
+                self._send_json({"status": "error", "message": str(exc)}, status=500)
+            return
+
+        if path.startswith("/api/incidents/") and path.endswith("/case"):
+            inc_id = path[len("/api/incidents/") : -len("/case")].strip("/")
+            inc = self.log_reader.get_incident(inc_id)
+            if inc is None:
+                self._send_json({"status": "error", "message": f"Incident '{inc_id}' not found"}, status=404)
+                return
+
+            content_len = int(self.headers.get("Content-Length", "0"))
+            raw = self.rfile.read(content_len) if content_len > 0 else b"{}"
+            try:
+                body = json.loads(raw.decode("utf-8"))
+            except json.JSONDecodeError:
+                self._send_json({"status": "error", "message": "Invalid JSON body"}, status=400)
+                return
+
+            action = str(body.get("action", "")).strip()
+            note = str(body.get("note", "")).strip()
+            analyst = str(body.get("analyst", "soc-analyst")).strip() or "soc-analyst"
+
+            try:
+                updated_case = self.case_store.update_case(inc_id, action=action, note=note, analyst=analyst)
+                if action == "approve_containment":
+                    _record_analyst_containment_audit(self.log_reader.executor_audit_path, inc, analyst, note)
+                self._send_json({"status": "ok", "case": updated_case})
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=400)
+            return
+
+        self._send_json({"status": "error", "message": "Not Found"}, status=404)
 
     def _send_html(self, content: str, status: int = 200) -> None:
         data = content.encode("utf-8")
@@ -1298,7 +1131,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def log_message(self, format: str, *args: Any) -> None:
-        # Override to keep test output and terminal clean unless debugging
         logger.debug("%s - - [%s] %s", self.address_string(), self.log_date_time_string(), format % args)
 
 
@@ -1309,6 +1141,7 @@ def create_server(
     targets_path: Optional[str | Path] = None,
     audit_log_path: Optional[str | Path] = None,
     executor_audit_path: Optional[str | Path] = None,
+    case_store_path: Optional[str | Path] = None,
     poll_interval: float = DEFAULT_POLL_INTERVAL,
     probe_timeout: float = DEFAULT_PROBE_TIMEOUT,
     auto_start_checker: bool = True,
@@ -1319,9 +1152,11 @@ def create_server(
         poll_interval=poll_interval,
         probe_timeout=probe_timeout,
     )
+    case_store = CaseStore(store_path=case_store_path)
     log_reader = AuditLogReader(
         audit_log_path=audit_log_path,
         executor_audit_path=executor_audit_path,
+        case_store=case_store,
     )
 
     class BoundHandler(DashboardHandler):
@@ -1329,11 +1164,13 @@ def create_server(
 
     BoundHandler.checker = checker
     BoundHandler.log_reader = log_reader
+    BoundHandler.case_store = case_store
 
+    ThreadingHTTPServer.allow_reuse_address = True
     server = ThreadingHTTPServer((host, port), BoundHandler)
-    # Store references on server for lifecycle access
     server.checker = checker  # type: ignore[attr-defined]
     server.log_reader = log_reader  # type: ignore[attr-defined]
+    server.case_store = case_store  # type: ignore[attr-defined]
 
     if auto_start_checker:
         checker.start()
@@ -1342,7 +1179,7 @@ def create_server(
 
 
 def main() -> None:
-    """Entry point for running the dashboard server directly."""
+    """Entry point for running the Autonomous SOC Platform server directly."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
     host = os.environ.get("DASHBOARD_HOST", DEFAULT_HOST)
@@ -1350,6 +1187,7 @@ def main() -> None:
     targets_path = os.environ.get("DASHBOARD_TARGETS_PATH") or os.environ.get("DASHBOARD_TARGETS_FILE")
     audit_log_path = os.environ.get("AI_ENGINE_AUDIT_LOG")
     executor_audit_path = os.environ.get("AI_ENGINE_EXECUTOR_AUDIT_LOG")
+    case_store_path = os.environ.get("SOC_CASE_STATE_PATH")
     poll_interval = float(os.environ.get("DASHBOARD_POLL_INTERVAL", DEFAULT_POLL_INTERVAL))
     probe_timeout = float(os.environ.get("DASHBOARD_PROBE_TIMEOUT", DEFAULT_PROBE_TIMEOUT))
 
@@ -1359,22 +1197,23 @@ def main() -> None:
         targets_path=targets_path,
         audit_log_path=audit_log_path,
         executor_audit_path=executor_audit_path,
+        case_store_path=case_store_path,
         poll_interval=poll_interval,
         probe_timeout=probe_timeout,
         auto_start_checker=True,
     )
 
     actual_port = server.server_port
-    print(f"[*] SOC Automation Dashboard running on http://{host}:{actual_port}/")
-    print(f"[*] Health targets: {server.checker.targets_path}")  # type: ignore[attr-defined]
-    print(f"[*] Agent audit log: {server.log_reader.audit_log_path}")  # type: ignore[attr-defined]
-    print(f"[*] Executor audit log: {server.log_reader.executor_audit_path}")  # type: ignore[attr-defined]
+    print(f"[*] Autonomous SOC Operations Platform running on http://{host}:{actual_port}/")
+    print(f"[*] Monitored connectors: {server.checker.targets_path}")  # type: ignore[attr-defined]
+    print(f"[*] AI Engine audit log:  {server.log_reader.audit_log_path}")  # type: ignore[attr-defined]
+    print(f"[*] Executor audit log:   {server.log_reader.executor_audit_path}")  # type: ignore[attr-defined]
     print("[*] Press Ctrl+C to terminate.")
 
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\n[*] Shutting down dashboard...")
+        print("\n[*] Shutting down SOC platform...")
     finally:
         server.checker.stop()  # type: ignore[attr-defined]
         server.server_close()

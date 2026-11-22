@@ -1,0 +1,2177 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autonomous SOC &bull; Security Operations &amp; Automated Response</title>
+  <style>
+    /* =========================================================================
+       Authentic Wazuh 4.x / OpenSearch Dashboards (EUI) Enterprise Theme
+       ========================================================================= */
+    :root {
+      /* Wazuh EUI Light Enterprise Theme (Default) */
+      --wz-bg: #f5f7fa;
+      --wz-surface: #ffffff;
+      --wz-surface-subdued: #fafbfd;
+      --wz-surface-hover: #f0f4f8;
+      --wz-border: #d3dae6;
+      --wz-border-light: #e7ebf2;
+
+      --wz-text: #1a1c21;
+      --wz-text-secondary: #343741;
+      --wz-text-muted: #69707d;
+      --wz-text-subdued: #8991a0;
+
+      /* Wazuh Brand & EUI Semantic Tokens */
+      --wz-blue: #006bb4;
+      --wz-blue-hover: #00558f;
+      --wz-blue-bg: #e6f2fa;
+      --wz-cyan: #00a9e5;
+      --wz-navy: #00263a;
+
+      --wz-success: #017d73;
+      --wz-success-bg: #e5f4f2;
+      --wz-success-border: #9ad4ce;
+
+      --wz-warn: #b87400;
+      --wz-warn-accent: #f5a700;
+      --wz-warn-bg: #fef6e5;
+      --wz-warn-border: #f3d085;
+
+      --wz-danger: #bd271e;
+      --wz-danger-bg: #fbe9e8;
+      --wz-danger-border: #ebb3af;
+
+      --wz-purple: #6046b4;
+      --wz-purple-bg: #f1eeff;
+
+      --wz-shadow-sm: 0 1px 2px rgba(26, 28, 33, 0.05);
+      --wz-shadow-flyout: -4px 0 24px rgba(26, 28, 33, 0.14);
+
+      --wz-topbar-h: 48px;
+      --wz-sidebar-w: 244px;
+      --wz-radius: 4px;
+      --wz-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      --wz-mono: "Roboto Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    /* Authentic OpenSearch Dashboards / Wazuh Dark EUI Theme */
+    [data-theme="dark"] {
+      --wz-bg: #141519;
+      --wz-surface: #1d1e24;
+      --wz-surface-subdued: #18191e;
+      --wz-surface-hover: #25262e;
+      --wz-border: #343741;
+      --wz-border-light: #2a2c34;
+
+      --wz-text: #dfe5ef;
+      --wz-text-secondary: #c5ccd8;
+      --wz-text-muted: #98a2b3;
+      --wz-text-subdued: #6e7787;
+
+      --wz-blue: #36a2ef;
+      --wz-blue-hover: #5bb5f5;
+      --wz-blue-bg: rgba(0, 169, 229, 0.14);
+      --wz-cyan: #00a9e5;
+
+      --wz-success: #42b8a8;
+      --wz-success-bg: rgba(1, 125, 115, 0.22);
+      --wz-success-border: rgba(66, 184, 168, 0.38);
+
+      --wz-warn: #f5b942;
+      --wz-warn-accent: #f5a700;
+      --wz-warn-bg: rgba(245, 167, 0, 0.16);
+      --wz-warn-border: rgba(245, 167, 0, 0.35);
+
+      --wz-danger: #f56c65;
+      --wz-danger-bg: rgba(189, 39, 30, 0.22);
+      --wz-danger-border: rgba(245, 108, 101, 0.38);
+
+      --wz-purple: #a58ef0;
+      --wz-purple-bg: rgba(96, 70, 180, 0.24);
+
+      --wz-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+      --wz-shadow-flyout: -4px 0 28px rgba(0, 0, 0, 0.55);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--wz-font);
+      background: var(--wz-bg);
+      color: var(--wz-text);
+      font-size: 13px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* -----------------------------------------------------------------------
+       Top Wazuh Global Bar
+       ----------------------------------------------------------------------- */
+    .wz-topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--wz-topbar-h);
+      background: var(--wz-surface);
+      border-bottom: 1px solid var(--wz-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 200;
+    }
+
+    .wz-topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .wz-brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-weight: 700;
+      font-size: 14.5px;
+      color: var(--wz-text);
+      text-decoration: none;
+      letter-spacing: -0.01em;
+    }
+
+    .wz-logo-mark {
+      width: 26px;
+      height: 26px;
+      border-radius: 4px;
+      background: var(--wz-cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .wz-divider-v {
+      width: 1px;
+      height: 20px;
+      background: var(--wz-border);
+    }
+
+    .wz-breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      color: var(--wz-text-muted);
+    }
+    .wz-breadcrumbs .crumb-active { color: var(--wz-text); font-weight: 600; }
+
+    .wz-topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .wz-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11.5px;
+      font-weight: 600;
+      background: var(--wz-surface-subdued);
+      border: 1px solid var(--wz-border);
+      color: var(--wz-text-secondary);
+    }
+    .wz-status-pill.clickable { cursor: pointer; }
+    .wz-status-pill.clickable:hover { border-color: var(--wz-blue); }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .dot-up { background: var(--wz-success); }
+    .dot-down { background: var(--wz-danger); }
+    .dot-warn { background: var(--wz-warn-accent); }
+
+    .eui-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 30px;
+      padding: 0 11px;
+      border-radius: var(--wz-radius);
+      border: 1px solid var(--wz-border);
+      background: var(--wz-surface);
+      color: var(--wz-text-secondary);
+      font-family: var(--wz-font);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+      white-space: nowrap;
+    }
+    .eui-btn:hover { background: var(--wz-surface-hover); border-color: var(--wz-text-muted); }
+    .eui-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .eui-btn-primary {
+      background: var(--wz-blue);
+      border-color: var(--wz-blue);
+      color: #ffffff;
+    }
+    .eui-btn-primary:hover { background: var(--wz-blue-hover); border-color: var(--wz-blue-hover); }
+
+    .eui-btn-success {
+      background: var(--wz-success);
+      border-color: var(--wz-success);
+      color: #ffffff;
+    }
+    .eui-btn-success:hover { opacity: 0.92; }
+
+    .eui-btn-danger-outline {
+      background: var(--wz-surface);
+      border-color: var(--wz-danger-border);
+      color: var(--wz-danger);
+    }
+    .eui-btn-danger-outline:hover { background: var(--wz-danger-bg); }
+
+    /* -----------------------------------------------------------------------
+       Layout Shell
+       ----------------------------------------------------------------------- */
+    .wz-shell {
+      display: flex;
+      padding-top: var(--wz-topbar-h);
+      min-height: 100vh;
+    }
+
+    .wz-sidebar {
+      position: fixed;
+      top: var(--wz-topbar-h);
+      left: 0;
+      bottom: 0;
+      width: var(--wz-sidebar-w);
+      background: var(--wz-surface-subdued);
+      border-right: 1px solid var(--wz-border);
+      overflow-y: auto;
+      padding: 12px 0 20px;
+      z-index: 150;
+    }
+
+    .wz-nav-group { margin-bottom: 14px; }
+
+    .wz-nav-label {
+      padding: 6px 16px 4px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--wz-text-muted);
+    }
+
+    .wz-nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 16px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--wz-text-secondary);
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: background 0.1s, color 0.1s;
+      user-select: none;
+    }
+    .wz-nav-item:hover { background: var(--wz-surface-hover); color: var(--wz-text); }
+    .wz-nav-item.active {
+      background: var(--wz-blue-bg);
+      color: var(--wz-blue);
+      font-weight: 600;
+      border-left-color: var(--wz-blue);
+    }
+
+    .wz-nav-item-left { display: flex; align-items: center; gap: 9px; }
+
+    .wz-nav-badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: var(--wz-border-light);
+      color: var(--wz-text-muted);
+    }
+    .wz-nav-item.active .wz-nav-badge { background: var(--wz-blue); color: #ffffff; }
+    .wz-nav-badge.badge-alert { background: var(--wz-danger); color: #ffffff; }
+
+    .wz-sidebar-footer {
+      margin-top: 16px;
+      padding: 12px 16px 0;
+      border-top: 1px solid var(--wz-border-light);
+      font-size: 11px;
+      color: var(--wz-text-muted);
+      line-height: 1.6;
+    }
+
+    .wz-main {
+      margin-left: var(--wz-sidebar-w);
+      flex: 1;
+      padding: 18px 22px 44px;
+      max-width: calc(100vw - var(--wz-sidebar-w));
+    }
+
+    /* -----------------------------------------------------------------------
+       Headers & KQL Filter Bar
+       ----------------------------------------------------------------------- */
+    .wz-page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .wz-page-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--wz-text);
+      letter-spacing: -0.015em;
+    }
+
+    .wz-page-subtitle {
+      font-size: 12px;
+      color: var(--wz-text-muted);
+      margin-top: 2px;
+    }
+
+    .wz-kql-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--wz-surface);
+      border: 1px solid var(--wz-border);
+      border-radius: var(--wz-radius);
+      padding: 6px 10px;
+      margin-bottom: 16px;
+      box-shadow: var(--wz-shadow-sm);
+      flex-wrap: wrap;
+    }
+
+    .wz-kql-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--wz-blue);
+      background: var(--wz-blue-bg);
+      padding: 2px 7px;
+      border-radius: 3px;
+      font-family: var(--wz-mono);
+    }
+
+    .wz-kql-input {
+      flex: 1;
+      min-width: 220px;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--wz-text);
+      font-family: var(--wz-mono);
+      font-size: 12px;
+    }
+
+    .wz-filter-pills { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+
+    .wz-pill-btn {
+      padding: 3px 9px;
+      border-radius: 3px;
+      border: 1px solid var(--wz-border);
+      background: var(--wz-surface-subdued);
+      color: var(--wz-text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .wz-pill-btn:hover { color: var(--wz-text); border-color: var(--wz-text-muted); }
+    .wz-pill-btn.active { background: var(--wz-blue); border-color: var(--wz-blue); color: #ffffff; }
+
+    /* -----------------------------------------------------------------------
+       KPI Metric Strip (SOC Analyst KPIs)
+       ----------------------------------------------------------------------- */
+    .wz-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .wz-kpi-card {
+      background: var(--wz-surface);
+      border: 1px solid var(--wz-border);
+      border-top: 3px solid var(--wz-blue);
+      border-radius: var(--wz-radius);
+      padding: 12px 14px;
+      box-shadow: var(--wz-shadow-sm);
+    }
+    .wz-kpi-card.kpi-success { border-top-color: var(--wz-success); }
+    .wz-kpi-card.kpi-danger  { border-top-color: var(--wz-danger); }
+    .wz-kpi-card.kpi-warn    { border-top-color: var(--wz-warn-accent); }
+    .wz-kpi-card.kpi-cyan    { border-top-color: var(--wz-cyan); }
+
+    .wz-kpi-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--wz-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .wz-kpi-value {
+      font-size: 25px;
+      font-weight: 700;
+      color: var(--wz-text);
+      margin: 4px 0 2px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.15;
+    }
+
+    .wz-kpi-sub { font-size: 11.5px; color: var(--wz-text-muted); }
+
+    /* -----------------------------------------------------------------------
+       Panels & Grids
+       ----------------------------------------------------------------------- */
+    .wz-panel {
+      background: var(--wz-surface);
+      border: 1px solid var(--wz-border);
+      border-radius: var(--wz-radius);
+      box-shadow: var(--wz-shadow-sm);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .wz-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--wz-border-light);
+      background: var(--wz-surface);
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .wz-panel-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--wz-text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .wz-panel-meta { font-size: 11.5px; color: var(--wz-text-muted); }
+    .wz-panel-body { padding: 14px 16px; }
+
+    .wz-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .wz-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    /* -----------------------------------------------------------------------
+       Connector / Endpoint Cards
+       ----------------------------------------------------------------------- */
+    .wz-health-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 10px;
+    }
+
+    .wz-target-card {
+      border: 1px solid var(--wz-border);
+      border-radius: var(--wz-radius);
+      padding: 11px 13px;
+      background: var(--wz-surface-subdued);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .wz-target-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .wz-target-name {
+      font-weight: 700;
+      font-size: 12.5px;
+      color: var(--wz-text);
+      font-family: var(--wz-mono);
+    }
+
+    .wz-target-endpoint {
+      font-family: var(--wz-mono);
+      font-size: 11.5px;
+      color: var(--wz-text-muted);
+      word-break: break-all;
+    }
+
+    .wz-target-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--wz-text-muted);
+      padding-top: 4px;
+      border-top: 1px solid var(--wz-border-light);
+    }
+
+    /* -----------------------------------------------------------------------
+       Badges (Wazuh EUI)
+       ----------------------------------------------------------------------- */
+    .eui-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.3;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+
+    .badge-up, .badge-autonomous, .badge-contained, .badge-executed, .badge-ok {
+      background: var(--wz-success-bg);
+      color: var(--wz-success);
+      border-color: var(--wz-success-border);
+    }
+    .badge-soft_contain, .badge-warn, .badge-simulated, .badge-acknowledged {
+      background: var(--wz-warn-bg);
+      color: var(--wz-warn);
+      border-color: var(--wz-warn-border);
+    }
+    .badge-down, .badge-escalate, .badge-open, .badge-error, .badge-refused {
+      background: var(--wz-danger-bg);
+      color: var(--wz-danger);
+      border-color: var(--wz-danger-border);
+    }
+    .badge-info, .badge-blue {
+      background: var(--wz-blue-bg);
+      color: var(--wz-blue);
+    }
+    .badge-mitre {
+      background: var(--wz-purple-bg);
+      color: var(--wz-purple);
+      font-family: var(--wz-mono);
+    }
+    .badge-neutral, .badge-false_positive, .badge-none {
+      background: var(--wz-border-light);
+      color: var(--wz-text-muted);
+    }
+
+    /* -----------------------------------------------------------------------
+       Tables
+       ----------------------------------------------------------------------- */
+    .wz-table-wrap { overflow-x: auto; }
+
+    table.wz-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+
+    table.wz-table th {
+      text-align: left;
+      padding: 9px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--wz-text-muted);
+      background: var(--wz-surface-subdued);
+      border-bottom: 1px solid var(--wz-border);
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    table.wz-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--wz-border-light);
+      color: var(--wz-text-secondary);
+      vertical-align: middle;
+    }
+
+    table.wz-table tbody tr { transition: background 0.08s; }
+    table.wz-table tbody tr.clickable { cursor: pointer; }
+    table.wz-table tbody tr:hover { background: var(--wz-surface-hover); }
+
+    .mono { font-family: var(--wz-mono); font-size: 11.5px; }
+
+    /* Risk Bar & Stage Pips */
+    .risk-wrap { display: flex; align-items: center; gap: 7px; min-width: 96px; }
+    .risk-track { flex: 1; height: 6px; background: var(--wz-border-light); border-radius: 3px; overflow: hidden; }
+    .risk-fill { height: 100%; border-radius: 3px; }
+
+    .stage-strip { display: flex; align-items: center; gap: 3px; }
+    .stage-pip {
+      padding: 2px 5px;
+      border-radius: 2px;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: var(--wz-mono);
+    }
+    .pip-ok { background: var(--wz-success-bg); color: var(--wz-success); }
+    .pip-warn { background: var(--wz-warn-bg); color: var(--wz-warn); }
+    .pip-err { background: var(--wz-danger-bg); color: var(--wz-danger); }
+    .pip-skip { background: var(--wz-border-light); color: var(--wz-text-muted); }
+
+    /* MITRE Cards & Charts */
+    .mitre-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
+      gap: 12px;
+    }
+    .mitre-card {
+      border: 1px solid var(--wz-border);
+      border-left: 3px solid var(--wz-blue);
+      border-radius: var(--wz-radius);
+      padding: 12px 14px;
+      background: var(--wz-surface);
+    }
+    .mitre-card.sev-high { border-left-color: var(--wz-danger); }
+    .mitre-card.sev-med  { border-left-color: var(--wz-warn-accent); }
+
+    .chart-empty { padding: 26px 10px; text-align: center; color: var(--wz-text-muted); font-size: 12px; }
+
+    .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12px; }
+    .bar-label {
+      width: 118px;
+      flex-shrink: 0;
+      font-family: var(--wz-mono);
+      font-size: 11.5px;
+      color: var(--wz-text-secondary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .bar-track { flex: 1; height: 14px; background: var(--wz-border-light); border-radius: 2px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--wz-blue); border-radius: 2px; }
+    .bar-val { width: 36px; text-align: right; font-weight: 700; font-family: var(--wz-mono); font-size: 11.5px; }
+
+    /* -----------------------------------------------------------------------
+       Wazuh EUI Flyout Drawer (Analyst Investigation & HITL Workbench)
+       ----------------------------------------------------------------------- */
+    .flyout-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 18, 25, 0.38);
+      z-index: 300;
+      display: none;
+    }
+    .flyout-backdrop.open { display: block; }
+
+    .flyout-drawer {
+      position: fixed;
+      top: 0; right: 0; bottom: 0;
+      width: min(700px, 95vw);
+      background: var(--wz-surface);
+      border-left: 1px solid var(--wz-border);
+      box-shadow: var(--wz-shadow-flyout);
+      z-index: 310;
+      transform: translateX(100%);
+      transition: transform 0.18s ease-out;
+      display: flex;
+      flex-direction: column;
+    }
+    .flyout-drawer.open { transform: translateX(0); }
+
+    .flyout-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--wz-border);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--wz-surface-subdued);
+    }
+
+    .flyout-body { padding: 18px 20px 32px; overflow-y: auto; flex: 1; }
+    .flyout-section { margin-bottom: 18px; }
+    .flyout-section-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--wz-text-muted);
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--wz-border-light);
+    }
+
+    .hitl-box {
+      border: 1px solid var(--wz-border);
+      border-left: 3px solid var(--wz-blue);
+      border-radius: var(--wz-radius);
+      padding: 12px 14px;
+      background: var(--wz-surface-subdued);
+    }
+
+    .hitl-input {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid var(--wz-border);
+      border-radius: var(--wz-radius);
+      background: var(--wz-surface);
+      color: var(--wz-text);
+      font-family: var(--wz-font);
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    .stepper { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .stepper-box {
+      border: 1px solid var(--wz-border);
+      border-radius: var(--wz-radius);
+      padding: 8px;
+      background: var(--wz-surface-subdued);
+      text-align: center;
+    }
+
+    .timeline-list {
+      list-style: none;
+      border-left: 2px solid var(--wz-blue);
+      padding-left: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .timeline-list li {
+      font-size: 12px;
+      color: var(--wz-text-secondary);
+      font-family: var(--wz-mono);
+      background: var(--wz-surface-subdued);
+      padding: 7px 10px;
+      border-radius: 3px;
+      border: 1px solid var(--wz-border-light);
+      word-break: break-word;
+    }
+
+    pre.json-viewer {
+      background: var(--wz-surface-subdued);
+      border: 1px solid var(--wz-border);
+      border-radius: var(--wz-radius);
+      padding: 12px;
+      font-family: var(--wz-mono);
+      font-size: 11px;
+      max-height: 280px;
+      overflow: auto;
+      color: var(--wz-text-secondary);
+    }
+
+    .wz-view { display: none; }
+    .wz-view.active { display: block; }
+
+    @media (max-width: 1180px) {
+      .wz-kpi-grid { grid-template-columns: repeat(3, 1fr); }
+      .wz-grid-3 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 820px) {
+      .wz-sidebar { display: none; }
+      .wz-main { margin-left: 0; max-width: 100vw; }
+      .wz-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .wz-grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Wazuh Global Navigation Bar -->
+  <header class="wz-topbar">
+    <div class="wz-topbar-left">
+      <a href="#" class="wz-brand" onclick="switchView('overview'); return false;">
+        <div class="wz-logo-mark">S</div>
+        <span>Autonomous SOC <span style="font-weight:400; color:var(--wz-text-muted);">Platform</span></span>
+      </a>
+      <div class="wz-divider-v"></div>
+      <div class="wz-breadcrumbs">
+        <span>Security Operations</span>
+        <span>/</span>
+        <span class="crumb-active" id="breadcrumb-view">SOC Overview</span>
+      </div>
+    </div>
+
+    <div class="wz-topbar-right">
+      <div class="wz-status-pill clickable" id="escalation-pill" onclick="switchView('escalations')" title="View cases pending analyst review">
+        <span class="dot dot-up" id="escalation-dot"></span>
+        <span id="escalation-text">0 Escalations</span>
+      </div>
+      <div class="wz-status-pill" id="global-mode-pill">
+        <span class="dot dot-warn"></span>
+        <span>Shadow Mode</span>
+      </div>
+      <div class="wz-status-pill">
+        <span class="dot dot-up"></span>
+        <span id="last-sync-text">Syncing...</span>
+      </div>
+      <button class="eui-btn" onclick="refreshAll(true)" title="Force re-probe connectors & reload telemetry">
+        &#8635; Refresh
+      </button>
+      <button class="eui-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Switch Wazuh Light/Dark EUI Theme">
+        &#9790; Dark
+      </button>
+    </div>
+  </header>
+
+  <div class="wz-shell">
+    <!-- Left Wazuh Enterprise Modules Sidebar -->
+    <aside class="wz-sidebar">
+      <div class="wz-nav-group">
+        <div class="wz-nav-label">Security Operations</div>
+        <div class="wz-nav-item active" data-view="overview" onclick="switchView('overview')">
+          <span class="wz-nav-item-left">&#9635; SOC Overview</span>
+        </div>
+        <div class="wz-nav-item" data-view="cases" onclick="switchView('cases')">
+          <span class="wz-nav-item-left">&#9776; Incident Queue</span>
+          <span class="wz-nav-badge" id="nav-badge-incidents">0</span>
+        </div>
+        <div class="wz-nav-item" data-view="escalations" onclick="switchView('escalations')">
+          <span class="wz-nav-item-left">&#9888; Escalation Queue</span>
+          <span class="wz-nav-badge" id="nav-badge-escalations">0</span>
+        </div>
+      </div>
+
+      <div class="wz-nav-group">
+        <div class="wz-nav-label">Threat Intelligence</div>
+        <div class="wz-nav-item" data-view="mitre" onclick="switchView('mitre')">
+          <span class="wz-nav-item-left">&#9670; MITRE ATT&amp;CK</span>
+          <span class="wz-nav-badge" id="nav-badge-mitre">0</span>
+        </div>
+        <div class="wz-nav-item" data-view="iocs" onclick="switchView('iocs')">
+          <span class="wz-nav-item-left">&#9673; Threat Indicators</span>
+          <span class="wz-nav-badge" id="nav-badge-iocs">0</span>
+        </div>
+        <div class="wz-nav-item" data-view="telemetry" onclick="switchView('telemetry')">
+          <span class="wz-nav-item-left">&#9783; Telemetry &amp; WAF</span>
+          <span class="wz-nav-badge" id="nav-badge-telemetry">0</span>
+        </div>
+      </div>
+
+      <div class="wz-nav-group">
+        <div class="wz-nav-label">Automation &amp; Governance</div>
+        <div class="wz-nav-item" data-view="executor" onclick="switchView('executor')">
+          <span class="wz-nav-item-left">&#9881; Response Actions</span>
+          <span class="wz-nav-badge" id="nav-badge-exec">0</span>
+        </div>
+        <div class="wz-nav-item" data-view="governance" onclick="switchView('governance')">
+          <span class="wz-nav-item-left">&#9878; Playbooks &amp; Policy</span>
+        </div>
+        <div class="wz-nav-item" data-view="connectors" onclick="switchView('connectors')">
+          <span class="wz-nav-item-left">&#8644; Connectors &amp; Assets</span>
+          <span class="wz-nav-badge" id="nav-badge-targets">0</span>
+        </div>
+      </div>
+
+      <div class="wz-sidebar-footer">
+        <div style="font-weight:700; color:var(--wz-text-secondary); margin-bottom:2px;">Platform Architecture</div>
+        <div>Multi-Tenant SOAR Engine</div>
+        <div>Tier-1/Tier-2 AI Analyst</div>
+        <div style="color:var(--wz-blue); font-weight:600; margin-top:3px;">Fail-Closed Risk Gate</div>
+      </div>
+    </aside>
+
+    <!-- Main Operations Workspace -->
+    <main class="wz-main">
+
+      <!-- =================================================================
+           VIEW 1: SOC OVERVIEW (COMMAND CENTER)
+           ================================================================= -->
+      <section class="wz-view active" id="view-overview">
+        <div class="wz-page-header">
+          <div>
+            <h1 class="wz-page-title">SOC Operations Command Center</h1>
+            <div class="wz-page-subtitle">Autonomous Tier-1/Tier-2 Alert Correlation, AI Triage, MITRE ATT&amp;CK Mapping &amp; Automated Containment</div>
+          </div>
+        </div>
+
+        <!-- KQL Query & Verdict Filter Bar -->
+        <div class="wz-kql-bar">
+          <span class="wz-kql-tag">KQL</span>
+          <input type="text" class="wz-kql-input" id="global-search" placeholder="Search incidents by source.ip, asset.name, mitre.id (T1190), verdict, or incident.id..." oninput="renderIncidentsTables()">
+          <div class="wz-filter-pills">
+            <button class="wz-pill-btn active" onclick="setDecisionFilter('all', this)">All</button>
+            <button class="wz-pill-btn" onclick="setDecisionFilter('autonomous', this)">Autonomous</button>
+            <button class="wz-pill-btn" onclick="setDecisionFilter('soft_contain', this)">Soft Contain</button>
+            <button class="wz-pill-btn" onclick="setDecisionFilter('escalate', this)">Escalated</button>
+          </div>
+        </div>
+
+        <!-- Enterprise SOC Analyst KPI Strip -->
+        <div class="wz-kpi-grid">
+          <div class="wz-kpi-card">
+            <div class="wz-kpi-label">Correlated Incidents</div>
+            <div class="wz-kpi-value" id="kpi-total-incidents">0</div>
+            <div class="wz-kpi-sub" id="kpi-compression">From 0 raw alerts</div>
+          </div>
+          <div class="wz-kpi-card kpi-success">
+            <div class="wz-kpi-label">Autonomous Containment</div>
+            <div class="wz-kpi-value" id="kpi-auto-rate">0%</div>
+            <div class="wz-kpi-sub" id="kpi-auto-sub">0 auto / 0 soft-contained</div>
+          </div>
+          <div class="wz-kpi-card kpi-cyan">
+            <div class="wz-kpi-label">Mean Time to Triage</div>
+            <div class="wz-kpi-value" id="kpi-mttt">-- ms</div>
+            <div class="wz-kpi-sub">End-to-end 3-agent pipeline</div>
+          </div>
+          <div class="wz-kpi-card kpi-danger">
+            <div class="wz-kpi-label">Pending Escalations</div>
+            <div class="wz-kpi-value" id="kpi-escalations">0</div>
+            <div class="wz-kpi-sub">Requires Tier-2 analyst review</div>
+          </div>
+          <div class="wz-kpi-card kpi-warn">
+            <div class="wz-kpi-label">Monitored Connectors</div>
+            <div class="wz-kpi-value" id="kpi-targets-up">0 / 0</div>
+            <div class="wz-kpi-sub" id="kpi-targets-sub">Subscribed client endpoints</div>
+          </div>
+        </div>
+
+        <!-- Visual Analytics Row -->
+        <div class="wz-grid-3">
+          <div class="wz-panel" style="margin-bottom:0;">
+            <div class="wz-panel-header">
+              <div class="wz-panel-title">Autonomous Gate Verdicts</div>
+              <span class="wz-panel-meta">Policy Outcomes</span>
+            </div>
+            <div class="wz-panel-body" id="chart-decisions"></div>
+          </div>
+
+          <div class="wz-panel" style="margin-bottom:0;">
+            <div class="wz-panel-header">
+              <div class="wz-panel-title">Top MITRE ATT&amp;CK Techniques</div>
+              <span class="wz-panel-meta">Validated Mappings</span>
+            </div>
+            <div class="wz-panel-body" id="chart-mitre-bars"></div>
+          </div>
+
+          <div class="wz-panel" style="margin-bottom:0;">
+            <div class="wz-panel-header">
+              <div class="wz-panel-title">Recent Incident Risk Scores</div>
+              <span class="wz-panel-meta">Gate: 0.75 Auto / 0.45 Soft</span>
+            </div>
+            <div class="wz-panel-body" id="chart-risk-bars"></div>
+          </div>
+        </div>
+
+        <!-- Infrastructure Health Panel (Preserves exact heading required by unit tests) -->
+        <div class="wz-panel">
+          <div class="wz-panel-header">
+            <div class="wz-panel-title">Infrastructure Health</div>
+            <div class="wz-panel-meta" id="health-last-checked">Live connector probes</div>
+          </div>
+          <div class="wz-panel-body">
+            <div class="wz-health-grid" id="health-cards-container">
+              <div class="chart-empty">Probing connected client networks &amp; services...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pipeline Incidents Observability Panel (Preserves exact heading required by unit tests) -->
+        <div class="wz-panel">
+          <div class="wz-panel-header">
+            <div class="wz-panel-title">Pipeline Incidents Observability</div>
+            <div class="wz-panel-meta" id="incidents-count-label">0 incidents</div>
+          </div>
+          <div class="wz-table-wrap">
+            <table class="wz-table">
+              <thead>
+                <tr>
+                  <th>Timestamp (UTC)</th>
+                  <th>Incident ID</th>
+                  <th>Source IP &rarr; Client Asset</th>
+                  <th>MITRE ATT&amp;CK</th>
+                  <th>Analyst Pipeline</th>
+                  <th>Risk Score</th>
+                  <th>Gate Verdict</th>
+                  <th>Case Status</th>
+                </tr>
+              </thead>
+              <tbody id="incidents-tbody">
+                <tr><td colspan="8" class="chart-empty">Awaiting correlated telemetry...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           VIEW 2: INCIDENT QUEUE & CASE MANAGEMENT
+           ================================================================= -->
+      <section class="wz-view" id="view-cases">
+        <div class="wz-page-header">
+          <div>
+            <h1 class="wz-page-title">SOC Incident Queue &amp; Case Management</h1>
+            <div class="wz-page-subtitle">Click any incident to inspect AI Triage evidence, approve containment actions, or log Tier-2 analyst notes</div>
+          </div>
+        </div>
+        <div class="wz-panel">
+          <div class="wz-panel-header">
+            <div class="wz-panel-title">All Correlated Cases</div>
+            <span class="wz-panel-meta" id="cases-count-label">0 cases</span>
+          </div>
+          <div class="wz-table-wrap">
+            <table class="wz-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Incident ID</th>
+                  <th>Source IP</th>
+                  <th>Monitored Asset</th>
+                  <th>Events</th>
+                  <th>MITRE IDs</th>
+                  <th>Risk Score</th>
+                  <th>Verdict</th>
+                  <th>Case Status</th>
+                  <th>Assignee</th>
+                </tr>
+              </thead>
+              <tbody id="cases-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           VIEW 3: HUMAN-IN-THE-LOOP ESCALATION QUEUE
+           ================================================================= -->
+      <section class="wz-view" id="view-escalations">
+        <div class="wz-page-header">
+          <div>
+            <h1 class="wz-page-title">Tier-2 Escalation Workbench (Human-in-the-Loop)</h1>
+            <div class="wz-page-subtitle">Incidents halted by the deterministic fail-closed gate or awaiting explicit analyst sign-off</div>
+          </div>
+        </div>
+        <div class="wz-panel">
+          <div class="wz-panel-header">
+            <div class="wz-panel-title">Escalated &amp; Unresolved Cases</div>
+            <span class="wz-panel-meta" id="escalations-count-label">0 pending</span>
+          </div>
+          <div class="wz-table-wrap">
+            <table class="wz-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Incident ID</th>
+                  <th>Source IP &rarr; Asset</th>
+                  <th>Risk Score</th>
+                  <th>Proposed Action</th>
+                  <th>Escalation Reason / Errors</th>
+                  <th>Case Status</th>
+                  <th>Review</th>
+                </tr>
+              </thead>
+              <tbody id="escalations-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           VIEW 4: MITRE ATT&CK MATRIX
+           ================================================================= -->
+      <section class="wz-view" id="view-mitre">
+        <div class="wz-page-header">
+          <div>
+            <h1 class="wz-page-title">MITRE ATT&amp;CK Threat Matrix</h1>
+            <div class="wz-page-subtitle">Adversarial techniques observed across subscribed networks and validated against the local ATT&amp;CK taxonomy</div>
+          </div>
+        </div>
+        <div class="mitre-grid" id="mitre-cards-container">
+          <div class="chart-empty">Loading MITRE ATT&amp;CK mappings...</div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           VIEW 5: THREAT INDICATORS (IOCs)
+           ================================================================= -->
+      <section class="wz-view" id="view-iocs">
+        <div class="wz-page-header">
+          <div>
+            <h1 class="wz-page-title">Threat Indicators &amp; Offending Source IPs (IOCs)</h1>
+            <div class="wz-page-subtitle">Aggregated adversary profiles tracked across all monitored client environments</div>
+          </div>
+        </div>
+        <div class="wz-panel">
+          <div class="wz-panel-header">
+            <div class="wz-panel-title">Observed Threat Actors / Source IPs</div>
+            <span class="wz-panel-meta" id="iocs-count-label">0 indicators</span>
+          </div>
+          <div class="wz-table-wrap">
+            <table class="wz-table">
+              <thead>
+                <tr>
+                  <th>Source IP (IOC)</th>
+                  <th>Incidents</th>
+                  <th>Peak Risk</th>
+                  <th>Targeted Assets</th>
+                  <th>Observed MITRE Techniques</th>
+                  <th>Latest Verdict</th>
+                  <th>Containment Action</th>
+                  <th>Last Seen (UTC)</th>
+                </tr>
+              </thead>
+              <tbody id="iocs-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           VIEW 6: INGESTED TELEMETRY & WAF STREAM (READ-ONLY)
+           ================================================================= -->
+      <section class="wz-view" id="view-telemetry">
+        <div class="wz-page-header">
+          <div>
+            <h1 class="wz-page-title">Ingested Telemetry &amp; WAF Detection Stream</h1>
+            <div class="wz-page-subtitle">Normalized security events ingested from client SIEM agents, ModSecurity WAFs, and cloud network flow logs</div>
+          </div>
+        </div>
+
+        <div class="wz-panel">
+          <div class="wz-panel-header">
+            <div class="wz-panel-title">Correlated Telemetry Feed</div>
+            <span class="wz-panel-meta" id="telemetry-count-label">0 events</span>
+          </div>
+          <div class="wz-table-wrap">
+            <table class="wz-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Incident ID</th>
+                  <th>Source IP</th>
+                  <th>Client Asset</th>
+                  <th>Normalized Event Indicator</th>
+                  <th>Verdict</th>
+                </tr>
+              </thead>
+              <tbody id="telemetry-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="wz-panel">
+          <div class="wz-panel-header">
+            <div class="wz-panel-title">Client WAF / ModSecurity Enforcement Logs</div>
+            <span class="wz-panel-meta" id="waf-logs-meta">Read-only ingested WAF audit stream</span>
+          </div>
+          <div class="wz-table-wrap">
+            <table class="wz-table">
+              <thead>
+                <tr>
+                  <th>Client IP</th>
+                  <th>WAF Rule ID</th>
+                  <th>Detection Message</th>
+                  <th>Blocked HTTP Request</th>
+                </tr>
+              </thead>
+              <tbody id="waf-logs-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           VIEW 7: AUTOMATED RESPONSE ACTIONS (EXECUTOR AUDIT)
+           ================================================================= -->
+      <section class="wz-view" id="view-executor">
+        <div class="wz-page-header">
+          <div>
+            <h1 class="wz-page-title">Automated Containment &amp; Response Actions</h1>
+            <div class="wz-page-subtitle">Immutable audit log of autonomous and analyst-approved firewall, WAF, and network isolation actions</div>
+          </div>
+        </div>
+        <div class="wz-panel">
+          <div class="wz-panel-header">
+            <div class="wz-panel-title">Cloud Executor Audit Trail</div>
+            <span class="wz-panel-meta">logs/executor_audit.log</span>
+          </div>
+          <div class="wz-table-wrap">
+            <table class="wz-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Incident ID</th>
+                  <th>Enforcement Action</th>
+                  <th>Status</th>
+                  <th>Mode</th>
+                  <th>API Target / Details</th>
+                </tr>
+              </thead>
+              <tbody id="executor-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           VIEW 8: PLAYBOOKS, RISK GATE & GOVERNANCE POLICY
+           ================================================================= -->
+      <section class="wz-view" id="view-governance">
+        <div class="wz-page-header">
+          <div>
+            <h1 class="wz-page-title">Autonomous Playbooks, Risk Gate &amp; Safety Guardrails</h1>
+            <div class="wz-page-subtitle">Deterministic policy thresholds, authentication guardrails, protected CIDRs, and AI agent routing loaded from live config</div>
+          </div>
+        </div>
+
+        <div class="wz-grid-2">
+          <div class="wz-panel" style="margin-bottom:0;">
+            <div class="wz-panel-header">
+              <div class="wz-panel-title">Deterministic Risk Gate &amp; Scoring Weights</div>
+              <span class="wz-panel-meta">ai_engine/config/thresholds.yaml</span>
+            </div>
+            <div class="wz-panel-body" id="policy-gate-body"></div>
+          </div>
+
+          <div class="wz-panel" style="margin-bottom:0;">
+            <div class="wz-panel-header">
+              <div class="wz-panel-title">AI Reasoning Agents &amp; Protected Networks</div>
+              <span class="wz-panel-meta">ai_engine/config/models.yaml</span>
+            </div>
+            <div class="wz-panel-body" id="policy-models-body"></div>
+          </div>
+        </div>
+
+        <div class="wz-panel">
+          <div class="wz-panel-header">
+            <div class="wz-panel-title">Authentication False-Positive Prevention Policy (Rank-Only-Lowers)</div>
+            <span class="eui-badge badge-info">Fail-Closed Enforcement</span>
+          </div>
+          <div class="wz-table-wrap">
+            <table class="wz-table">
+              <thead>
+                <tr>
+                  <th>Rule ID</th>
+                  <th>Policy Rule Name</th>
+                  <th>Deterministic Enforcement Behavior</th>
+                </tr>
+              </thead>
+              <tbody id="policy-auth-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           VIEW 9: CONNECTORS & MONITORED CLIENT INTEGRATIONS
+           ================================================================= -->
+      <section class="wz-view" id="view-connectors">
+        <div class="wz-page-header">
+          <div>
+            <h1 class="wz-page-title">Connected Networks, Integrations &amp; Monitored Assets</h1>
+            <div class="wz-page-subtitle">Vendor-neutral connector registry linking subscribed client networks, SIEM streams, and enforcement APIs to the SOC platform</div>
+          </div>
+          <button class="eui-btn eui-btn-primary" onclick="refreshAll(true)">&#8635; Test All Connectors</button>
+        </div>
+
+        <div class="wz-panel">
+          <div class="wz-panel-header">
+            <div class="wz-panel-title">SIEM Event Ingestion Connector (Active Webhook)</div>
+            <span class="eui-badge badge-up"><span class="dot dot-up"></span>LISTENING</span>
+          </div>
+          <div class="wz-panel-body">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px;">
+              <div class="wz-target-card">
+                <div style="font-size:11px; font-weight:700; color:var(--wz-text-muted); text-transform:uppercase;">Inbound SIEM Webhook Endpoint</div>
+                <div class="mono" style="font-weight:700; color:var(--wz-blue);">POST /api/siem/ingest</div>
+                <div style="font-size:11.5px; color:var(--wz-text-muted);">Accepts single or batched SIEM JSON alerts (Wazuh Integrator, Splunk, Elastic, Sentinel) and triggers autonomous correlation, LLM triage, risk scoring, and case escalation.</div>
+              </div>
+              <div class="wz-target-card">
+                <div style="font-size:11px; font-weight:700; color:var(--wz-text-muted); text-transform:uppercase;">SIEM File / Stream Poller</div>
+                <div class="mono" style="font-weight:700; color:var(--wz-text);">ai_engine/ingest/wazuh_poller.py</div>
+                <div style="font-size:11.5px; color:var(--wz-text-muted);">Continuously tails SIEM JSON alert feeds (<code>WAZUH_ALERTS_FILE</code>) and feeds correlated batches into the Autonomous SOC Pipeline.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="wz-panel">
+          <div class="wz-panel-header">
+            <div class="wz-panel-title">Registered Platform Connectors &amp; Health Probes</div>
+            <span class="wz-panel-meta">Configured via targets.yaml</span>
+          </div>
+          <div class="wz-table-wrap">
+            <table class="wz-table">
+              <thead>
+                <tr>
+                  <th>Connector / Endpoint</th>
+                  <th>Protocol</th>
+                  <th>Address</th>
+                  <th>Status</th>
+                  <th>Latency</th>
+                  <th>Last Probed (UTC)</th>
+                  <th>Diagnostic</th>
+                </tr>
+              </thead>
+              <tbody id="connectors-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="wz-panel">
+          <div class="wz-panel-header">
+            <div class="wz-panel-title">Discovered Client Assets (From Ingested Telemetry)</div>
+            <span class="wz-panel-meta" id="assets-count-label">0 monitored assets</span>
+          </div>
+          <div class="wz-table-wrap">
+            <table class="wz-table">
+              <thead>
+                <tr>
+                  <th>Client Asset Tag</th>
+                  <th>Incidents Observed</th>
+                  <th>Highest Risk Score</th>
+                  <th>Unique Attacking IPs</th>
+                  <th>Latest Containment Status</th>
+                </tr>
+              </thead>
+              <tbody id="assets-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- =========================================================================
+       Wazuh EUI Flyout Drawer (Analyst Investigation & HITL Workbench)
+       ========================================================================= -->
+  <div class="flyout-backdrop" id="flyout-backdrop" onclick="closeFlyout()"></div>
+  <aside class="flyout-drawer" id="flyout-drawer">
+    <div class="flyout-header">
+      <div>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
+          <span class="mono" style="font-weight:700; font-size:14px; color:var(--wz-blue);" id="flyout-id">inc-...</span>
+          <span id="flyout-verdict-badge"></span>
+          <span id="flyout-case-badge"></span>
+        </div>
+        <div style="font-size:12px; color:var(--wz-text-muted);" id="flyout-subtitle">--</div>
+      </div>
+      <button class="eui-btn" onclick="closeFlyout()">&times; Close</button>
+    </div>
+    <div class="flyout-body" id="flyout-content"></div>
+  </aside>
+
+  <script>
+    const state = {
+      health: { targets: [] },
+      incidents: [],
+      mitre: [],
+      iocs: [],
+      telemetry: { ingested_events: [], waf_audit_logs: [], waf_summary: {} },
+      policy: null,
+      decisionFilter: 'all',
+      activeView: 'overview',
+      selectedIncidentId: null
+    };
+
+    const VIEW_TITLES = {
+      overview: 'SOC Overview',
+      cases: 'Incident Queue',
+      escalations: 'Escalation Queue',
+      mitre: 'MITRE ATT&CK Matrix',
+      iocs: 'Threat Indicators (IOCs)',
+      telemetry: 'Telemetry & WAF Stream',
+      executor: 'Response Actions',
+      governance: 'Playbooks & Policy',
+      connectors: 'Connectors & Integrations'
+    };
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function fmtTime(iso) {
+      if (!iso) return '--';
+      try { return new Date(iso).toISOString().replace('T', ' ').slice(0, 19); }
+      catch { return String(iso); }
+    }
+
+    function switchView(viewName) {
+      state.activeView = viewName;
+      document.querySelectorAll('.wz-view').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById('view-' + viewName);
+      if (target) target.classList.add('active');
+
+      document.querySelectorAll('.wz-nav-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.view === viewName);
+      });
+      document.getElementById('breadcrumb-view').textContent = VIEW_TITLES[viewName] || viewName;
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      document.getElementById('theme-toggle-btn').innerHTML = next === 'dark' ? '&#9728; Light' : '&#9790; Dark';
+    }
+
+    function setDecisionFilter(filter, btn) {
+      state.decisionFilter = filter;
+      document.querySelectorAll('.wz-pill-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      renderIncidentsTables();
+    }
+
+    function riskColor(score) {
+      if (score === null || score === undefined) return '#8991a0';
+      if (score >= 0.75) return 'var(--wz-danger)';
+      if (score >= 0.45) return 'var(--wz-warn-accent)';
+      return 'var(--wz-success)';
+    }
+
+    function badge(val) {
+      const v = (val || 'unknown').toLowerCase();
+      const label = v.replace(/_/g, ' ').toUpperCase();
+      return `<span class="eui-badge badge-${escapeHtml(v)}">${escapeHtml(label)}</span>`;
+    }
+
+    function stagePip(label, stageObj) {
+      if (!stageObj) return `<span class="stage-pip pip-skip">${label}</span>`;
+      const s = stageObj.status;
+      let cls = 'pip-skip';
+      if (s === 'ok' || s === 'executed') cls = 'pip-ok';
+      else if (s === 'simulated' || s === 'escalated') cls = 'pip-warn';
+      else if (s === 'error' || s === 'refused') cls = 'pip-err';
+      const title = `${label}: ${s}` + (stageObj.duration_ms != null ? ` (${stageObj.duration_ms}ms)` : '');
+      return `<span class="stage-pip ${cls}" title="${escapeHtml(title)}">${label}</span>`;
+    }
+
+    async function fetchJson(url, opts) {
+      const resp = await fetch(url, opts);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      return await resp.json();
+    }
+
+    async function refreshAll(forceHealth = false) {
+      try {
+        const healthReq = forceHealth
+          ? fetchJson('/api/health/refresh', { method: 'POST' })
+          : fetchJson('/api/health');
+
+        const [health, incData, mitreData, teleData, polData, sysData] = await Promise.all([
+          healthReq,
+          fetchJson('/api/incidents'),
+          fetchJson('/api/mitre'),
+          fetchJson('/api/telemetry'),
+          fetchJson('/api/policy'),
+          fetchJson('/api/system-info')
+        ]);
+
+        state.health = health;
+        state.incidents = incData.incidents || [];
+        state.mitre = mitreData.techniques || [];
+        state.iocs = mitreData.iocs || [];
+        state.telemetry = teleData || { ingested_events: [], waf_audit_logs: [] };
+        state.policy = polData || null;
+
+        const modePill = document.getElementById('global-mode-pill');
+        if (sysData && sysData.shadow_mode === false) {
+          modePill.innerHTML = '<span class="dot dot-down"></span><span>Active Enforcement</span>';
+        } else {
+          modePill.innerHTML = '<span class="dot dot-warn"></span><span>Shadow Mode</span>';
+        }
+        document.getElementById('last-sync-text').textContent = 'Synced ' + new Date().toLocaleTimeString();
+
+        renderKPIs();
+        renderHealthAndConnectors();
+        renderCharts();
+        renderIncidentsTables();
+        renderEscalationsView();
+        renderMitreAndIocs();
+        renderTelemetryView();
+        renderExecutorView();
+        renderGovernanceView();
+
+        if (state.selectedIncidentId) {
+          openFlyout(state.selectedIncidentId, true);
+        }
+      } catch (err) {
+        console.error('SOC Dashboard sync failed:', err);
+        document.getElementById('last-sync-text').textContent = 'Sync error';
+      }
+    }
+
+    function renderKPIs() {
+      const incs = state.incidents;
+      const total = incs.length;
+      const rawEvents = incs.reduce((acc, i) => acc + (i.event_count || 0), 0);
+      const autoCount = incs.filter(i => i.final_decision === 'autonomous').length;
+      const softCount = incs.filter(i => i.final_decision === 'soft_contain').length;
+      const containedPct = total ? Math.round(((autoCount + softCount) / total) * 100) : 0;
+
+      const durations = incs.map(i => i.duration_ms).filter(d => typeof d === 'number' && d > 0);
+      const avgMs = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+
+      const pendingEsc = incs.filter(i => {
+        const cs = (i.case && i.case.case_status) || 'open';
+        return (i.final_decision === 'escalate' || cs === 'open') && cs !== 'contained' && cs !== 'false_positive';
+      }).length;
+
+      const targets = state.health.targets || [];
+      const upTargets = targets.filter(t => t.status === 'up').length;
+
+      document.getElementById('kpi-total-incidents').textContent = total;
+      document.getElementById('kpi-compression').textContent = `Compressed from ${rawEvents} raw alerts`;
+      document.getElementById('kpi-auto-rate').textContent = `${containedPct}%`;
+      document.getElementById('kpi-auto-sub').textContent = `${autoCount} autonomous / ${softCount} soft-contained`;
+      document.getElementById('kpi-mttt').textContent = avgMs !== null ? `${avgMs} ms` : '-- ms';
+      document.getElementById('kpi-escalations').textContent = pendingEsc;
+      document.getElementById('kpi-targets-up').textContent = `${upTargets} / ${targets.length}`;
+      document.getElementById('kpi-targets-sub').textContent = upTargets === targets.length && targets.length ? 'All connectors healthy' : `${targets.length - upTargets} connector(s) offline`;
+
+      // Topbar Escalation Pill
+      document.getElementById('escalation-text').textContent = `${pendingEsc} Escalation${pendingEsc === 1 ? '' : 's'}`;
+      document.getElementById('escalation-dot').className = 'dot ' + (pendingEsc > 0 ? 'dot-down' : 'dot-up');
+
+      // Sidebar badges
+      document.getElementById('nav-badge-incidents').textContent = total;
+      const escBadge = document.getElementById('nav-badge-escalations');
+      escBadge.textContent = pendingEsc;
+      escBadge.className = 'wz-nav-badge' + (pendingEsc > 0 ? ' badge-alert' : '');
+      document.getElementById('nav-badge-mitre').textContent = state.mitre.length;
+      document.getElementById('nav-badge-iocs').textContent = state.iocs.length;
+      document.getElementById('nav-badge-telemetry').textContent = (state.telemetry.ingested_events || []).length;
+      document.getElementById('nav-badge-targets').textContent = `${upTargets}/${targets.length}`;
+      const execCount = incs.filter(i => i.stages && i.stages.executor && i.stages.executor.details).length;
+      document.getElementById('nav-badge-exec').textContent = execCount;
+    }
+
+    function renderHealthAndConnectors() {
+      const targets = state.health.targets || [];
+      const container = document.getElementById('health-cards-container');
+      const tbody = document.getElementById('connectors-tbody');
+      document.getElementById('health-last-checked').textContent = 'Last probed ' + fmtTime(state.health.timestamp) + ' UTC';
+
+      if (!targets.length) {
+        container.innerHTML = '<div class="chart-empty">No connectors registered in targets.yaml.</div>';
+        tbody.innerHTML = '<tr><td colspan="7" class="chart-empty">No connectors configured.</td></tr>';
+      } else {
+        container.innerHTML = targets.map(t => {
+          const isUp = t.status === 'up';
+          const badgeCls = isUp ? 'badge-up' : (t.status === 'down' ? 'badge-down' : 'badge-neutral');
+          const dotCls = isUp ? 'dot-up' : (t.status === 'down' ? 'dot-down' : 'dot-warn');
+          const endpoint = t.type === 'http' ? `http://${t.host}:${t.port}${t.path || '/'}` : `${t.host}:${t.port}`;
+          return `
+            <div class="wz-target-card">
+              <div class="wz-target-top">
+                <span class="wz-target-name">${escapeHtml(t.name)}</span>
+                <span class="eui-badge ${badgeCls}"><span class="dot ${dotCls}"></span>${escapeHtml((t.status || 'unknown').toUpperCase())}</span>
+              </div>
+              <div class="wz-target-endpoint">${escapeHtml(endpoint)}</div>
+              <div class="wz-target-footer">
+                <span>${t.latency_ms != null ? t.latency_ms + ' ms' : escapeHtml(t.error || 'pending')}</span>
+                <span>${escapeHtml(t.type)}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        tbody.innerHTML = targets.map(t => {
+          const badgeCls = t.status === 'up' ? 'badge-up' : (t.status === 'down' ? 'badge-down' : 'badge-neutral');
+          const endpoint = t.type === 'http' ? `http://${t.host}:${t.port}${t.path || '/'}` : `${t.host}:${t.port}`;
+          return `
+            <tr>
+              <td class="mono" style="font-weight:700;">${escapeHtml(t.name)}</td>
+              <td><span class="eui-badge badge-neutral">${escapeHtml(t.type)}</span></td>
+              <td class="mono">${escapeHtml(endpoint)}</td>
+              <td><span class="eui-badge ${badgeCls}">${escapeHtml((t.status || 'unknown').toUpperCase())}</span></td>
+              <td class="mono">${t.latency_ms != null ? t.latency_ms + ' ms' : '--'}</td>
+              <td class="mono">${fmtTime(t.last_checked)}</td>
+              <td style="color:${t.error ? 'var(--wz-danger)' : 'var(--wz-success)'};">${escapeHtml(t.error || 'Operational')}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // Discovered Client Assets from telemetry
+      const assetMap = {};
+      for (const inc of state.incidents) {
+        const ip = (inc.correlation_key && inc.correlation_key[0]) || 'unknown';
+        const asset = (inc.correlation_key && inc.correlation_key[1]) || 'unknown';
+        if (!assetMap[asset]) {
+          assetMap[asset] = { asset, count: 0, maxRisk: 0, ips: new Set(), verdict: inc.final_decision };
+        }
+        assetMap[asset].count += 1;
+        if (typeof inc.risk_score === 'number' && inc.risk_score > assetMap[asset].maxRisk) {
+          assetMap[asset].maxRisk = inc.risk_score;
+        }
+        assetMap[asset].ips.add(ip);
+      }
+      const assets = Object.values(assetMap).sort((a, b) => b.maxRisk - a.maxRisk);
+      document.getElementById('assets-count-label').textContent = `${assets.length} monitored client asset(s)`;
+      const assetsTbody = document.getElementById('assets-tbody');
+      if (!assets.length) {
+        assetsTbody.innerHTML = '<tr><td colspan="5" class="chart-empty">No client assets discovered yet.</td></tr>';
+      } else {
+        assetsTbody.innerHTML = assets.map(a => `
+          <tr>
+            <td class="mono" style="font-weight:700;">${escapeHtml(a.asset)}</td>
+            <td class="mono">${a.count}</td>
+            <td class="mono" style="font-weight:700; color:${riskColor(a.maxRisk)};">${a.maxRisk.toFixed(4)}</td>
+            <td class="mono">${a.ips.size}</td>
+            <td>${badge(a.verdict)}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function renderCharts() {
+      const incs = state.incidents;
+      const decCounts = {
+        autonomous: incs.filter(i => i.final_decision === 'autonomous').length,
+        soft_contain: incs.filter(i => i.final_decision === 'soft_contain').length,
+        escalate: incs.filter(i => i.final_decision === 'escalate').length
+      };
+      const total = decCounts.autonomous + decCounts.soft_contain + decCounts.escalate;
+      const decEl = document.getElementById('chart-decisions');
+
+      if (!total) {
+        decEl.innerHTML = '<div class="chart-empty">No verdicts recorded yet.</div>';
+      } else {
+        const r = 42, c = 2 * Math.PI * r;
+        const segs = [
+          { key: 'Autonomous', val: decCounts.autonomous, color: '#017d73' },
+          { key: 'Soft Contain', val: decCounts.soft_contain, color: '#f5a700' },
+          { key: 'Escalated', val: decCounts.escalate, color: '#bd271e' }
+        ];
+        let offset = 0;
+        const circles = segs.map(seg => {
+          const dash = (seg.val / total) * c;
+          const out = `<circle cx="56" cy="56" r="${r}" fill="none" stroke="${seg.color}" stroke-width="14" stroke-dasharray="${dash} ${c}" stroke-dashoffset="${-offset}" transform="rotate(-90 56 56)"></circle>`;
+          offset += dash;
+          return out;
+        }).join('');
+
+        decEl.innerHTML = `
+          <div style="display:flex; align-items:center; gap:18px; justify-content:center;">
+            <svg width="112" height="112" viewBox="0 0 112 112">
+              <circle cx="56" cy="56" r="${r}" fill="none" stroke="var(--wz-border-light)" stroke-width="14"></circle>
+              ${circles}
+              <text x="56" y="54" text-anchor="middle" fill="var(--wz-text)" font-size="18" font-weight="700">${total}</text>
+              <text x="56" y="68" text-anchor="middle" fill="var(--wz-text-muted)" font-size="9">CASES</text>
+            </svg>
+            <div style="display:flex; flex-direction:column; gap:7px; font-size:12px;">
+              ${segs.map(s => `
+                <div style="display:flex; align-items:center; gap:7px;">
+                  <span style="width:10px; height:10px; border-radius:2px; background:${s.color}; display:inline-block;"></span>
+                  <span style="color:var(--wz-text-secondary); min-width:86px;">${s.key}</span>
+                  <strong class="mono">${s.val}</strong>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      const mitreEl = document.getElementById('chart-mitre-bars');
+      const topMitre = state.mitre.slice(0, 5);
+      if (!topMitre.length) {
+        mitreEl.innerHTML = '<div class="chart-empty">No MITRE ATT&amp;CK mappings yet.</div>';
+      } else {
+        const maxHits = Math.max(...topMitre.map(m => m.hits), 1);
+        mitreEl.innerHTML = topMitre.map(m => `
+          <div class="bar-row">
+            <div class="bar-label" title="${escapeHtml(m.name)}"><strong>${escapeHtml(m.id)}</strong> ${escapeHtml(m.tactic)}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.round((m.hits / maxHits) * 100)}%; background:var(--wz-cyan);"></div></div>
+            <div class="bar-val">${m.hits}</div>
+          </div>
+        `).join('');
+      }
+
+      const riskEl = document.getElementById('chart-risk-bars');
+      const recent = incs.slice(0, 5);
+      if (!recent.length) {
+        riskEl.innerHTML = '<div class="chart-empty">No risk scores recorded yet.</div>';
+      } else {
+        riskEl.innerHTML = recent.map(inc => {
+          const score = typeof inc.risk_score === 'number' ? inc.risk_score : 0;
+          const asset = (inc.correlation_key && inc.correlation_key[1]) || inc.incident_id.slice(0, 12);
+          return `
+            <div class="bar-row">
+              <div class="bar-label" title="${escapeHtml(inc.incident_id)}">${escapeHtml(asset)}</div>
+              <div class="bar-track"><div class="bar-fill" style="width:${Math.round(score * 100)}%; background:${riskColor(score)};"></div></div>
+              <div class="bar-val">${score.toFixed(2)}</div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    function getFilteredIncidents() {
+      const q = (document.getElementById('global-search').value || '').trim().toLowerCase();
+      return state.incidents.filter(inc => {
+        if (state.decisionFilter !== 'all' && inc.final_decision !== state.decisionFilter) return false;
+        if (!q) return true;
+        const mitreIds = (inc.mitre_output && inc.mitre_output.techniques) ? inc.mitre_output.techniques.join(' ') : '';
+        const cs = (inc.case && inc.case.case_status) || '';
+        const hay = [inc.incident_id, (inc.correlation_key || []).join(' '), inc.final_decision, inc.proposed_action || '', mitreIds, cs].join(' ').toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    function renderIncidentsTables() {
+      const list = getFilteredIncidents();
+      document.getElementById('incidents-count-label').textContent = `${list.length} of ${state.incidents.length} incidents`;
+      document.getElementById('cases-count-label').textContent = `${state.incidents.length} total cases`;
+
+      const tbody = document.getElementById('incidents-tbody');
+      const casesTbody = document.getElementById('cases-tbody');
+
+      if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="chart-empty">No matching incidents found.</td></tr>';
+      } else {
+        tbody.innerHTML = list.map(inc => {
+          const ip = (inc.correlation_key && inc.correlation_key[0]) || '--';
+          const asset = (inc.correlation_key && inc.correlation_key[1]) || '--';
+          const techs = (inc.mitre_output && inc.mitre_output.techniques) || [];
+          const techHtml = techs.length
+            ? techs.slice(0, 3).map(t => `<span class="eui-badge badge-mitre">${escapeHtml(t)}</span>`).join(' ') + (techs.length > 3 ? ` <span class="eui-badge badge-neutral">+${techs.length - 3}</span>` : '')
+            : '--';
+          const score = typeof inc.risk_score === 'number' ? inc.risk_score : null;
+          const scoreHtml = score !== null
+            ? `<div class="risk-wrap"><div class="risk-track"><div class="risk-fill" style="width:${Math.round(score*100)}%; background:${riskColor(score)};"></div></div><span class="mono" style="font-weight:700;">${score.toFixed(2)}</span></div>`
+            : '--';
+          const st = inc.stages || {};
+          const stagesHtml = `<div class="stage-strip">${stagePip('TRG', st.triage)}${stagePip('MTR', st.mitre)}${stagePip('DEC', st.decision)}${stagePip('GAT', st.gate)}${stagePip('EXC', st.executor)}</div>`;
+          const caseStatus = (inc.case && inc.case.case_status) || 'open';
+
+          return `
+            <tr class="clickable" onclick="openFlyout('${escapeHtml(inc.incident_id)}')">
+              <td class="mono">${fmtTime(inc.timestamp)}</td>
+              <td class="mono" style="color:var(--wz-blue); font-weight:700;">${escapeHtml(inc.incident_id.slice(0, 18))}</td>
+              <td><span class="mono" style="font-weight:600;">${escapeHtml(ip)}</span> &rarr; <span class="eui-badge badge-neutral">${escapeHtml(asset)}</span></td>
+              <td>${techHtml}</td>
+              <td>${stagesHtml}</td>
+              <td>${scoreHtml}</td>
+              <td>${badge(inc.final_decision)}</td>
+              <td>${badge(caseStatus)}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      if (!state.incidents.length) {
+        casesTbody.innerHTML = '<tr><td colspan="10" class="chart-empty">No cases recorded yet.</td></tr>';
+      } else {
+        casesTbody.innerHTML = state.incidents.map(inc => {
+          const ip = (inc.correlation_key && inc.correlation_key[0]) || '--';
+          const asset = (inc.correlation_key && inc.correlation_key[1]) || '--';
+          const techs = (inc.mitre_output && inc.mitre_output.techniques) || [];
+          const cs = (inc.case && inc.case.case_status) || 'open';
+          const assignee = (inc.case && inc.case.assignee) || 'unassigned';
+          return `
+            <tr class="clickable" onclick="openFlyout('${escapeHtml(inc.incident_id)}')">
+              <td class="mono">${fmtTime(inc.timestamp)}</td>
+              <td class="mono" style="color:var(--wz-blue); font-weight:700;">${escapeHtml(inc.incident_id.slice(0, 18))}</td>
+              <td class="mono">${escapeHtml(ip)}</td>
+              <td><span class="eui-badge badge-neutral">${escapeHtml(asset)}</span></td>
+              <td class="mono">${inc.event_count || 0}</td>
+              <td>${techs.map(t => `<span class="eui-badge badge-mitre">${escapeHtml(t)}</span>`).join(' ') || '--'}</td>
+              <td class="mono" style="font-weight:700;">${typeof inc.risk_score === 'number' ? inc.risk_score.toFixed(4) : '--'}</td>
+              <td>${badge(inc.final_decision)}</td>
+              <td>${badge(cs)}</td>
+              <td class="mono">${escapeHtml(assignee)}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    function renderEscalationsView() {
+      const escalated = state.incidents.filter(inc => {
+        const cs = (inc.case && inc.case.case_status) || 'open';
+        return inc.final_decision === 'escalate' || cs === 'open' || cs === 'acknowledged';
+      });
+      document.getElementById('escalations-count-label').textContent = `${escalated.length} case(s) in queue`;
+      const tbody = document.getElementById('escalations-tbody');
+
+      if (!escalated.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="chart-empty">All incidents have been autonomously contained or resolved by analysts.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = escalated.map(inc => {
+        const ip = (inc.correlation_key && inc.correlation_key[0]) || '--';
+        const asset = (inc.correlation_key && inc.correlation_key[1]) || '--';
+        const cs = (inc.case && inc.case.case_status) || 'open';
+        const reason = (inc.validation_errors && inc.validation_errors.length)
+          ? inc.validation_errors.join('; ')
+          : 'Risk score or policy requires Tier-2 human approval';
+        return `
+          <tr class="clickable" onclick="openFlyout('${escapeHtml(inc.incident_id)}')">
+            <td class="mono">${fmtTime(inc.timestamp)}</td>
+            <td class="mono" style="color:var(--wz-blue); font-weight:700;">${escapeHtml(inc.incident_id.slice(0, 18))}</td>
+            <td><span class="mono">${escapeHtml(ip)}</span> &rarr; <span class="eui-badge badge-neutral">${escapeHtml(asset)}</span></td>
+            <td class="mono" style="font-weight:700;">${typeof inc.risk_score === 'number' ? inc.risk_score.toFixed(4) : '--'}</td>
+            <td class="mono">${escapeHtml(inc.proposed_action || '--')}</td>
+            <td style="font-size:11.5px; color:var(--wz-text-muted); max-width:260px;">${escapeHtml(reason)}</td>
+            <td>${badge(cs)}</td>
+            <td><button class="eui-btn eui-btn-primary" onclick="event.stopPropagation(); openFlyout('${escapeHtml(inc.incident_id)}')">Investigate</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderMitreAndIocs() {
+      const mContainer = document.getElementById('mitre-cards-container');
+      if (!state.mitre.length) {
+        mContainer.innerHTML = '<div class="chart-empty">No MITRE ATT&amp;CK techniques recorded yet.</div>';
+      } else {
+        mContainer.innerHTML = state.mitre.map(m => {
+          const sevCls = m.tactic_weight >= 0.8 ? 'sev-high' : (m.tactic_weight >= 0.6 ? 'sev-med' : '');
+          return `
+            <div class="mitre-card ${sevCls}">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span class="eui-badge badge-mitre" style="font-size:12px;">${escapeHtml(m.id)}</span>
+                <span class="eui-badge badge-blue">${m.hits} hit${m.hits === 1 ? '' : 's'}</span>
+              </div>
+              <div style="font-weight:700; font-size:13.5px; color:var(--wz-text); margin-bottom:3px;">${escapeHtml(m.name)}</div>
+              <div style="font-size:11.5px; color:var(--wz-text-muted); margin-bottom:8px;">
+                Tactic: <strong>${escapeHtml(m.tactic)}</strong> &bull; Weight: <span class="mono">${m.tactic_weight != null ? m.tactic_weight : '--'}</span>
+              </div>
+              <div style="font-size:11.5px; color:var(--wz-text-secondary); background:var(--wz-surface-subdued); padding:7px 9px; border-radius:3px; border:1px solid var(--wz-border-light);">
+                ${escapeHtml(m.sample_justification || 'Validated by MITRE ATT&CK Agent.')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const iocsTbody = document.getElementById('iocs-tbody');
+      document.getElementById('iocs-count-label').textContent = `${state.iocs.length} unique source IPs`;
+      if (!state.iocs.length) {
+        iocsTbody.innerHTML = '<tr><td colspan="8" class="chart-empty">No threat indicators observed yet.</td></tr>';
+      } else {
+        iocsTbody.innerHTML = state.iocs.map(ioc => `
+          <tr>
+            <td class="mono" style="font-weight:700; color:var(--wz-danger);">${escapeHtml(ioc.ip)}</td>
+            <td class="mono">${ioc.incident_count}</td>
+            <td class="mono" style="font-weight:700; color:${riskColor(ioc.max_risk_score)};">${ioc.max_risk_score.toFixed(4)}</td>
+            <td>${(ioc.targeted_assets || []).map(a => `<span class="eui-badge badge-neutral">${escapeHtml(a)}</span>`).join(' ')}</td>
+            <td>${(ioc.techniques || []).map(t => `<span class="eui-badge badge-mitre">${escapeHtml(t)}</span>`).join(' ') || '--'}</td>
+            <td>${badge(ioc.latest_decision)}</td>
+            <td class="mono">${escapeHtml(ioc.latest_action)}</td>
+            <td class="mono">${fmtTime(ioc.last_seen)}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function renderTelemetryView() {
+      const events = state.telemetry.ingested_events || [];
+      document.getElementById('telemetry-count-label').textContent = `${events.length} normalized events`;
+      const tbody = document.getElementById('telemetry-tbody');
+      if (!events.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="chart-empty">No telemetry events ingested yet.</td></tr>';
+      } else {
+        tbody.innerHTML = events.slice(0, 60).map(ev => `
+          <tr class="clickable" onclick="openFlyout('${escapeHtml(ev.incident_id)}')">
+            <td class="mono">${fmtTime(ev.timestamp)}</td>
+            <td class="mono" style="color:var(--wz-blue);">${escapeHtml((ev.incident_id || '').slice(0, 14))}</td>
+            <td class="mono">${escapeHtml(ev.source_ip)}</td>
+            <td><span class="eui-badge badge-neutral">${escapeHtml(ev.asset)}</span></td>
+            <td class="mono" style="max-width:420px; word-break:break-word;">${escapeHtml(ev.summary)}</td>
+            <td>${badge(ev.verdict)}</td>
+          </tr>
+        `).join('');
+      }
+
+      const wafLogs = state.telemetry.waf_audit_logs || [];
+      const wTbody = document.getElementById('waf-logs-tbody');
+      if (!wafLogs.length) {
+        wTbody.innerHTML = '<tr><td colspan="4" class="chart-empty">No WAF ModSecurity enforcement logs ingested.</td></tr>';
+      } else {
+        wTbody.innerHTML = wafLogs.map(l => `
+          <tr>
+            <td class="mono">${escapeHtml(l.client || '--')}</td>
+            <td><span class="eui-badge badge-down">Rule ${escapeHtml(l.rule_id || '--')}</span></td>
+            <td>${escapeHtml(l.message || '--')}</td>
+            <td class="mono" style="word-break:break-all;">${escapeHtml(l.request || '--')}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function renderExecutorView() {
+      const tbody = document.getElementById('executor-tbody');
+      const rows = [];
+      for (const inc of state.incidents) {
+        const ex = inc.stages && inc.stages.executor;
+        if (ex && ex.details) rows.push({ inc, ex });
+      }
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="chart-empty">No containment actions executed yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(({ inc, ex }) => {
+        const d = ex.details || {};
+        const targetInfo = d.kwargs
+          ? `${d.oci_client}.${d.oci_method}(${JSON.stringify(d.kwargs)})`
+          : (d.details || d.reason || JSON.stringify(d));
+        return `
+          <tr class="clickable" onclick="openFlyout('${escapeHtml(inc.incident_id)}')">
+            <td class="mono">${fmtTime(inc.timestamp)}</td>
+            <td class="mono" style="color:var(--wz-blue); font-weight:700;">${escapeHtml(inc.incident_id.slice(0, 18))}</td>
+            <td class="mono" style="font-weight:700;">${escapeHtml(ex.action || '--')}</td>
+            <td>${badge(ex.status)}</td>
+            <td><span class="eui-badge ${ex.shadow_mode ? 'badge-warn' : 'badge-down'}">${ex.shadow_mode ? 'SHADOW' : 'LIVE'}</span></td>
+            <td class="mono" style="max-width:440px; word-break:break-all;">${escapeHtml(targetInfo)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderGovernanceView() {
+      const pol = state.policy;
+      if (!pol) return;
+      const t = pol.thresholds || {};
+      const gate = t.gate || {};
+      const weights = t.weights || {};
+      const tiers = (t.asset_criticality && t.asset_criticality.tiers) || {};
+
+      document.getElementById('policy-gate-body').innerHTML = `
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+          <div class="wz-target-card" style="flex:1; min-width:130px;">
+            <div style="font-size:11px; color:var(--wz-text-muted); font-weight:700;">AUTONOMOUS THRESHOLD</div>
+            <div class="mono" style="font-size:18px; font-weight:700; color:var(--wz-success);">&ge; ${gate.autonomous_threshold ?? 0.75}</div>
+          </div>
+          <div class="wz-target-card" style="flex:1; min-width:130px;">
+            <div style="font-size:11px; color:var(--wz-text-muted); font-weight:700;">SOFT CONTAIN THRESHOLD</div>
+            <div class="mono" style="font-size:18px; font-weight:700; color:var(--wz-warn);">&ge; ${gate.soft_threshold ?? 0.45}</div>
+          </div>
+        </div>
+        <div style="font-size:11.5px; font-weight:700; color:var(--wz-text-muted); margin-bottom:6px; text-transform:uppercase;">Risk Scoring Weights</div>
+        ${Object.entries(weights).map(([k, v]) => `
+          <div class="bar-row">
+            <div class="bar-label" style="width:155px;">${escapeHtml(k)}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v * 100)}%;"></div></div>
+            <div class="bar-val">${Math.round(v * 100)}%</div>
+          </div>
+        `).join('')}
+        <div style="font-size:11.5px; font-weight:700; color:var(--wz-text-muted); margin:12px 0 6px; text-transform:uppercase;">Asset Criticality Tiers</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          ${Object.entries(tiers).map(([k, v]) => `<span class="eui-badge badge-neutral mono">${escapeHtml(k)}: ${v}</span>`).join('')}
+        </div>
+      `;
+
+      const models = pol.models || {};
+      const agents = ['triage_agent', 'mitre_agent', 'decision_agent'];
+      document.getElementById('policy-models-body').innerHTML = `
+        <div style="font-size:11.5px; font-weight:700; color:var(--wz-text-muted); margin-bottom:6px; text-transform:uppercase;">Configured Reasoning Agents</div>
+        <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:14px;">
+          ${agents.map(a => {
+            const cfg = models[a] || {};
+            return `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 10px; border:1px solid var(--wz-border-light); border-radius:3px; background:var(--wz-surface-subdued);">
+                <strong class="mono">${a}</strong>
+                <span class="mono" style="color:var(--wz-blue);">${escapeHtml(cfg.model || 'llama3.1:latest')}</span>
+                <span class="eui-badge badge-neutral">temp=${cfg.temperature ?? 0.1}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <div style="font-size:11.5px; font-weight:700; color:var(--wz-text-muted); margin-bottom:6px; text-transform:uppercase;">Protected Internal CIDRs (Never Blocked)</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          ${(pol.protected_cidrs || []).map(c => `<span class="eui-badge badge-info mono">${escapeHtml(c)}</span>`).join('')}
+        </div>
+      `;
+
+      const rules = pol.auth_policy_rules || [];
+      document.getElementById('policy-auth-tbody').innerHTML = rules.map(r => `
+        <tr>
+          <td><span class="eui-badge badge-blue mono">${escapeHtml(r.id)}</span></td>
+          <td style="font-weight:600;">${escapeHtml(r.name)}</td>
+          <td>${escapeHtml(r.effect)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function openFlyout(incId, keepOpen = false) {
+      const inc = state.incidents.find(i => i.incident_id === incId);
+      if (!inc) return;
+      state.selectedIncidentId = incId;
+
+      const caseObj = inc.case || { case_status: 'open', assignee: 'unassigned', notes: [] };
+      document.getElementById('flyout-id').textContent = inc.incident_id;
+      document.getElementById('flyout-verdict-badge').innerHTML = badge(inc.final_decision);
+      document.getElementById('flyout-case-badge').innerHTML = badge(caseObj.case_status);
+
+      const ip = (inc.correlation_key && inc.correlation_key[0]) || '--';
+      const asset = (inc.correlation_key && inc.correlation_key[1]) || '--';
+      document.getElementById('flyout-subtitle').textContent =
+        `${fmtTime(inc.timestamp)} UTC • ${ip} → ${asset} • Risk Score: ${typeof inc.risk_score === 'number' ? inc.risk_score.toFixed(4) : '--'} • Assignee: ${caseObj.assignee}`;
+
+      const st = inc.stages || {};
+      const triage = inc.triage_output;
+      const mitre = inc.mitre_output;
+      const decision = inc.decision_output;
+
+      const stageBoxes = [
+        ['1. Triage', st.triage],
+        ['2. MITRE', st.mitre],
+        ['3. Decision', st.decision],
+        ['4. Gate', st.gate],
+        ['5. Executor', st.executor]
+      ].map(([title, s]) => {
+        const status = s ? s.status : 'not_run';
+        const dur = s && s.duration_ms != null ? `${s.duration_ms} ms` : (s && s.action ? s.action : '--');
+        return `
+          <div class="stepper-box">
+            <div style="font-size:10.5px; font-weight:700; color:var(--wz-text-muted); margin-bottom:4px;">${title}</div>
+            <div>${badge(status)}</div>
+            <div class="mono" style="font-size:10px; color:var(--wz-text-muted); margin-top:4px;">${escapeHtml(dur)}</div>
+          </div>
+        `;
+      }).join('');
+
+      let html = `
+        <div class="flyout-section">
+          <div class="flyout-section-title">Tier-2 SOC Analyst Action Workbench (Human-in-the-Loop)</div>
+          <div class="hitl-box">
+            <input type="text" class="hitl-input" id="hitl-note-input" placeholder="Enter investigation note or approval rationale...">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="eui-btn eui-btn-primary" onclick="submitCaseAction('${escapeHtml(inc.incident_id)}', 'acknowledge')">Acknowledge Case</button>
+              <button class="eui-btn eui-btn-success" onclick="submitCaseAction('${escapeHtml(inc.incident_id)}', 'approve_containment')">Approve &amp; Contain</button>
+              <button class="eui-btn eui-btn-danger-outline" onclick="submitCaseAction('${escapeHtml(inc.incident_id)}', 'false_positive')">Mark False Positive</button>
+              <button class="eui-btn" onclick="submitCaseAction('${escapeHtml(inc.incident_id)}', 'add_note')">Save Note</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="flyout-section">
+          <div class="flyout-section-title">5-Stage Autonomous Analyst Execution</div>
+          <div class="stepper">${stageBoxes}</div>
+        </div>
+      `;
+
+      if (triage && triage.timeline && triage.timeline.length) {
+        html += `
+          <div class="flyout-section">
+            <div class="flyout-section-title">Reconstructed Attack Timeline (${triage.timeline.length} events)</div>
+            <ul class="timeline-list">
+              ${triage.timeline.map(step => `<li>${escapeHtml(step)}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+
+      if (mitre && mitre.techniques && mitre.techniques.length) {
+        html += `
+          <div class="flyout-section">
+            <div class="flyout-section-title">MITRE ATT&amp;CK Mapping</div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              ${mitre.techniques.map(tid => `
+                <div style="padding:8px 10px; border:1px solid var(--wz-border-light); border-radius:3px; background:var(--wz-surface-subdued);">
+                  <span class="eui-badge badge-mitre" style="margin-right:8px;">${escapeHtml(tid)}</span>
+                  <span style="font-size:12px;">${escapeHtml((mitre.justification && mitre.justification[tid]) || '')}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (decision) {
+        html += `
+          <div class="flyout-section">
+            <div class="flyout-section-title">Autonomous Response Recommendation</div>
+            <div style="padding:10px 12px; border:1px solid var(--wz-border); border-left:3px solid var(--wz-blue); border-radius:3px; background:var(--wz-surface-subdued);">
+              <div style="margin-bottom:4px;"><strong>Proposed Action:</strong> <span class="mono" style="color:var(--wz-blue);">${escapeHtml(decision.proposed_action)}</span></div>
+              <div style="font-size:12px; color:var(--wz-text-secondary);">${escapeHtml(decision.justification || '')}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      if (caseObj.notes && caseObj.notes.length) {
+        html += `
+          <div class="flyout-section">
+            <div class="flyout-section-title">Analyst Investigation Audit Trail</div>
+            <ul class="timeline-list" style="border-left-color:var(--wz-success);">
+              ${caseObj.notes.map(n => `<li><strong>[${escapeHtml(n.action)}]</strong> ${fmtTime(n.ts)} (${escapeHtml(n.analyst)}): ${escapeHtml(n.note)}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+
+      if (inc.validation_errors && inc.validation_errors.length) {
+        html += `
+          <div class="flyout-section">
+            <div class="flyout-section-title">Gate Validation Errors (Fail-Closed)</div>
+            <div style="padding:10px; background:var(--wz-danger-bg); border:1px solid var(--wz-danger-border); border-radius:3px; color:var(--wz-danger); font-size:12px;">
+              ${inc.validation_errors.map(e => `<div>&bull; ${escapeHtml(e)}</div>`).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      html += `
+        <div class="flyout-section">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div class="flyout-section-title" style="margin:0; border:none;">Raw Audit Document (JSON)</div>
+            <button class="eui-btn" onclick="copySelectedJson()">Copy JSON</button>
+          </div>
+          <pre class="json-viewer">${escapeHtml(JSON.stringify(inc, null, 2))}</pre>
+        </div>
+      `;
+
+      document.getElementById('flyout-content').innerHTML = html;
+      if (!keepOpen) {
+        document.getElementById('flyout-backdrop').classList.add('open');
+        document.getElementById('flyout-drawer').classList.add('open');
+      }
+    }
+
+    function closeFlyout() {
+      state.selectedIncidentId = null;
+      document.getElementById('flyout-backdrop').classList.remove('open');
+      document.getElementById('flyout-drawer').classList.remove('open');
+    }
+
+    function copySelectedJson() {
+      const inc = state.incidents.find(i => i.incident_id === state.selectedIncidentId);
+      if (inc) navigator.clipboard.writeText(JSON.stringify(inc, null, 2));
+    }
+
+    async function submitCaseAction(incId, action) {
+      const noteEl = document.getElementById('hitl-note-input');
+      const note = noteEl ? noteEl.value.trim() : '';
+      try {
+        await fetchJson(`/api/incidents/${encodeURIComponent(incId)}/case`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, note, analyst: 'tier2-soc-analyst' })
+        });
+        await refreshAll(false);
+      } catch (err) {
+        alert('Failed to update case: ' + err.message);
+      }
+    }
+
+    refreshAll(false);
+    setInterval(() => refreshAll(false), 10000);
+  </script>
+</body>
+</html>

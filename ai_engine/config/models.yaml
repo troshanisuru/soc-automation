@@ -5,14 +5,14 @@
 # Only these hosts may ever be called. Using a remote Ollama? Prefer an SSH tunnel
 # (ssh -L 11434:localhost:11434 ...) so this stays localhost; otherwise add the host here.
 ollama_base_url: "http://localhost:11434"   # can be overridden with env OLLAMA_BASE_URL (still checked)
-allowed_hosts: ["localhost", "127.0.0.1"]
+allowed_hosts: ["localhost", "127.0.0.1", "172.16.1.20"]
 
 defaults:
   timeout_seconds: 120    # per-request ceiling
-  num_ctx: 4096           # explicit context window (prompt is capped well below this)
-  keep_alive: "30m"       # keep the model in RAM; a cold load cost ~9s of a 16s call
+  num_ctx: 2048           # explicit context window (fast KV cache + fits capped prompts)
+  keep_alive: "60m"       # keep the model resident in RAM to eliminate cold loads
 
 # Keep temperature low-to-zero everywhere: consistency, not creativity.
-triage_agent:   { model: "llama3.1:latest", num_predict: 2000, temperature: 0.1 }
-mitre_agent:    { model: "llama3.1:latest", num_predict: 1500, temperature: 0.1 }
-decision_agent: { model: "llama3.1:latest", num_predict: 1000, temperature: 0.0 }
+triage_agent:   { model: "llama3.1:latest", num_predict: 900, temperature: 0.1 }
+mitre_agent:    { model: "llama3.1:latest", num_predict: 700, temperature: 0.1 }
+decision_agent: { model: "llama3.1:latest", num_predict: 450, temperature: 0.0 }

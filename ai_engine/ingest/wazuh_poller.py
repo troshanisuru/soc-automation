@@ -51,12 +51,30 @@ def parse_wazuh_alert(alert_dict: dict) -> NormalizedEvent:
     # Extract asset tag
     asset_tag = alert_dict.get("agent", {}).get("name", "unknown")
     
-    # Extract rule info
+    # Extract rule info (clamp Wazuh 0-15 scale into NormalizedEvent 0-10 severity scale)
     rule = alert_dict.get("rule", {})
-    severity = rule.get("level", 1)
+    raw_level = rule.get("level", 1)
+    severity = min(max(int(raw_level), 0), 10)
     raw_indicator = rule.get("description", "Unknown alert")
-    
+
     rule_id = str(rule.get("id", ""))
+    rule_groups = set(rule.get("groups", []) or [])
+    event_source = "waf" if (rule_id.startswith("1004") or "modsecurity" in rule_groups) else "wazuh"
+
+    # Enrich ModSecurity WAF indicators with extracted CRS rule ID, target URL, and Wazuh native MITRE hints
+    if event_source == "waf":
+        modsec = data.get("modsec", {}) if isinstance(data.get("modsec"), dict) else {}
+        extras = []
+        if modsec.get("rule_id"):
+            extras.append(f"CRS={modsec['rule_id']}")
+        if data.get("url"):
+            extras.append(f"url={data['url']}")
+        mitre_ids = rule.get("mitre", {}).get("id") if isinstance(rule.get("mitre"), dict) else None
+        if isinstance(mitre_ids, list) and mitre_ids:
+            extras.append(f"mitre_hint={','.join(str(m) for m in mitre_ids)}")
+        if extras:
+            raw_indicator = f"{raw_indicator} ({', '.join(extras)})"
+
     username = None
     auth_outcome = None
     user_valid = None
@@ -78,7 +96,7 @@ def parse_wazuh_alert(alert_dict: dict) -> NormalizedEvent:
 
     return NormalizedEvent(
         event_id=f"evt-{uuid.uuid4().hex[:8]}",
-        source="wazuh",
+        source=event_source,
         timestamp=datetime.fromisoformat(raw_ts),
         source_ip=src_ip,
         asset_tag=asset_tag,
@@ -93,19 +111,35 @@ def poll_alerts(log_path: str, interval: int = 30):
     logger.info(f"Starting Wazuh poller on {log_path} (interval: {interval}s)")
     if not os.path.exists(log_path):
         logger.warning(f"Alert log file not found: {log_path}")
-    
-    last_pos = 0
-    
+
+    start_from_end = os.getenv("WAZUH_START_FROM_END", "false").lower() in ("true", "1", "yes")
+    last_pos = os.path.getsize(log_path) if (start_from_end and os.path.exists(log_path)) else 0
+    if start_from_end:
+        logger.info(f"Starting from EOF offset {last_pos} bytes")
+
     while True:
         if os.path.exists(log_path):
-            with open(log_path, 'r') as f:
+            file_size = os.path.getsize(log_path)
+            if file_size < last_pos:
+                last_pos = 0  # handle log rotation
+            with open(log_path, 'r', encoding='utf-8', errors='replace') as f:
                 f.seek(last_pos)
-                lines = f.readlines()
+                complete_lines = []
+                while True:
+                    pos_before = f.tell()
+                    line = f.readline()
+                    if not line:
+                        break
+                    if not line.endswith('\n'):
+                        # Incomplete write in progress; rewind and read on next poll
+                        f.seek(pos_before)
+                        break
+                    complete_lines.append(line)
                 last_pos = f.tell()
-                
-                if lines:
-                    process_lines(lines)
-        
+
+                if complete_lines:
+                    process_lines(complete_lines)
+
         time.sleep(interval)
 
 def dispatch_execution(incident_state: IncidentState) -> Optional[ExecutionResult]:
@@ -144,12 +178,19 @@ def process_lines(lines: list, store: Optional[BaselineStore] = None):
     all_events = []
     ips_with_failures = set()
     
+    min_level = int(os.getenv("WAZUH_MIN_ALERT_LEVEL", "0"))
+    require_srcip = os.getenv("WAZUH_REQUIRE_SRCIP", "false").lower() in ("true", "1", "yes")
+
     for line in lines:
         if not line.strip():
             continue
         try:
             alert = json.loads(line)
+            if min_level > 0 and int(alert.get("rule", {}).get("level", 0)) < min_level:
+                continue
             event = parse_wazuh_alert(alert)
+            if require_srcip and event.source_ip in ("0.0.0.0", "::"):
+                continue
             all_events.append(event)
             if event.auth_outcome == "failure":
                 ips_with_failures.add(event.source_ip)

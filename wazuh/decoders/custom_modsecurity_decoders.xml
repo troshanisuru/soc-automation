@@ -1,0 +1,57 @@
+<!--
+  wazuh/decoders/custom_modsecurity_decoders.xml
+  Custom Wazuh Decoders for Nginx + ModSecurity v3 (OWASP Core Rule Set)
+  Deploy to: /var/ossec/etc/decoders/custom_modsecurity_decoders.xml on Wazuh Manager.
+
+  Matches live Nginx error.log entries such as:
+    2026/11/20 13:44:39 [error] 6306#6306: *4 [client 112.134.158.200] ModSecurity:
+    Access denied with code 403 (phase 2). ... [id "949110"] ...
+    [msg "Inbound Anomaly Score Exceeded (Total Score: 23)"] ...
+    client: 112.134.158.200, server: _, request: "GET /?id=1' UNION SELECT ... HTTP/1.1"
+-->
+
+<decoder name="nginx-modsecurity">
+  <prematch type="pcre2">ModSecurity:\s+</prematch>
+</decoder>
+
+<decoder name="nginx-modsecurity-client">
+  <parent>nginx-modsecurity</parent>
+  <regex type="pcre2">\[client\s+([0-9a-fA-F.:]+)\]</regex>
+  <order>srcip</order>
+</decoder>
+
+<decoder name="nginx-modsecurity-client-fallback">
+  <parent>nginx-modsecurity</parent>
+  <regex type="pcre2">client:\s+([0-9a-fA-F.:]+),</regex>
+  <order>srcip</order>
+</decoder>
+
+<decoder name="nginx-modsecurity-action">
+  <parent>nginx-modsecurity</parent>
+  <regex type="pcre2">ModSecurity:\s+(Access denied with code \d+|Warning)</regex>
+  <order>modsec.action</order>
+</decoder>
+
+<decoder name="nginx-modsecurity-rule-id">
+  <parent>nginx-modsecurity</parent>
+  <regex type="pcre2">\[id\s+"(\d+)"\]</regex>
+  <order>modsec.rule_id</order>
+</decoder>
+
+<decoder name="nginx-modsecurity-msg">
+  <parent>nginx-modsecurity</parent>
+  <regex type="pcre2">\[msg\s+"([^"]+)"\]</regex>
+  <order>modsec.msg</order>
+</decoder>
+
+<decoder name="nginx-modsecurity-score">
+  <parent>nginx-modsecurity</parent>
+  <regex type="pcre2">Total Score:\s+(\d+)</regex>
+  <order>modsec.anomaly_score</order>
+</decoder>
+
+<decoder name="nginx-modsecurity-request">
+  <parent>nginx-modsecurity</parent>
+  <regex type="pcre2">request:\s+"([A-Z]+)\s+(\S+)\s+HTTP/</regex>
+  <order>http.method,url</order>
+</decoder>
