@@ -9,7 +9,7 @@ allowed_hosts: ["localhost", "127.0.0.1", "172.16.1.20"]
 
 defaults:
   timeout_seconds: 120    # per-request ceiling
-  num_ctx: 2048           # explicit context window (fast KV cache + fits capped prompts)
+  num_ctx: 4096           # explicit context window (fits MITRE catalog + system guard + events)
   keep_alive: "60m"       # keep the model resident in RAM to eliminate cold loads
 
 # Keep temperature low-to-zero everywhere: consistency, not creativity.

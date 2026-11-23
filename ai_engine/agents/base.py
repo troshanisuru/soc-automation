@@ -18,6 +18,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import threading
 import time
 import urllib.error
@@ -50,9 +51,17 @@ _GUARD_RULES = (
 
 
 # --------------------------------------------------------------------------- prompt helpers
+_URL_QUERY_RE = re.compile(r"(url=[^,\s)\"]+?)\?[^,\s)\"]*")
+
+
 def neutralize(text: str) -> str:
     """Escape angle brackets so untrusted text cannot forge or close the boundary tags."""
     return text.replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _normalize_indicator_for_grouping(indicator: str) -> str:
+    """Strip query parameters from url=... tokens so fuzzer bursts on the same path collapse."""
+    return _URL_QUERY_RE.sub(r"\1", indicator)
 
 
 def format_events_for_prompt(events: Sequence[NormalizedEvent], limit: int = MAX_EVENTS_IN_PROMPT) -> str:
@@ -60,7 +69,13 @@ def format_events_for_prompt(events: Sequence[NormalizedEvent], limit: int = MAX
     Free text goes through json.dumps (quoted + escaped); the other fields are pattern-constrained."""
     grouped: Dict[tuple, list] = {}
     for e in events:
-        sig = (e.source, e.source_ip, e.asset_tag, e.severity, e.raw_indicator)
+        sig = (
+            e.source,
+            e.source_ip,
+            e.asset_tag,
+            e.severity,
+            _normalize_indicator_for_grouping(e.raw_indicator),
+        )
         if sig in grouped:
             grouped[sig][1] += 1
         else:

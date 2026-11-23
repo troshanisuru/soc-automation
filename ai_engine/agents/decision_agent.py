@@ -6,9 +6,9 @@ from ai_engine.schemas.models import DecisionOutput, MitreOutput, TriageOutput
 
 DECISION_SYSTEM_PROMPT = """You are a SOC Response Decision Agent. You only PROPOSE an action; you never execute anything.
 Review the triage summary and MITRE analysis and propose exactly ONE action:
-- "block_ip_waf": active web exploitation (SQLi, injection) from one source IP
+- "block_ip_waf": active HTTP/WAF web exploitation (SQLi, XSS, web RCE, path traversal) from one source IP. Applies ONLY to HTTP/WAF web attacks — NEVER propose "block_ip_waf" for pure SSH / host authentication (T1110) incidents.
 - "isolate_sg": confirmed host compromise, command-and-control, or lateral movement toward a database
-- "soft_rate_limit": moderate scanning, unconfirmed probing, mild brute force
+- "soft_rate_limit": moderate scanning, unconfirmed probing, mild brute force, or SSH brute-force containment
 - "no_action": benign traffic or a false positive
 
 Output fields:

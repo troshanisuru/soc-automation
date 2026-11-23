@@ -62,16 +62,31 @@ def main():
 
     print(f"[+] Found {len(folder_map)} folders and {len(file_map)} files on Drive.")
 
-    # Get clean git tracked files
-    res = subprocess.run(["git", "ls-files"], cwd=REPO_ROOT, capture_output=True, text=True, check=True)
-    tracked_files = [f.strip() for f in res.stdout.splitlines() if f.strip()]
-    print(f"[*] Found {len(tracked_files)} clean tracked files in git repository.")
+    # Get clean git tracked + non-ignored untracked files
+    res = subprocess.run(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    tracked_files = sorted(set(f.strip() for f in res.stdout.splitlines() if f.strip()))
+    print(f"[*] Found {len(tracked_files)} clean project files in repository.")
 
-    # Get changed files in recent commits
-    try:
-        res = subprocess.run(["git", "diff", "--name-only", "4a9c11f", "HEAD"], cwd=REPO_ROOT, capture_output=True, text=True, check=True)
-        changed_files = set(f.strip() for f in res.stdout.splitlines() if f.strip())
-    except Exception:
+    # Get changed/untracked files in working tree + recent commit
+    changed_files = set()
+    for cmd in (
+        ["git", "diff", "--name-only", "HEAD"],
+        ["git", "diff", "--cached", "--name-only"],
+        ["git", "ls-files", "--others", "--exclude-standard"],
+        ["git", "diff", "--name-only", "HEAD~1", "HEAD"],
+    ):
+        try:
+            r = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True, check=True)
+            changed_files.update(f.strip() for f in r.stdout.splitlines() if f.strip())
+        except Exception:
+            pass
+    if not changed_files:
         changed_files = set(tracked_files)
 
     print(f"[*] Identified {len(changed_files)} recently modified or added files.")

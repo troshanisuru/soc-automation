@@ -144,6 +144,23 @@ def _check_authorization(state: IncidentState, requested_action: str) -> Optiona
         logger.error(err_msg)
         return ExecutionResult(action=requested_action, status="refused", details={"error": err_msg})
 
+    events = getattr(state, "events", None) or []
+    if (
+        requested_action == "block_ip_waf"
+        and events
+        and all(getattr(e, "source", None) == "wazuh" and getattr(e, "auth_outcome", None) is not None for e in events)
+    ):
+        err_msg = "action block_ip_waf refused: HTTP WAF block cannot contain pure host SSH authentication incident"
+        logger.error(err_msg)
+        _audit({
+            "ts": time.time(),
+            "incident_id": state.incident_id,
+            "action": requested_action,
+            "status": "refused",
+            "reason": err_msg,
+        })
+        return ExecutionResult(action=requested_action, status="refused", details={"error": err_msg})
+
     return None
 
 

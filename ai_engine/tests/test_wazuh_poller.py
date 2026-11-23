@@ -348,3 +348,51 @@ def test_modsecurity_sqli_rule_100402_does_not_false_match_generic_post():
     py_pattern = regex_pattern.removeprefix("(?i)")
     assert re.search(py_pattern, 'ModSecurity: Access denied with code 403 ... [request "POST / HTTP/1.1"]', re.IGNORECASE) is None
     assert re.search(py_pattern, 'ModSecurity: Access denied with code 403 [id "942100"] [data "Matched Data: UNION SELECT"]', re.IGNORECASE) is not None
+
+
+def test_cross_batch_baseline_poisoning_is_blocked(monkeypatch):
+    """Fix 1: SSH failure in batch 1 prevents baseline learning of SSH success in batch 2 within window."""
+    from datetime import timezone
+    from ai_engine.baseline.store import BaselineStore
+    from ai_engine.correlation.correlate import EventCorrelator
+
+    store = BaselineStore(db_path=":memory:", min_age_seconds=0)
+    correlator = EventCorrelator(window_seconds=60)
+
+    batch1_fail = json.dumps({
+        "id": "1727320522.201",
+        "timestamp": "2026-09-26T03:15:00.000Z",
+        "rule": {"id": "5716", "level": 5, "description": "sshd: authentication failed"},
+        "agent": {"name": "web-01"},
+        "data": {"srcip": "198.51.100.88", "dstuser": "root"},
+    })
+    batch2_succ = json.dumps({
+        "id": "1727320522.202",
+        "timestamp": "2026-09-26T03:15:30.000Z",
+        "rule": {"id": "5715", "level": 3, "description": "sshd: authentication succeeded"},
+        "agent": {"name": "web-01"},
+        "data": {"srcip": "198.51.100.88", "dstuser": "root"},
+    })
+
+    with patch("ai_engine.ingest.wazuh_poller.run_incident", return_value=None), \
+         patch("ai_engine.ingest.wazuh_poller.run_incident_state", return_value=None):
+        process_lines([batch1_fail], store=store, correlator=correlator)
+        process_lines([batch2_succ], store=store, correlator=correlator)
+
+    now = datetime(2026, 9, 26, 3, 20, 0, tzinfo=timezone.utc)
+    assert store.is_known_pair("root", "198.51.100.88", now) is False
+    store.close()
+
+
+def test_parse_wazuh_alert_maps_flowlog_source():
+    """Fix 2: OCI VCN Flow Log alerts map to event.source == 'flowlog'."""
+    alert_oci_flow = {
+        "id": "1727320522.301",
+        "timestamp": "2026-09-26T03:15:22.000Z",
+        "rule": {"id": "100105", "level": 8, "description": "OCI VCN Flow Log rejected traffic", "groups": ["oci", "vcn_flow"]},
+        "agent": {"name": "wazuh-manager"},
+        "data": {"oci": {"sourceAddress": "198.51.100.55"}},
+    }
+    ev = parse_wazuh_alert(alert_oci_flow)
+    assert ev.source == "flowlog"
+    assert ev.source_ip == "198.51.100.55"

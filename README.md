@@ -43,10 +43,29 @@ Do not store OCI API private keys or SSH private keys in this repository or in `
 
 ## Folder Purpose
 
-- `ai_engine/` - AI-driven multi-agent SOC reasoning, deterministic gate, dashboard, and OCI active-response executor (`ai_engine/executor/oci_executor.py`).
+- `ai_engine/` - AI-driven 3-agent SOC reasoning (`triage_agent`, `mitre_agent`, `decision_agent`), stateful `EventCorrelator`, deterministic risk scoring gate (`scoring.py`), authentication false-positive policy (`policy.py` + SQLite `BaselineStore`), Wazuh EUI observability & HITL case management dashboard (`ai_engine/dashboard/server.py`), and OCI active-response executor (`ai_engine/executor/oci_executor.py`).
+- `Dockerfile`, `docker-compose.yml`, `docker-compose.demo.yml` - Hybrid Docker containerization for `ai_engine` (`soc-poller` and `soc-dashboard` on OCI `wazuh-manager`, plus an offline Viva backup demo stack with `soc-llm-mock`).
 - `archive/` - Archived prototype v1 code.
 - `docs/` - Architectural migration documentation and AWS-to-OCI comparison ([docs/AWS_TO_OCI_MIGRATION.md](docs/AWS_TO_OCI_MIGRATION.md)).
-- `evidence/` - Project verification evidence and sanitized OCI inventory outputs.
-- `infra/` - OCI VCN, Local Peering Gateway, Network Security Group, Dynamic Group IAM, and Always Free Compute provisioning scripts.
-- `scripts/` - Helper scripts for OCI Object Storage / VCN Flow Log setup (`scripts/01_setup_oci_logging.sh`).
-- `wazuh/` - Wazuh configuration (`wazuh_ossec_oci.xml`), custom OCI detection rules (`custom_oci_rules.xml`), and sample alert payloads.
+- `evidence/` - Quantitative Phase 8 AI Engine evaluation reports ([evidence/ai_engine_evaluation_report.md](evidence/ai_engine_evaluation_report.md), [evidence/ai_engine_evaluation_report.json](evidence/ai_engine_evaluation_report.json)), OWASP WAF attack verification reports, and sanitized OCI inventory outputs.
+- `infra/` - OCI Dual-VCN, Local Peering Gateway, Network Security Group, Dynamic Group IAM, and Compute provisioning scripts.
+- `scripts/` - Deployment automation (`01`–`08`), OWASP WAF verification (`test_web_attacks.py`), Phase 8 evaluation harness (`evaluate_ai_engine.py`), and offline Ollama-compatible mock server (`soc_llm_server.py`).
+- `wazuh/` - Wazuh configuration (`wazuh_ossec_oci.xml`), custom ModSecurity WAF decoders (`custom_modsecurity_decoders.xml`) and rules (`custom_modsecurity_rules.xml`, `custom_oci_rules.xml`, `custom_ssh_rules.xml`), and sample alert payloads.
+
+## Running Tests & Phase 8 Evaluation
+
+```bash
+# Run the 220-test unit & integration suite
+.venv/bin/pytest ai_engine/tests -q
+
+# Run the 20-scenario Phase 8 quantitative benchmark against OCI Ollama
+PYTHONPATH=. .venv/bin/python3 scripts/evaluate_ai_engine.py \
+  --ollama-url http://172.16.1.20:11434 \
+  --mode live-ollama \
+  --out-json evidence/ai_engine_evaluation_report.json \
+  --out-md evidence/ai_engine_evaluation_report.md
+
+# Run via Hybrid Docker on wazuh-manager (or offline Viva demo locally)
+docker compose up -d --build
+docker compose -f docker-compose.demo.yml up -d --build
+```

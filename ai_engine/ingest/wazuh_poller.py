@@ -24,11 +24,33 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 AUTH_ALLOWLIST_RULES = {"5710", "5715", "5716", "100301"}
+RECENT_FAILURE_WINDOW_SECONDS = 300
+_MAX_RECENT_FAILURE_IPS = 10000
 _EVENT_ID_RE = re.compile(EVENT_ID_PATTERN)
 _INVALID_EVENT_ID_CHARS = re.compile(r"[^A-Za-z0-9._:\-]")
 
 _baseline_store: Optional[BaselineStore] = None
 _correlator: Optional[EventCorrelator] = None
+_fallback_recent_failures: dict[str, datetime] = {}
+
+
+def _get_recent_failures_map(store: Optional[BaselineStore]) -> dict[str, datetime]:
+    if store is None:
+        return _fallback_recent_failures
+    tracker = getattr(store, "_recent_auth_failures", None)
+    if not isinstance(tracker, dict):
+        try:
+            tracker = {}
+            setattr(store, "_recent_auth_failures", tracker)
+        except Exception:
+            return _fallback_recent_failures
+    return tracker
+
+
+def reset_recent_failures(store: Optional[BaselineStore] = None) -> None:
+    _fallback_recent_failures.clear()
+    if store is not None and isinstance(getattr(store, "_recent_auth_failures", None), dict):
+        store._recent_auth_failures.clear()
 
 def get_baseline_store() -> BaselineStore:
     global _baseline_store
@@ -81,7 +103,12 @@ def parse_wazuh_alert(alert_dict: dict) -> NormalizedEvent:
 
     rule_id = str(rule.get("id", ""))
     rule_groups = set(rule.get("groups", []) or [])
-    event_source = "waf" if (rule_id.startswith("1004") or "modsecurity" in rule_groups) else "wazuh"
+    is_waf = rule_id.startswith("1004") or "modsecurity" in rule_groups
+    is_flowlog = not is_waf and (
+        bool(rule_groups & {"flowlog", "vcn_flow", "vcn-flow"})
+        or bool(isinstance(data.get("oci"), dict) and data.get("oci", {}).get("sourceAddress"))
+    )
+    event_source = "waf" if is_waf else ("flowlog" if is_flowlog else "wazuh")
 
     # Enrich ModSecurity WAF indicators with extracted CRS rule ID, target URL, and Wazuh native MITRE hints
     if event_source == "waf":
@@ -246,11 +273,34 @@ def process_lines(
         except Exception as e:
             logger.error(f"Error processing alert: {e}")
             
-    # Baseline learning: record successes only if source_ip had no failures in this batch
+    recent_failures = _get_recent_failures_map(store)
+    open_failure_ips: set[str] = set()
+    if correlator is not None:
+        for inc in correlator.open_incidents().values():
+            if any(e.auth_outcome == "failure" for e in inc.events):
+                open_failure_ips.add(inc.correlation_key[0])
+
     for event in all_events:
-        if event.auth_outcome == "success" and event.source_ip not in ips_with_failures:
-            if event.username:
-                store.record_success(event.username, event.source_ip, event.timestamp)
+        if event.auth_outcome == "failure":
+            prev_ts = recent_failures.get(event.source_ip)
+            if prev_ts is None or event.timestamp > prev_ts:
+                recent_failures[event.source_ip] = event.timestamp
+            while len(recent_failures) > _MAX_RECENT_FAILURE_IPS:
+                recent_failures.pop(next(iter(recent_failures)))
+
+    # Baseline learning: record successes only if source_ip had no failures in this batch,
+    # no open incident with failures in correlator, and no failure within RECENT_FAILURE_WINDOW_SECONDS
+    for event in all_events:
+        if event.auth_outcome == "success" and event.username:
+            if event.source_ip in ips_with_failures or event.source_ip in open_failure_ips:
+                continue
+            last_fail_ts = recent_failures.get(event.source_ip)
+            if (
+                last_fail_ts is not None
+                and abs((event.timestamp - last_fail_ts).total_seconds()) <= RECENT_FAILURE_WINDOW_SECONDS
+            ):
+                continue
+            store.record_success(event.username, event.source_ip, event.timestamp)
 
     if correlator is not None:
         for event in all_events:

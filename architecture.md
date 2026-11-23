@@ -81,7 +81,8 @@ graph TD
    - The SOC Brain (`ai_engine/ingest/wazuh_poller.py`) tails the Wazuh JSON alerts and normalizes both OCI cloud payloads (`data.oci.*` / `data.aws.*` S3-compat) and host authentication alerts into the strongly-typed `NormalizedEvent` Pydantic model.
 
 4. **Multi-Agent Decision & Mitigation Phase (Deterministic State Machine):**
-   - **Three agents in sequence**: `TriageAgent` -> `MitreAgent` -> `DecisionAgent`.
-   - Each agent output is strictly validated against its Pydantic schema before the next stage runs.
-   - **Deterministic Gate**: Evaluates weighted risk scores against policy thresholds (`autonomous_threshold: 0.75`, `soft_threshold: 0.45`) before authorizing active response.
-   - **OCI Active Response Executor (`ai_engine/executor/oci_executor.py`)**: Uses the `oci` Python SDK (supporting both local `~/.oci/config` profiles and on-instance Dynamic Group Instance Principals) to update OCI WAF Network Address Lists or OCI Network Security Groups (NSGs), with built-in `SHADOW_MODE` simulation and protected-IP safety guards.
+   - **Three agents in sequence**: `TriageAgent` -> `MitreAgent` -> `DecisionAgent` (backed by Ollama `llama3.2:3b` on `ollama-server` `172.16.1.20:11434`, with `num_ctx: 4096`, `<untrusted_log>` prompt-injection isolation, catalog-grounded MITRE mapping, and fuzzer URL query-string burst collapsing).
+   - Each agent output is strictly validated against its Pydantic schema and deterministic evidence citation/MITRE catalog checks (`validator.py`) before the next stage runs.
+   - **Deterministic Gate & Auth False-Positive Policy**: Evaluates weighted risk scores (`scoring.py`, `autonomous_threshold: 0.75`, `soft_threshold: 0.45`) and authentication behavioral features (`policy.py` R0–R5 backed by SQLite `BaselineStore` with cross-batch poisoning protection) before authorizing active response.
+   - **OCI Active Response Executor (`ai_engine/executor/oci_executor.py`)**: Uses the `oci` Python SDK to perform idempotent, ETag-verified updates to OCI WAF Network Address Lists or simulated NSG quarantine, enforcing `SHADOW_MODE=true` by default, protected RFC 1918 CIDR checks, and pure-SSH WAF block refusals.
+   - **Hybrid Docker & Observability (`Dockerfile`, `docker-compose.yml`, `docker-compose.demo.yml`)**: Containerizes `soc-poller` and `soc-dashboard` (port `8080`, Wazuh EUI theme with Tier-2 HITL case management) under non-root `socuser` (UID `1000`), mounting `/var/ossec/logs/alerts` as a read-only directory to survive daily Wazuh log rotation.

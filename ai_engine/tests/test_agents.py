@@ -225,6 +225,27 @@ def test_scanner_burst_collapses_identical_events_under_payload_cap():
     assert res is not None and post.call_count == 1
 
 
+def test_fuzzer_varying_query_strings_collapse_into_single_group():
+    """Fix 3: Fuzzer bursts with varying query parameters on the same URL path collapse with repeat_count=N."""
+    fuzzer_events = [
+        make_event(
+            f"evt-fuzz-{i}",
+            i,
+            source="waf",
+            severity=10,
+            asset="prod-web",
+            indicator=f"ModSecurity WAF: SQL Injection attack blocked (CRS=942100, url=/login.php?id={i}&fuzz={'A'*80}, mitre_hint=T1190)",
+        )
+        for i in range(150)
+    ]
+    text = format_events_for_prompt(fuzzer_events)
+    assert text.count("event_id=") == 1
+    assert "event_id=evt-fuzz-0" in text
+    assert "repeat_count=150" in text
+    assert "url=/login.php?id=0" in text
+    assert len(text) < MAX_PAYLOAD_CHARS
+
+
 def test_triage_agent_passes_formatted_events():
     captured = {}
     fake = TriageOutput(**VALID_TRIAGE)

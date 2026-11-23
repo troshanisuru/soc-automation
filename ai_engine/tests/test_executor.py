@@ -198,3 +198,30 @@ def test_live_mode_waf_merges_addresses_with_etag_and_is_idempotent(mock_audit, 
     assert res_rate.details["already_present"] is True
     assert res_rate.details["addresses"] == ["203.0.113.99/32", "1.2.3.4/32"]
     mock_client.update_network_address_list.assert_not_called()
+
+
+@patch("ai_engine.executor.oci_executor._audit")
+def test_block_ip_waf_is_refused_for_pure_ssh_auth_incident(mock_audit):
+    """Fix 4: Pure host SSH authentication incidents cannot be remediated via HTTP WAF block."""
+    ssh_event = NormalizedEvent(
+        event_id="evt-ssh-1",
+        source="wazuh",
+        timestamp=datetime.now(timezone.utc),
+        source_ip="198.51.100.77",
+        asset_tag="web-server",
+        severity=5,
+        raw_indicator="sshd: authentication failed",
+        username="admin",
+        auth_outcome="failure",
+        user_valid=True,
+    )
+    state = IncidentState(
+        incident_id="inc-ssh-only",
+        correlation_key=("198.51.100.77", "web-server"),
+        events=[ssh_event],
+        status="closed",
+        final_decision="autonomous",
+    )
+    res = execute_block_ip_waf(state)
+    assert res.status == "refused"
+    assert "pure host SSH" in res.details["error"]
